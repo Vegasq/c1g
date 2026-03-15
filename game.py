@@ -57,7 +57,6 @@ class Obstacle:
         self.y = y
         self.w = w
         self.h = h
-        self.rect = pygame.Rect(x, y, w, h)
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
@@ -78,7 +77,20 @@ class Obstacle:
         dy = cy - closest_y
         dist_sq = dx * dx + dy * dy
         if dist_sq == 0:
-            cx = self.x - radius
+            # Circle center is inside obstacle; push to nearest edge
+            left = cx - self.x
+            right = (self.x + self.w) - cx
+            top = cy - self.y
+            bottom = (self.y + self.h) - cy
+            min_dist = min(left, right, top, bottom)
+            if min_dist == left:
+                cx = self.x - radius
+            elif min_dist == right:
+                cx = self.x + self.w + radius
+            elif min_dist == top:
+                cy = self.y - radius
+            else:
+                cy = self.y + self.h + radius
             return cx, cy
         if dist_sq < radius * radius:
             dist = math.sqrt(dist_sq)
@@ -463,7 +475,6 @@ def run():
         for e in enemies:
             if math.hypot(e.x - player.x, e.y - player.y) < e.RADIUS + player.RADIUS:
                 player.hp -= 1
-                score += 1
                 # 1-in-10 chance to convert to ally
                 if random.random() < 0.1:
                     color = random.choice(ALLY_COLORS)
