@@ -261,13 +261,13 @@ def run():
         # Spawn enemies
         spawn_timer += 1
         wave_timer += 1
-        if wave_timer > 600:
+        if wave_timer > 480:
             wave += 1
             wave_timer = 0
-            spawn_interval = max(20, spawn_interval - 8)
+            spawn_interval = max(10, spawn_interval - 14)
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
-            for _ in range(wave):
+            for _ in range(wave + wave // 2):
                 enemies.append(Enemy(camera))
 
         # Tick ally lifetimes and remove expired allies

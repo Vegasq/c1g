@@ -42,10 +42,10 @@ Enhance Squad Survivors with a scrollable 4096x3072 map, camera system, reduced 
 **Files:**
 - Modify: `game.py`
 
-- [ ] Reduce the spawn interval floor (allow it to get faster than current minimum)
-- [ ] Increase the rate at which spawn_interval decreases (e.g. decrease by 12 instead of 8 every wave)
-- [ ] Increase wave enemy count scaling (e.g. wave grows faster)
-- [ ] Manual test: enemy density noticeably increases over 2-3 minutes of play
+- [x] Reduce the spawn interval floor (allow it to get faster than current minimum)
+- [x] Increase the rate at which spawn_interval decreases (e.g. decrease by 12 instead of 8 every wave)
+- [x] Increase wave enemy count scaling (e.g. wave grows faster)
+- [x] Manual test: enemy density noticeably increases over 2-3 minutes of play
 
 ## Task 4 - Obstacles
 
