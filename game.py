@@ -128,17 +128,31 @@ def generate_obstacles(count=30):
     return obstacles
 
 
+def default_weapon_stats():
+    """Return default weapon stats dict."""
+    return {
+        "damage": 1,
+        "fire_rate": 25,
+        "bullet_speed": 8,
+        "range": 90,
+        "weapon_type": "normal",
+    }
+
+
 class Bullet:
     SPEED = 8
     RADIUS = 4
     LIFETIME = 90  # frames
 
-    def __init__(self, x, y, dx, dy):
+    def __init__(self, x, y, dx, dy, damage=1, speed=None, lifetime=None):
         self.x, self.y = x, y
+        spd = speed if speed is not None else self.SPEED
+        life = lifetime if lifetime is not None else self.LIFETIME
+        self.damage = damage
         length = math.hypot(dx, dy) or 1
-        self.vx = dx / length * self.SPEED
-        self.vy = dy / length * self.SPEED
-        self.life = self.LIFETIME
+        self.vx = dx / length * spd
+        self.vy = dy / length * spd
+        self.life = life
 
     def update(self):
         self.x += self.vx
@@ -187,14 +201,20 @@ class Unit:
         for obs in obstacles:
             self.x, self.y = obs.push_circle_out(self.x, self.y, self.RADIUS)
 
-    def shoot_at(self, target, bullets):
+    def shoot_at(self, target, bullets, weapon_stats=None):
         if self.cooldown > 0:
             self.cooldown -= 1
             return
+        fire_rate = weapon_stats["fire_rate"] if weapon_stats else self.SHOOT_COOLDOWN
+        bullet_speed = weapon_stats["bullet_speed"] if weapon_stats else Bullet.SPEED
+        bullet_range = weapon_stats["range"] if weapon_stats else Bullet.LIFETIME
+        damage = weapon_stats["damage"] if weapon_stats else 1
         dx, dy = target.x - self.x, target.y - self.y
-        if math.hypot(dx, dy) < 350:
-            bullets.append(Bullet(self.x, self.y, dx, dy))
-            self.cooldown = self.SHOOT_COOLDOWN
+        shoot_dist = bullet_range * bullet_speed  # max distance bullets can travel
+        if math.hypot(dx, dy) < shoot_dist:
+            bullets.append(Bullet(self.x, self.y, dx, dy,
+                                  damage=damage, speed=bullet_speed, lifetime=bullet_range))
+            self.cooldown = fire_rate
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
@@ -346,11 +366,12 @@ def run():
     xp = 0
     level = 1
     xp_thresholds = generate_xp_thresholds()
+    weapon_stats = default_weapon_stats()
 
     def reset_game():
         nonlocal camera, player, obstacles, allies, enemies, bullets, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
-        nonlocal xp, level
+        nonlocal xp, level, weapon_stats
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -364,6 +385,7 @@ def run():
         wave_timer = 0
         xp = 0
         level = 1
+        weapon_stats = default_weapon_stats()
 
     running = True
 
@@ -454,7 +476,8 @@ def run():
         for u in squad:
             target = find_closest_enemy(u, enemies)
             if target:
-                u.shoot_at(target, bullets)
+                ws = weapon_stats if u.is_player else None
+                u.shoot_at(target, bullets, weapon_stats=ws)
 
         # Update bullets
         for b in bullets:
@@ -474,7 +497,7 @@ def run():
             hit = False
             for b in bullets:
                 if b.life > 0 and math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
-                    e.hp -= 1
+                    e.hp -= b.damage
                     b.life = 0
                     if e.hp <= 0:
                         hit = True

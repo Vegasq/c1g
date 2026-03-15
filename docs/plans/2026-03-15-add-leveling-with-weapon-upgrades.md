@@ -32,11 +32,11 @@ Add XP-based leveling system with weapon stat upgrades and new weapon types at m
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add weapon stats dict to player state: damage (default 1), fire_rate (default 25 cooldown), bullet_speed (default 8), range (default 90 frames lifetime), weapon_type (default "normal")
-- [ ] Make Bullet class use these stats (pass them to constructor) instead of class-level constants
-- [ ] Make Unit.shoot_at use player weapon stats for cooldown and range check distance
-- [ ] Write tests for weapon stats affecting bullet behavior
-- [ ] Run tests - must pass before task 3
+- [x] Add weapon stats dict to player state: damage (default 1), fire_rate (default 25 cooldown), bullet_speed (default 8), range (default 90 frames lifetime), weapon_type (default "normal")
+- [x] Make Bullet class use these stats (pass them to constructor) instead of class-level constants
+- [x] Make Unit.shoot_at use player weapon stats for cooldown and range check distance
+- [x] Write tests for weapon stats affecting bullet behavior
+- [x] Run tests - must pass before task 3
 
 ## Task 3 - Level-up upgrade selection UI
 
