@@ -207,7 +207,7 @@ class Unit:
         # HP bar
         bar_w = self.RADIUS * 2
         max_hp = 5 if self.is_player else 3
-        filled = bar_w * self.hp / max_hp
+        filled = bar_w * max(0, self.hp) / max_hp
         bx = sx - bar_w // 2
         by = sy - self.RADIUS - 8
         pygame.draw.rect(screen, HEALTH_BG, (bx, by, bar_w, 4))
@@ -475,10 +475,6 @@ def run():
         for e in enemies:
             if math.hypot(e.x - player.x, e.y - player.y) < e.RADIUS + player.RADIUS:
                 player.hp -= 1
-                # 1-in-10 chance to convert to ally
-                if random.random() < 0.1:
-                    color = random.choice(ALLY_COLORS)
-                    allies.append(Unit(e.x, e.y, color))
             else:
                 surviving.append(e)
         enemies = surviving
