@@ -12,6 +12,12 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Squad Survivors")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 36)
+title_font = pygame.font.SysFont(None, 72)
+
+# Game states
+STATE_MENU = 0
+STATE_PLAYING = 1
+STATE_GAME_OVER = 2
 
 # Colors
 BG = (20, 20, 30)
@@ -273,7 +279,28 @@ def draw_grid(camera):
     pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
 
 
+def draw_menu():
+    screen.fill(BG)
+    title = title_font.render("Squad Survivors", True, PLAYER_COLOR)
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
+    prompt = font.render("Press ENTER to Start", True, (200, 200, 200))
+    screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 40))
+    pygame.display.flip()
+
+
+def draw_game_over(score):
+    screen.fill(BG)
+    t1 = title_font.render("GAME OVER", True, (255, 100, 100))
+    screen.blit(t1, (WIDTH // 2 - t1.get_width() // 2, HEIGHT // 3))
+    t2 = font.render(f"Score: {score}", True, (220, 220, 220))
+    screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, HEIGHT // 2 + 20))
+    t3 = font.render("Press ENTER to Restart", True, (200, 200, 200))
+    screen.blit(t3, (WIDTH // 2 - t3.get_width() // 2, HEIGHT // 2 + 60))
+    pygame.display.flip()
+
+
 def run():
+    state = STATE_MENU
     camera = Camera()
     player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
     obstacles = generate_obstacles()
@@ -286,23 +313,48 @@ def run():
     wave = 1
     wave_timer = 0
 
+    def reset_game():
+        nonlocal camera, player, obstacles, allies, enemies, bullets, score
+        nonlocal spawn_timer, spawn_interval, wave, wave_timer
+        camera = Camera()
+        player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
+        obstacles = generate_obstacles()
+        allies = []
+        enemies = []
+        bullets = []
+        score = 0
+        spawn_timer = 0
+        spawn_interval = 90
+        wave = 1
+        wave_timer = 0
+
     running = True
-    game_over = False
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-            if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                return run()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if state == STATE_PLAYING:
+                        state = STATE_MENU
+                    elif state == STATE_MENU:
+                        running = False
+                elif event.key == pygame.K_RETURN:
+                    if state == STATE_MENU:
+                        reset_game()
+                        state = STATE_PLAYING
+                    elif state == STATE_GAME_OVER:
+                        reset_game()
+                        state = STATE_PLAYING
 
-        if game_over:
-            screen.fill(BG)
-            t = font.render(f"GAME OVER — Score: {score}  Press R to restart", True, (255, 100, 100))
-            screen.blit(t, (WIDTH // 2 - t.get_width() // 2, HEIGHT // 2))
-            pygame.display.flip()
+        if state == STATE_MENU:
+            draw_menu()
+            clock.tick(FPS)
+            continue
+
+        if state == STATE_GAME_OVER:
+            draw_game_over(score)
             clock.tick(FPS)
             continue
 
@@ -421,7 +473,7 @@ def run():
         enemies = surviving
 
         if player.hp <= 0:
-            game_over = True
+            state = STATE_GAME_OVER
 
         # Draw
         screen.fill(BG)

@@ -65,11 +65,11 @@ Enhance Squad Survivors with a scrollable 4096x3072 map, camera system, reduced 
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create a menu screen with "Squad Survivors" title and "Press ENTER to Start" prompt
-- [ ] Add game state management (MENU, PLAYING, GAME_OVER)
-- [ ] On death, show game over screen with score and "Press ENTER to Restart"
-- [ ] ESC from gameplay returns to menu
-- [ ] Manual test: full flow from menu to gameplay to death to restart
+- [x] Create a menu screen with "Squad Survivors" title and "Press ENTER to Start" prompt
+- [x] Add game state management (MENU, PLAYING, GAME_OVER)
+- [x] On death, show game over screen with score and "Press ENTER to Restart"
+- [x] ESC from gameplay returns to menu
+- [x] Manual test: full flow from menu to gameplay to death to restart
 
 ## Final Verification
 
