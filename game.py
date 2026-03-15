@@ -264,6 +264,24 @@ class Enemy:
         pygame.draw.polygon(screen, (200, 40, 40), points, 2)
 
 
+def generate_xp_thresholds(max_level=50):
+    """Generate XP thresholds for each level. Level n requires thresholds[n-1] XP."""
+    thresholds = []
+    for i in range(max_level):
+        thresholds.append(10 + i * 5 + i * i * 2)
+    return thresholds
+
+
+def check_level_up(xp, level, thresholds):
+    """Check if xp >= threshold for current level. Returns (new_xp, new_level, leveled_up)."""
+    if level - 1 >= len(thresholds):
+        return xp, level, False
+    threshold = thresholds[level - 1]
+    if xp >= threshold:
+        return xp - threshold, level + 1, True
+    return xp, level, False
+
+
 def find_closest_enemy(unit, enemies):
     best, best_d = None, float('inf')
     for e in enemies:
@@ -325,10 +343,14 @@ def run():
     spawn_interval = 90  # frames between spawns
     wave = 1
     wave_timer = 0
+    xp = 0
+    level = 1
+    xp_thresholds = generate_xp_thresholds()
 
     def reset_game():
         nonlocal camera, player, obstacles, allies, enemies, bullets, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
+        nonlocal xp, level
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -340,6 +362,8 @@ def run():
         spawn_interval = 90
         wave = 1
         wave_timer = 0
+        xp = 0
+        level = 1
 
     running = True
 
@@ -461,6 +485,12 @@ def run():
         enemies = new_enemies
         score += killed
 
+        # Award XP and check level-up
+        xp += killed
+        leveled_up = True
+        while leveled_up:
+            xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
+
         # Spawn allies for kills (1-in-10 chance per kill)
         for _ in range(killed):
             if random.random() < 0.1:
@@ -501,8 +531,18 @@ def run():
         player.draw(camera)
 
         # HUD
-        hud = font.render(f"Score: {score}   Squad: {1 + len(allies)}   Wave: {wave}", True, (220, 220, 220))
+        hud = font.render(f"Score: {score}   Squad: {1 + len(allies)}   Wave: {wave}   Lv: {level}", True, (220, 220, 220))
         screen.blit(hud, (10, 10))
+
+        # XP bar
+        xp_bar_w = 200
+        xp_bar_h = 8
+        xp_bar_x = 10
+        xp_bar_y = 42
+        current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
+        xp_fill = min(xp_bar_w, int(xp_bar_w * xp / current_threshold))
+        pygame.draw.rect(screen, HEALTH_BG, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h))
+        pygame.draw.rect(screen, (180, 120, 255), (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
 
         pygame.display.flip()
         clock.tick(FPS)
