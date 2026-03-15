@@ -70,12 +70,15 @@ class Unit:
     SPEED = 2.5
     SHOOT_COOLDOWN = 25
 
+    ALLY_LIFETIME = 600  # frames (~10 seconds)
+
     def __init__(self, x, y, color, is_player=False):
         self.x, self.y = float(x), float(y)
         self.color = color
         self.is_player = is_player
         self.cooldown = 0
         self.hp = 5 if is_player else 3
+        self.lifetime = -1 if is_player else self.ALLY_LIFETIME
 
     def move_towards(self, tx, ty, allies):
         dx, dy = tx - self.x, ty - self.y
@@ -108,7 +111,12 @@ class Unit:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        pygame.draw.circle(screen, self.color, (sx, sy), self.RADIUS)
+        # Fade ally color based on remaining lifetime
+        draw_color = self.color
+        if not self.is_player and self.lifetime >= 0:
+            fade = max(0.2, self.lifetime / self.ALLY_LIFETIME)
+            draw_color = tuple(int(c * fade) for c in self.color)
+        pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS)
         pygame.draw.circle(screen, (255, 255, 255), (sx, sy), self.RADIUS, 2)
         # HP bar
         bar_w = self.RADIUS * 2
@@ -118,6 +126,12 @@ class Unit:
         by = sy - self.RADIUS - 8
         pygame.draw.rect(screen, HEALTH_BG, (bx, by, bar_w, 4))
         pygame.draw.rect(screen, HEALTH_FG, (bx, by, int(filled), 4))
+        # Lifetime bar for allies
+        if not self.is_player and self.lifetime >= 0:
+            life_filled = bar_w * self.lifetime / self.ALLY_LIFETIME
+            by2 = sy - self.RADIUS - 13
+            pygame.draw.rect(screen, HEALTH_BG, (bx, by2, bar_w, 3))
+            pygame.draw.rect(screen, (100, 180, 255), (bx, by2, int(life_filled), 3))
 
 
 class Enemy:
@@ -256,6 +270,12 @@ def run():
             for _ in range(wave):
                 enemies.append(Enemy(camera))
 
+        # Tick ally lifetimes and remove expired allies
+        for a in allies:
+            if a.lifetime > 0:
+                a.lifetime -= 1
+        allies = [a for a in allies if a.lifetime != 0]
+
         # Allies follow player loosely
         squad = [player] + allies
         for i, a in enumerate(allies):
@@ -296,12 +316,13 @@ def run():
         enemies = new_enemies
         score += killed
 
-        # Spawn allies for kills
+        # Spawn allies for kills (1-in-10 chance per kill)
         for _ in range(killed):
-            color = random.choice(ALLY_COLORS)
-            a = Unit(player.x + random.uniform(-30, 30),
-                     player.y + random.uniform(-30, 30), color)
-            allies.append(a)
+            if random.random() < 0.1:
+                color = random.choice(ALLY_COLORS)
+                a = Unit(player.x + random.uniform(-30, 30),
+                         player.y + random.uniform(-30, 30), color)
+                allies.append(a)
 
         # Update enemies
         for e in enemies:
@@ -313,9 +334,10 @@ def run():
             if math.hypot(e.x - player.x, e.y - player.y) < e.RADIUS + player.RADIUS:
                 player.hp -= 1
                 score += 1
-                # Also convert to ally
-                color = random.choice(ALLY_COLORS)
-                allies.append(Unit(e.x, e.y, color))
+                # 1-in-10 chance to convert to ally
+                if random.random() < 0.1:
+                    color = random.choice(ALLY_COLORS)
+                    allies.append(Unit(e.x, e.y, color))
             else:
                 surviving.append(e)
         enemies = surviving

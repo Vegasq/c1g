@@ -32,10 +32,10 @@ Enhance Squad Survivors with a scrollable 4096x3072 map, camera system, reduced 
 **Files:**
 - Modify: `game.py`
 
-- [ ] Change ally conversion from all enemies to 1-in-10 chance (use random with 0.1 probability)
-- [ ] Add a lifetime/timer to allies (e.g. 600 frames / 10 seconds) after which they disappear
-- [ ] Show ally lifetime visually (e.g. fading color or shrinking health bar as time runs out)
-- [ ] Manual test: only ~10% of killed enemies become allies, allies disappear after timer
+- [x] Change ally conversion from all enemies to 1-in-10 chance (use random with 0.1 probability)
+- [x] Add a lifetime/timer to allies (e.g. 600 frames / 10 seconds) after which they disappear
+- [x] Show ally lifetime visually (e.g. fading color or shrinking health bar as time runs out)
+- [x] Manual test: only ~10% of killed enemies become allies, allies disappear after timer
 
 ## Task 3 - Faster enemy spawning progression
 
