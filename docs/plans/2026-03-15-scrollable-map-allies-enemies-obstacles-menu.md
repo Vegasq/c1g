@@ -19,13 +19,13 @@ Enhance Squad Survivors with a scrollable 4096x3072 map, camera system, reduced 
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add MAP_WIDTH=4096, MAP_HEIGHT=3072 constants
-- [ ] Create a Camera class that tracks player position and offsets rendering
-- [ ] Update player movement to use map coordinates (clamp to map bounds instead of screen bounds)
-- [ ] Update all draw calls to offset by camera position (player, allies, enemies, bullets, health bars)
-- [ ] Update enemy spawning to spawn at edges of camera view (not map edges)
-- [ ] Add a simple ground grid or border so the player can see they are moving across the map
-- [ ] Manual test: player can move across the full map, camera follows smoothly
+- [x] Add MAP_WIDTH=4096, MAP_HEIGHT=3072 constants
+- [x] Create a Camera class that tracks player position and offsets rendering
+- [x] Update player movement to use map coordinates (clamp to map bounds instead of screen bounds)
+- [x] Update all draw calls to offset by camera position (player, allies, enemies, bullets, health bars)
+- [x] Update enemy spawning to spawn at edges of camera view (not map edges)
+- [x] Add a simple ground grid or border so the player can see they are moving across the map
+- [x] Manual test: player can move across the full map, camera follows smoothly
 
 ## Task 2 - Ally conversion rate and expiration
 

@@ -6,6 +6,7 @@ import sys
 pygame.init()
 
 WIDTH, HEIGHT = 1024, 768
+MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Squad Survivors")
@@ -23,6 +24,23 @@ ENEMY_COLOR = (255, 60, 60)
 BULLET_COLOR = (255, 255, 200)
 HEALTH_BG = (60, 60, 60)
 HEALTH_FG = (80, 220, 80)
+GRID_COLOR = (30, 30, 45)
+BORDER_COLOR = (80, 80, 120)
+
+
+class Camera:
+    def __init__(self):
+        self.x = 0.0
+        self.y = 0.0
+
+    def update(self, target):
+        self.x = target.x - WIDTH / 2
+        self.y = target.y - HEIGHT / 2
+        self.x = max(0, min(MAP_WIDTH - WIDTH, self.x))
+        self.y = max(0, min(MAP_HEIGHT - HEIGHT, self.y))
+
+    def apply(self, x, y):
+        return int(x - self.x), int(y - self.y)
 
 
 class Bullet:
@@ -42,8 +60,9 @@ class Bullet:
         self.y += self.vy
         self.life -= 1
 
-    def draw(self):
-        pygame.draw.circle(screen, BULLET_COLOR, (int(self.x), int(self.y)), self.RADIUS)
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        pygame.draw.circle(screen, BULLET_COLOR, (sx, sy), self.RADIUS)
 
 
 class Unit:
@@ -75,8 +94,8 @@ class Unit:
                 push = (self.RADIUS * 2.5 - adist) * 0.3
                 new_x += adx / adist * push
                 new_y += ady / adist * push
-        self.x = max(self.RADIUS, min(WIDTH - self.RADIUS, new_x))
-        self.y = max(self.RADIUS, min(HEIGHT - self.RADIUS, new_y))
+        self.x = max(self.RADIUS, min(MAP_WIDTH - self.RADIUS, new_x))
+        self.y = max(self.RADIUS, min(MAP_HEIGHT - self.RADIUS, new_y))
 
     def shoot_at(self, target, bullets):
         if self.cooldown > 0:
@@ -87,16 +106,16 @@ class Unit:
             bullets.append(Bullet(self.x, self.y, dx, dy))
             self.cooldown = self.SHOOT_COOLDOWN
 
-    def draw(self):
-        pos = (int(self.x), int(self.y))
-        pygame.draw.circle(screen, self.color, pos, self.RADIUS)
-        pygame.draw.circle(screen, (255, 255, 255), pos, self.RADIUS, 2)
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        pygame.draw.circle(screen, self.color, (sx, sy), self.RADIUS)
+        pygame.draw.circle(screen, (255, 255, 255), (sx, sy), self.RADIUS, 2)
         # HP bar
         bar_w = self.RADIUS * 2
         max_hp = 5 if self.is_player else 3
         filled = bar_w * self.hp / max_hp
-        bx = int(self.x - bar_w / 2)
-        by = int(self.y - self.RADIUS - 8)
+        bx = sx - bar_w // 2
+        by = sy - self.RADIUS - 8
         pygame.draw.rect(screen, HEALTH_BG, (bx, by, bar_w, 4))
         pygame.draw.rect(screen, HEALTH_FG, (bx, by, int(filled), 4))
 
@@ -105,17 +124,29 @@ class Enemy:
     RADIUS = 12
     SPEED = 1.2
 
-    def __init__(self):
+    def __init__(self, camera):
+        # Spawn at edges of camera view
+        cam_left = camera.x
+        cam_top = camera.y
+        cam_right = camera.x + WIDTH
+        cam_bottom = camera.y + HEIGHT
+        margin = 60
         side = random.randint(0, 3)
-        if side == 0:
-            self.x, self.y = random.randint(0, WIDTH), -30
-        elif side == 1:
-            self.x, self.y = random.randint(0, WIDTH), HEIGHT + 30
-        elif side == 2:
-            self.x, self.y = -30, random.randint(0, HEIGHT)
-        else:
-            self.x, self.y = WIDTH + 30, random.randint(0, HEIGHT)
-        self.x, self.y = float(self.x), float(self.y)
+        if side == 0:  # top
+            self.x = random.uniform(cam_left - margin, cam_right + margin)
+            self.y = cam_top - margin
+        elif side == 1:  # bottom
+            self.x = random.uniform(cam_left - margin, cam_right + margin)
+            self.y = cam_bottom + margin
+        elif side == 2:  # left
+            self.x = cam_left - margin
+            self.y = random.uniform(cam_top - margin, cam_bottom + margin)
+        else:  # right
+            self.x = cam_right + margin
+            self.y = random.uniform(cam_top - margin, cam_bottom + margin)
+        # Clamp to map bounds (with some allowance outside)
+        self.x = max(-margin, min(MAP_WIDTH + margin, float(self.x)))
+        self.y = max(-margin, min(MAP_HEIGHT + margin, float(self.y)))
         self.hp = 2
 
     def update(self, target):
@@ -124,11 +155,10 @@ class Enemy:
         self.x += dx / dist * self.SPEED
         self.y += dy / dist * self.SPEED
 
-    def draw(self):
-        # Draw as diamond
-        cx, cy = int(self.x), int(self.y)
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
         r = self.RADIUS
-        points = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
+        points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
         pygame.draw.polygon(screen, ENEMY_COLOR, points)
         pygame.draw.polygon(screen, (200, 40, 40), points, 2)
 
@@ -142,8 +172,28 @@ def find_closest_enemy(unit, enemies):
     return best
 
 
+def draw_grid(camera):
+    grid_size = 128
+    # Calculate visible grid lines
+    start_x = int(camera.x // grid_size) * grid_size
+    start_y = int(camera.y // grid_size) * grid_size
+    for x in range(start_x, int(camera.x + WIDTH) + grid_size, grid_size):
+        if 0 <= x <= MAP_WIDTH:
+            sx = int(x - camera.x)
+            pygame.draw.line(screen, GRID_COLOR, (sx, 0), (sx, HEIGHT))
+    for y in range(start_y, int(camera.y + HEIGHT) + grid_size, grid_size):
+        if 0 <= y <= MAP_HEIGHT:
+            sy = int(y - camera.y)
+            pygame.draw.line(screen, GRID_COLOR, (0, sy), (WIDTH, sy))
+    # Draw map border
+    bx, by = camera.apply(0, 0)
+    bw, bh = MAP_WIDTH, MAP_HEIGHT
+    pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
+
+
 def run():
-    player = Unit(WIDTH / 2, HEIGHT / 2, PLAYER_COLOR, is_player=True)
+    camera = Camera()
+    player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
     allies = []
     enemies = []
     bullets = []
@@ -188,8 +238,11 @@ def run():
             length = math.hypot(mx, my)
             player.x += mx / length * 3.5
             player.y += my / length * 3.5
-            player.x = max(player.RADIUS, min(WIDTH - player.RADIUS, player.x))
-            player.y = max(player.RADIUS, min(HEIGHT - player.RADIUS, player.y))
+            player.x = max(player.RADIUS, min(MAP_WIDTH - player.RADIUS, player.x))
+            player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
+
+        # Update camera
+        camera.update(player)
 
         # Spawn enemies
         spawn_timer += 1
@@ -201,7 +254,7 @@ def run():
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
             for _ in range(wave):
-                enemies.append(Enemy())
+                enemies.append(Enemy(camera))
 
         # Allies follow player loosely
         squad = [player] + allies
@@ -222,7 +275,8 @@ def run():
         # Update bullets
         for b in bullets:
             b.update()
-        bullets = [b for b in bullets if b.life > 0 and 0 <= b.x <= WIDTH and 0 <= b.y <= HEIGHT]
+        bullets = [b for b in bullets if b.life > 0 and
+                   -50 <= b.x <= MAP_WIDTH + 50 and -50 <= b.y <= MAP_HEIGHT + 50]
 
         # Bullet-enemy collision
         new_enemies = []
@@ -271,13 +325,14 @@ def run():
 
         # Draw
         screen.fill(BG)
+        draw_grid(camera)
         for b in bullets:
-            b.draw()
+            b.draw(camera)
         for e in enemies:
-            e.draw()
+            e.draw(camera)
         for a in allies:
-            a.draw()
-        player.draw()
+            a.draw(camera)
+        player.draw(camera)
 
         # HUD
         hud = font.render(f"Score: {score}   Squad: {1 + len(allies)}   Wave: {wave}", True, (220, 220, 220))
