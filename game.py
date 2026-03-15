@@ -8,6 +8,7 @@ pygame.init()
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60
+MAX_ENEMIES = 200
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Squad Survivors")
 clock = pygame.time.Clock()
@@ -315,7 +316,7 @@ def run():
     state = STATE_MENU
     camera = Camera()
     player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
-    obstacles = generate_obstacles()
+    obstacles = []
     allies = []
     enemies = []
     bullets = []
@@ -349,6 +350,8 @@ def run():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_PLAYING:
+                        state = STATE_MENU
+                    elif state == STATE_GAME_OVER:
                         state = STATE_MENU
                     elif state == STATE_MENU:
                         running = False
@@ -403,6 +406,8 @@ def run():
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
             for _ in range(wave + wave // 2):
+                if len(enemies) >= MAX_ENEMIES:
+                    break
                 enemies.append(Enemy(camera))
 
         # Tick ally lifetimes and remove expired allies
