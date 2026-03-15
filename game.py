@@ -449,7 +449,7 @@ def run():
         for e in enemies:
             hit = False
             for b in bullets:
-                if math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
+                if b.life > 0 and math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
                     e.hp -= 1
                     b.life = 0
                     if e.hp <= 0:
