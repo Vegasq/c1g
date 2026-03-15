@@ -73,5 +73,5 @@ Enhance Squad Survivors with a scrollable 4096x3072 map, camera system, reduced 
 
 ## Final Verification
 
-- [ ] Manual test: play through full loop (menu, large map traversal, obstacles, ally conversion, enemy scaling, death, restart)
-- [ ] Verify no performance issues with large map and many entities
+- [x] Manual test: play through full loop (menu, large map traversal, obstacles, ally conversion, enemy scaling, death, restart)
+- [x] Verify no performance issues with large map and many entities
