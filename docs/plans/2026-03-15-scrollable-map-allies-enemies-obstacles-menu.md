@@ -52,13 +52,13 @@ Enhance Squad Survivors with a scrollable 4096x3072 map, camera system, reduced 
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create an Obstacle class (rectangular or circular static objects on the map)
-- [ ] Generate random obstacles at game start (spread across the map, avoid player spawn area)
-- [ ] Add collision detection: player and allies cannot walk through obstacles
-- [ ] Add collision detection: enemies path around or are blocked by obstacles
-- [ ] Bullets are stopped by obstacles
-- [ ] Draw obstacles with camera offset
-- [ ] Manual test: obstacles block movement and bullets, spread across the large map
+- [x] Create an Obstacle class (rectangular or circular static objects on the map)
+- [x] Generate random obstacles at game start (spread across the map, avoid player spawn area)
+- [x] Add collision detection: player and allies cannot walk through obstacles
+- [x] Add collision detection: enemies path around or are blocked by obstacles
+- [x] Bullets are stopped by obstacles
+- [x] Draw obstacles with camera offset
+- [x] Manual test: obstacles block movement and bullets, spread across the large map
 
 ## Task 5 - Main menu
 

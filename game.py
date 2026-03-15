@@ -26,6 +26,8 @@ HEALTH_BG = (60, 60, 60)
 HEALTH_FG = (80, 220, 80)
 GRID_COLOR = (30, 30, 45)
 BORDER_COLOR = (80, 80, 120)
+OBSTACLE_COLOR = (90, 70, 50)
+OBSTACLE_BORDER = (120, 100, 70)
 
 
 class Camera:
@@ -41,6 +43,70 @@ class Camera:
 
     def apply(self, x, y):
         return int(x - self.x), int(y - self.y)
+
+
+class Obstacle:
+    def __init__(self, x, y, w, h):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.rect = pygame.Rect(x, y, w, h)
+
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        pygame.draw.rect(screen, OBSTACLE_COLOR, (sx, sy, self.w, self.h))
+        pygame.draw.rect(screen, OBSTACLE_BORDER, (sx, sy, self.w, self.h), 2)
+
+    def collides_circle(self, cx, cy, radius):
+        closest_x = max(self.x, min(cx, self.x + self.w))
+        closest_y = max(self.y, min(cy, self.y + self.h))
+        dx = cx - closest_x
+        dy = cy - closest_y
+        return dx * dx + dy * dy < radius * radius
+
+    def push_circle_out(self, cx, cy, radius):
+        closest_x = max(self.x, min(cx, self.x + self.w))
+        closest_y = max(self.y, min(cy, self.y + self.h))
+        dx = cx - closest_x
+        dy = cy - closest_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq == 0:
+            cx = self.x - radius
+            return cx, cy
+        if dist_sq < radius * radius:
+            dist = math.sqrt(dist_sq)
+            overlap = radius - dist
+            cx += dx / dist * overlap
+            cy += dy / dist * overlap
+        return cx, cy
+
+
+def generate_obstacles(count=30):
+    obstacles = []
+    spawn_center_x = MAP_WIDTH / 2
+    spawn_center_y = MAP_HEIGHT / 2
+    spawn_safe_radius = 200
+    for _ in range(count):
+        for _attempt in range(20):
+            w = random.randint(40, 150)
+            h = random.randint(40, 150)
+            x = random.randint(50, MAP_WIDTH - w - 50)
+            y = random.randint(50, MAP_HEIGHT - h - 50)
+            cx = x + w / 2
+            cy = y + h / 2
+            if math.hypot(cx - spawn_center_x, cy - spawn_center_y) < spawn_safe_radius:
+                continue
+            overlap = False
+            for o in obstacles:
+                if (x < o.x + o.w + 20 and x + w + 20 > o.x and
+                        y < o.y + o.h + 20 and y + h + 20 > o.y):
+                    overlap = True
+                    break
+            if not overlap:
+                obstacles.append(Obstacle(x, y, w, h))
+                break
+    return obstacles
 
 
 class Bullet:
@@ -80,7 +146,7 @@ class Unit:
         self.hp = 5 if is_player else 3
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
 
-    def move_towards(self, tx, ty, allies):
+    def move_towards(self, tx, ty, allies, obstacles=()):
         dx, dy = tx - self.x, ty - self.y
         dist = math.hypot(dx, dy)
         if dist < 3:
@@ -99,6 +165,8 @@ class Unit:
                 new_y += ady / adist * push
         self.x = max(self.RADIUS, min(MAP_WIDTH - self.RADIUS, new_x))
         self.y = max(self.RADIUS, min(MAP_HEIGHT - self.RADIUS, new_y))
+        for obs in obstacles:
+            self.x, self.y = obs.push_circle_out(self.x, self.y, self.RADIUS)
 
     def shoot_at(self, target, bullets):
         if self.cooldown > 0:
@@ -208,6 +276,7 @@ def draw_grid(camera):
 def run():
     camera = Camera()
     player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
+    obstacles = generate_obstacles()
     allies = []
     enemies = []
     bullets = []
@@ -254,6 +323,8 @@ def run():
             player.y += my / length * 3.5
             player.x = max(player.RADIUS, min(MAP_WIDTH - player.RADIUS, player.x))
             player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
+            for obs in obstacles:
+                player.x, player.y = obs.push_circle_out(player.x, player.y, player.RADIUS)
 
         # Update camera
         camera.update(player)
@@ -284,7 +355,7 @@ def run():
             orbit_r = 50 + len(allies) * 5
             tx = player.x + math.cos(angle) * orbit_r
             ty = player.y + math.sin(angle) * orbit_r
-            a.move_towards(tx, ty, squad)
+            a.move_towards(tx, ty, squad, obstacles)
 
         # Shooting — player and allies shoot at closest enemy
         for u in squad:
@@ -295,6 +366,11 @@ def run():
         # Update bullets
         for b in bullets:
             b.update()
+        for b in bullets:
+            for obs in obstacles:
+                if obs.collides_circle(b.x, b.y, b.RADIUS):
+                    b.life = 0
+                    break
         bullets = [b for b in bullets if b.life > 0 and
                    -50 <= b.x <= MAP_WIDTH + 50 and -50 <= b.y <= MAP_HEIGHT + 50]
 
@@ -327,6 +403,8 @@ def run():
         # Update enemies
         for e in enemies:
             e.update(player)
+            for obs in obstacles:
+                e.x, e.y = obs.push_circle_out(e.x, e.y, e.RADIUS)
 
         # Enemy-player collision (damage player)
         surviving = []
@@ -348,6 +426,8 @@ def run():
         # Draw
         screen.fill(BG)
         draw_grid(camera)
+        for obs in obstacles:
+            obs.draw(camera)
         for b in bullets:
             b.draw(camera)
         for e in enemies:
