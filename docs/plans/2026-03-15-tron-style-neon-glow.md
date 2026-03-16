@@ -64,10 +64,10 @@ Tron-style visual overhaul for Squad Survivors - neon glow effects with blue, pu
 
 ## Verification
 
-- [ ] Manual test: launch game, verify neon glow on all entities, grid, menus
-- [ ] Manual test: verify performance is acceptable (glow rendering can be expensive)
-- [ ] Run full test suite
-- [ ] Run linter if configured
+- [x] Manual test: launch game, verify neon glow on all entities, grid, menus
+- [x] Manual test: verify performance is acceptable (glow rendering can be expensive)
+- [x] Run full test suite
+- [x] Run linter if configured
 
 ## Wrap-up
 
