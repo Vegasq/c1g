@@ -56,12 +56,12 @@ Add XP-based leveling system with weapon stat upgrades and new weapon types at m
 **Files:**
 - Modify: `game.py`
 
-- [ ] Shotgun: fires 5 bullets in a spread pattern instead of 1, each with reduced damage
-- [ ] Piercing: bullets pass through enemies instead of being destroyed on hit (track hits per bullet)
-- [ ] Explosive: bullets deal area damage on hit (damage nearby enemies within blast radius)
-- [ ] Weapon type affects bullet creation in shoot_at and collision handling in the main loop
-- [ ] Write tests for each weapon type behavior
-- [ ] Run tests - must pass before task 5
+- [x] Shotgun: fires 5 bullets in a spread pattern instead of 1, each with reduced damage
+- [x] Piercing: bullets pass through enemies instead of being destroyed on hit (track hits per bullet)
+- [x] Explosive: bullets deal area damage on hit (damage nearby enemies within blast radius)
+- [x] Weapon type affects bullet creation in shoot_at and collision handling in the main loop
+- [x] Write tests for each weapon type behavior
+- [x] Run tests - must pass before task 5
 
 ## Task 5 - Polish and integration
 

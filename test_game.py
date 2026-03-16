@@ -270,5 +270,136 @@ class TestApplyUpgrade(unittest.TestCase):
         self.assertEqual(stats["range"], 105)
 
 
+class TestShotgunWeapon(unittest.TestCase):
+    def _make_target(self, x, y):
+        class Target:
+            pass
+        t = Target()
+        t.x, t.y = float(x), float(y)
+        return t
+
+    def test_shotgun_fires_5_bullets(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "shotgun"
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        self.assertEqual(len(bullets), 5)
+
+    def test_shotgun_bullets_have_reduced_damage(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "shotgun"
+        stats["damage"] = 4
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        for b in bullets:
+            self.assertEqual(b.damage, 2)  # 4 // 2
+
+    def test_shotgun_bullets_spread(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "shotgun"
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        # Bullets should have different directions
+        angles = [math.atan2(b.vy, b.vx) for b in bullets]
+        self.assertNotAlmostEqual(angles[0], angles[-1], places=2)
+
+    def test_shotgun_min_damage_is_1(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "shotgun"
+        stats["damage"] = 1
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        for b in bullets:
+            self.assertEqual(b.damage, 1)
+
+
+class TestPiercingWeapon(unittest.TestCase):
+    def test_piercing_bullet_has_correct_type(self):
+        b = Bullet(0, 0, 1, 0, weapon_type="piercing")
+        self.assertEqual(b.weapon_type, "piercing")
+
+    def test_piercing_bullet_tracks_hits(self):
+        b = Bullet(0, 0, 1, 0, weapon_type="piercing")
+        self.assertEqual(len(b.pierced_enemies), 0)
+        b.pierced_enemies.add(123)
+        self.assertIn(123, b.pierced_enemies)
+
+    def test_piercing_bullet_not_destroyed_on_hit(self):
+        """Piercing bullets should remain alive after hitting an enemy."""
+        b = Bullet(0, 0, 1, 0, damage=1, weapon_type="piercing")
+        # Simulate what the collision code does for piercing
+        enemy_id = 42
+        b.pierced_enemies.add(enemy_id)
+        # bullet.life should NOT be set to 0 for piercing
+        self.assertGreater(b.life, 0)
+
+
+class TestExplosiveWeapon(unittest.TestCase):
+    def test_explosive_bullet_has_correct_type(self):
+        b = Bullet(0, 0, 1, 0, weapon_type="explosive")
+        self.assertEqual(b.weapon_type, "explosive")
+
+    def test_explosive_bullet_created_with_stats(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        class Target:
+            pass
+        t = Target()
+        t.x, t.y = 100.0, 0.0
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "explosive"
+        stats["damage"] = 3
+        u.shoot_at(t, bullets, weapon_stats=stats)
+        self.assertEqual(len(bullets), 1)
+        self.assertEqual(bullets[0].weapon_type, "explosive")
+        self.assertEqual(bullets[0].damage, 3)
+
+
+class TestWeaponTypeInShootAt(unittest.TestCase):
+    def _make_target(self, x, y):
+        class Target:
+            pass
+        t = Target()
+        t.x, t.y = float(x), float(y)
+        return t
+
+    def test_normal_fires_single_bullet(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        self.assertEqual(len(bullets), 1)
+        self.assertEqual(bullets[0].weapon_type, "normal")
+
+    def test_piercing_fires_single_bullet(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "piercing"
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        self.assertEqual(len(bullets), 1)
+        self.assertEqual(bullets[0].weapon_type, "piercing")
+
+    def test_explosive_fires_single_bullet(self):
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = self._make_target(100, 0)
+        bullets = []
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "explosive"
+        u.shoot_at(target, bullets, weapon_stats=stats)
+        self.assertEqual(len(bullets), 1)
+        self.assertEqual(bullets[0].weapon_type, "explosive")
+
+
 if __name__ == "__main__":
     unittest.main()

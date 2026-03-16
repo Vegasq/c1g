@@ -145,11 +145,13 @@ class Bullet:
     RADIUS = 4
     LIFETIME = 90  # frames
 
-    def __init__(self, x, y, dx, dy, damage=1, speed=None, lifetime=None):
+    def __init__(self, x, y, dx, dy, damage=1, speed=None, lifetime=None, weapon_type="normal"):
         self.x, self.y = x, y
         spd = speed if speed is not None else self.SPEED
         life = lifetime if lifetime is not None else self.LIFETIME
         self.damage = damage
+        self.weapon_type = weapon_type
+        self.pierced_enemies = set()  # track enemies already hit by piercing bullets
         length = math.hypot(dx, dy) or 1
         self.vx = dx / length * spd
         self.vy = dy / length * spd
@@ -210,11 +212,26 @@ class Unit:
         bullet_speed = weapon_stats["bullet_speed"] if weapon_stats else Bullet.SPEED
         bullet_range = weapon_stats["range"] if weapon_stats else Bullet.LIFETIME
         damage = weapon_stats["damage"] if weapon_stats else 1
+        weapon_type = weapon_stats["weapon_type"] if weapon_stats else "normal"
         dx, dy = target.x - self.x, target.y - self.y
         shoot_dist = bullet_range * bullet_speed  # max distance bullets can travel
         if math.hypot(dx, dy) < shoot_dist:
-            bullets.append(Bullet(self.x, self.y, dx, dy,
-                                  damage=damage, speed=bullet_speed, lifetime=bullet_range))
+            if weapon_type == "shotgun":
+                # Fire 5 bullets in a spread, each with reduced damage
+                base_angle = math.atan2(dy, dx)
+                spread_angle = math.radians(30)  # total spread
+                shotgun_damage = max(1, damage // 2)
+                for i in range(5):
+                    angle = base_angle + spread_angle * (i - 2) / 2
+                    sdx = math.cos(angle)
+                    sdy = math.sin(angle)
+                    bullets.append(Bullet(self.x, self.y, sdx, sdy,
+                                          damage=shotgun_damage, speed=bullet_speed,
+                                          lifetime=bullet_range, weapon_type="shotgun"))
+            else:
+                bullets.append(Bullet(self.x, self.y, dx, dy,
+                                      damage=damage, speed=bullet_speed,
+                                      lifetime=bullet_range, weapon_type=weapon_type))
             self.cooldown = fire_rate
 
     def draw(self, camera):
@@ -554,12 +571,23 @@ def run():
         # Bullet-enemy collision
         new_enemies = []
         killed = 0
+        explosive_hits = []  # (x, y, damage) for area damage
         for e in enemies:
             hit = False
             for b in bullets:
-                if b.life > 0 and math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
+                if b.life <= 0:
+                    continue
+                if id(e) in b.pierced_enemies:
+                    continue
+                if math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
                     e.hp -= b.damage
-                    b.life = 0
+                    if b.weapon_type == "piercing":
+                        b.pierced_enemies.add(id(e))
+                    elif b.weapon_type == "explosive":
+                        explosive_hits.append((b.x, b.y, b.damage))
+                        b.life = 0
+                    else:
+                        b.life = 0
                     if e.hp <= 0:
                         hit = True
                         killed += 1
@@ -567,6 +595,19 @@ def run():
             if not hit:
                 new_enemies.append(e)
         enemies = new_enemies
+
+        # Explosive area damage
+        EXPLOSIVE_RADIUS = 60
+        for ex, ey, edmg in explosive_hits:
+            surviving_after_explosion = []
+            for e in enemies:
+                if math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
+                    e.hp -= edmg
+                    if e.hp <= 0:
+                        killed += 1
+                        continue
+                surviving_after_explosion.append(e)
+            enemies = surviving_after_explosion
         score += killed
 
         # Award XP and check level-up
