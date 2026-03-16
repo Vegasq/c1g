@@ -50,14 +50,44 @@ OBSTACLE_COLOR = (15, 10, 30)
 OBSTACLE_BORDER = (120, 0, 200)
 
 
+_glow_surface_cache = {}
+
+CULL_MARGIN = 80  # extra pixels beyond screen edge before culling
+
+
+def _is_visible(camera, x, y, margin=CULL_MARGIN):
+    """Return True if world-space (x, y) is within the visible screen area."""
+    return (-margin <= x - camera.x <= WIDTH + margin and
+            -margin <= y - camera.y <= HEIGHT + margin)
+
+
+def _is_rect_visible(camera, x, y, w, h, margin=CULL_MARGIN):
+    """Return True if a world-space rect overlaps the visible screen area."""
+    return (x + w + margin >= camera.x and x - margin <= camera.x + WIDTH and
+            y + h + margin >= camera.y and y - margin <= camera.y + HEIGHT)
+
+
+def _get_glow_surface(size):
+    """Return a cached SRCALPHA surface of the given (w, h) size."""
+    surf = _glow_surface_cache.get(size)
+    if surf is None:
+        if len(_glow_surface_cache) > 256:
+            _glow_surface_cache.clear()
+        surf = pygame.Surface(size, pygame.SRCALPHA)
+        _glow_surface_cache[size] = surf
+    return surf
+
+
 def draw_glow(surface, color, center, radius, intensity=80, layers=4):
     """Draw layered transparent circles to simulate neon glow."""
     if radius <= 0 or layers <= 0:
         return
     for i in range(layers, 0, -1):
         layer_radius = int(radius * (1 + i * 0.5))
+        dim = layer_radius * 2
+        glow_surf = _get_glow_surface((dim, dim))
+        glow_surf.fill((0, 0, 0, 0))
         alpha = max(10, intensity // i)
-        glow_surf = pygame.Surface((layer_radius * 2, layer_radius * 2), pygame.SRCALPHA)
         glow_color = (color[0], color[1], color[2], alpha)
         pygame.draw.circle(glow_surf, glow_color, (layer_radius, layer_radius), layer_radius)
         surface.blit(glow_surf, (center[0] - layer_radius, center[1] - layer_radius))
@@ -91,9 +121,11 @@ class Obstacle:
         for i in range(3, 0, -1):
             pad = i * 4
             alpha = max(10, 50 // i)
-            glow_surf = pygame.Surface((self.w + pad * 2, self.h + pad * 2), pygame.SRCALPHA)
+            dim = (self.w + pad * 2, self.h + pad * 2)
+            glow_surf = _get_glow_surface(dim)
+            glow_surf.fill((0, 0, 0, 0))
             glow_color = (OBSTACLE_BORDER[0], OBSTACLE_BORDER[1], OBSTACLE_BORDER[2], alpha)
-            pygame.draw.rect(glow_surf, glow_color, (0, 0, self.w + pad * 2, self.h + pad * 2))
+            pygame.draw.rect(glow_surf, glow_color, (0, 0, dim[0], dim[1]))
             screen.blit(glow_surf, (sx - pad, sy - pad))
         pygame.draw.rect(screen, OBSTACLE_COLOR, (sx, sy, self.w, self.h))
         pygame.draw.rect(screen, OBSTACLE_BORDER, (sx, sy, self.w, self.h), 2)
@@ -724,13 +756,17 @@ def run():
         screen.fill(BG)
         draw_grid(camera)
         for obs in obstacles:
-            obs.draw(camera)
+            if _is_rect_visible(camera, obs.x, obs.y, obs.w, obs.h):
+                obs.draw(camera)
         for b in bullets:
-            b.draw(camera)
+            if _is_visible(camera, b.x, b.y):
+                b.draw(camera)
         for e in enemies:
-            e.draw(camera)
+            if _is_visible(camera, e.x, e.y):
+                e.draw(camera)
         for a in allies:
-            a.draw(camera)
+            if _is_visible(camera, a.x, a.y):
+                a.draw(camera)
         player.draw(camera)
 
         # HUD
