@@ -465,6 +465,50 @@ def draw_grid(camera):
     pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
 
 
+def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
+                    score, wave, level, weapon_stats, xp, xp_thresholds):
+    """Draw the full game scene (background, entities, HUD, XP bar)."""
+    screen.fill(BG)
+    draw_grid(camera)
+    for obs in obstacles:
+        if _is_rect_visible(camera, obs.x, obs.y, obs.w, obs.h):
+            obs.draw(camera)
+    for b in bullets:
+        if _is_visible(camera, b.x, b.y):
+            b.draw(camera)
+    for e in enemies:
+        if _is_visible(camera, e.x, e.y):
+            e.draw(camera)
+    for a in allies:
+        if _is_visible(camera, a.x, a.y):
+            a.draw(camera)
+    player.draw(camera)
+
+    # HUD
+    wtype = weapon_stats['weapon_type']
+    hud_text = f"Score: {score}  Squad: {1 + len(allies)}  Wave: {wave}  Lv: {level}  Weapon: {wtype}"
+    hud = font.render(hud_text, True, PLAYER_COLOR)
+    screen.blit(hud, (10, 10))
+
+    # XP bar with neon glow
+    xp_bar_w = 200
+    xp_bar_h = 8
+    xp_bar_x = 10
+    xp_bar_y = 42
+    current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
+    xp_fill = min(xp_bar_w, int(xp_bar_w * xp / current_threshold))
+    pygame.draw.rect(screen, HEALTH_BG, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h))
+    pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
+    pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h), 1)
+
+
+def draw_dim_overlay():
+    """Draw a semi-transparent dark overlay to dim the game behind a panel."""
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 153))  # ~60% opacity
+    screen.blit(overlay, (0, 0))
+
+
 def draw_menu():
     screen.fill(BG)
     # Neon cyan glow behind title
@@ -578,7 +622,9 @@ def run():
             continue
 
         if state == STATE_LEVEL_UP:
-            screen.fill(BG)
+            draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
+                            score, wave, level, weapon_stats, xp, xp_thresholds)
+            draw_dim_overlay()
             title = title_font.render(f"Level {level}!", True, BORDER_COLOR)
             title_glow = title_font.render(f"Level {level}!", True, (80, 0, 140))
             tx = WIDTH // 2 - title.get_width() // 2
@@ -753,38 +799,8 @@ def run():
             state = STATE_GAME_OVER
 
         # Draw
-        screen.fill(BG)
-        draw_grid(camera)
-        for obs in obstacles:
-            if _is_rect_visible(camera, obs.x, obs.y, obs.w, obs.h):
-                obs.draw(camera)
-        for b in bullets:
-            if _is_visible(camera, b.x, b.y):
-                b.draw(camera)
-        for e in enemies:
-            if _is_visible(camera, e.x, e.y):
-                e.draw(camera)
-        for a in allies:
-            if _is_visible(camera, a.x, a.y):
-                a.draw(camera)
-        player.draw(camera)
-
-        # HUD
-        wtype = weapon_stats['weapon_type']
-        hud_text = f"Score: {score}  Squad: {1 + len(allies)}  Wave: {wave}  Lv: {level}  Weapon: {wtype}"
-        hud = font.render(hud_text, True, PLAYER_COLOR)
-        screen.blit(hud, (10, 10))
-
-        # XP bar with neon glow
-        xp_bar_w = 200
-        xp_bar_h = 8
-        xp_bar_x = 10
-        xp_bar_y = 42
-        current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
-        xp_fill = min(xp_bar_w, int(xp_bar_w * xp / current_threshold))
-        pygame.draw.rect(screen, HEALTH_BG, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h))
-        pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
-        pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h), 1)
+        draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
+                        score, wave, level, weapon_stats, xp, xp_thresholds)
 
         pygame.display.flip()
         clock.tick(FPS)

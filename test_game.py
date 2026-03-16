@@ -3,7 +3,8 @@ import math
 import pygame
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
                   generate_upgrade_options, apply_upgrade, STAT_UPGRADES, WEAPON_TYPES,
-                  draw_glow, BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
+                  draw_glow, draw_game_scene, draw_dim_overlay,
+                  BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
                   Camera, Enemy, Obstacle)
 
@@ -690,6 +691,47 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         from game import draw_grid
         camera = Camera()
         draw_grid(camera)
+
+
+    def test_draw_game_scene_runs_without_error(self):
+        from game import draw_game_scene, Camera, default_weapon_stats, generate_xp_thresholds
+        camera = Camera()
+        player = Unit(100, 100, (0, 220, 255), is_player=True)
+        camera.update(player)
+        stats = default_weapon_stats()
+        thresholds = generate_xp_thresholds()
+        draw_game_scene(camera, [], [], [], [], player,
+                        0, 1, 1, stats, 0, thresholds)
+
+    def test_draw_dim_overlay_runs_without_error(self):
+        from game import draw_dim_overlay
+        draw_dim_overlay()
+
+    def test_draw_dim_overlay_darkens_screen(self):
+        """Verify the overlay makes the screen darker (pixel values decrease)."""
+        import game
+        game.screen.fill((200, 200, 200))
+        before = game.screen.get_at((100, 100))
+        from game import draw_dim_overlay
+        draw_dim_overlay()
+        after = game.screen.get_at((100, 100))
+        self.assertLess(after[0], before[0])
+        self.assertLess(after[1], before[1])
+        self.assertLess(after[2], before[2])
+
+    def test_game_scene_renders_during_level_up_state(self):
+        """Verify that draw_game_scene + draw_dim_overlay can be called
+        in sequence (as happens during STATE_LEVEL_UP)."""
+        from game import draw_game_scene, draw_dim_overlay, Camera, default_weapon_stats, generate_xp_thresholds
+        camera = Camera()
+        player = Unit(100, 100, (0, 220, 255), is_player=True)
+        camera.update(player)
+        stats = default_weapon_stats()
+        thresholds = generate_xp_thresholds()
+        # Should not raise
+        draw_game_scene(camera, [], [], [], [], player,
+                        0, 1, 1, stats, 0, thresholds)
+        draw_dim_overlay()
 
 
 if __name__ == "__main__":

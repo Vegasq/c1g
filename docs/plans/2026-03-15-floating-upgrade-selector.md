@@ -22,11 +22,11 @@ Redesign the level-up upgrade selector from a fullscreen text list into a floati
 **Files:**
 - Modify: `game.py`
 
-- [ ] In the STATE_LEVEL_UP branch (lines 580-597), remove the screen.fill(BG) call
-- [ ] Instead, let the normal game drawing code run first (map, units, enemies, HUD), then draw the upgrade panel on top
-- [ ] Add a semi-transparent dark overlay (SRCALPHA surface at ~60% opacity) over the game to dim it behind the panel
-- [ ] Write tests verifying the game state still renders during level-up
-- [ ] Run project test suite - must pass before task 2
+- [x] In the STATE_LEVEL_UP branch (lines 580-597), remove the screen.fill(BG) call
+- [x] Instead, let the normal game drawing code run first (map, units, enemies, HUD), then draw the upgrade panel on top
+- [x] Add a semi-transparent dark overlay (SRCALPHA surface at ~60% opacity) over the game to dim it behind the panel
+- [x] Write tests verifying the game state still renders during level-up
+- [x] Run project test suite - must pass before task 2
 
 ## Task 2 - Create floating upgrade panel with neon border
 
