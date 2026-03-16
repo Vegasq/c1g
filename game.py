@@ -577,6 +577,7 @@ def run():
         new_enemies = []
         killed = 0
         explosive_hits = []  # (x, y, damage) for area damage
+        explosive_direct_hit_uids = set()  # enemies already damaged by explosive direct hit
         for e in enemies:
             hit = False
             for b in bullets:
@@ -590,6 +591,7 @@ def run():
                         b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
                         explosive_hits.append((b.x, b.y, b.damage))
+                        explosive_direct_hit_uids.add(e.uid)
                         b.life = 0
                     else:
                         b.life = 0
@@ -601,12 +603,12 @@ def run():
                 new_enemies.append(e)
         enemies = new_enemies
 
-        # Explosive area damage
+        # Explosive area damage (skip enemies already hit directly by the bullet)
         EXPLOSIVE_RADIUS = 60
         for ex, ey, edmg in explosive_hits:
             surviving_after_explosion = []
             for e in enemies:
-                if math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
+                if e.uid not in explosive_direct_hit_uids and math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
                     e.hp -= edmg
                     if e.hp <= 0:
                         killed += 1
