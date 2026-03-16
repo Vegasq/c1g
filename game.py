@@ -3,17 +3,28 @@ import math
 import random
 import sys
 
-pygame.init()
-
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60
 MAX_ENEMIES = 200
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Squad Survivors")
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 36)
-title_font = pygame.font.SysFont(None, 72)
+
+# Defer pygame display/font init so the module can be imported for testing
+screen = None
+clock = None
+font = None
+title_font = None
+
+
+def init_pygame():
+    global screen, clock, font, title_font
+    if screen is not None:
+        return
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Squad Survivors")
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont(None, 36)
+    title_font = pygame.font.SysFont(None, 72)
 
 # Game states
 STATE_MENU = 0
@@ -410,6 +421,7 @@ def draw_game_over(score, level=1):
 
 
 def run():
+    init_pygame()
     state = STATE_MENU
     camera = Camera()
     player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
@@ -576,8 +588,7 @@ def run():
         # Bullet-enemy collision
         new_enemies = []
         killed = 0
-        explosive_hits = []  # (x, y, damage) for area damage
-        explosive_direct_hit_uids = set()  # enemies already damaged by explosive direct hit
+        explosive_hits = []  # (x, y, damage, direct_hit_uid) for area damage
         for e in enemies:
             hit = False
             for b in bullets:
@@ -590,8 +601,7 @@ def run():
                     if b.weapon_type == "piercing":
                         b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
-                        explosive_hits.append((b.x, b.y, b.damage))
-                        explosive_direct_hit_uids.add(e.uid)
+                        explosive_hits.append((b.x, b.y, b.damage, e.uid))
                         b.life = 0
                     else:
                         b.life = 0
@@ -605,10 +615,10 @@ def run():
 
         # Explosive area damage (skip enemies already hit directly by the bullet)
         EXPLOSIVE_RADIUS = 60
-        for ex, ey, edmg in explosive_hits:
+        for ex, ey, edmg, direct_hit_uid in explosive_hits:
             surviving_after_explosion = []
             for e in enemies:
-                if e.uid not in explosive_direct_hit_uids and math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
+                if e.uid != direct_hit_uid and math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
                     e.hp -= edmg
                     if e.hp <= 0:
                         killed += 1
@@ -623,6 +633,16 @@ def run():
         if leveled_up:
             upgrade_options = generate_upgrade_options(level, weapon_stats)
             state = STATE_LEVEL_UP
+            # Spawn allies before pausing (reward kills even on level-up frame)
+            for _ in range(killed):
+                if random.random() < 0.1:
+                    color = random.choice(ALLY_COLORS)
+                    a = Unit(player.x + random.uniform(-30, 30),
+                             player.y + random.uniform(-30, 30), color)
+                    allies.append(a)
+            # Skip enemy movement and collision to prevent death during level-up
+            clock.tick(FPS)
+            continue
 
         # Spawn allies for kills (1-in-10 chance per kill)
         for _ in range(killed):
