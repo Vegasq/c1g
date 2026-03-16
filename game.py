@@ -477,11 +477,29 @@ STAT_UPGRADES = [
 WEAPON_TYPES = ["shotgun", "piercing", "explosive"]
 
 
+def get_scaled_amount(stat, base_amount, level):
+    """Scale upgrade amounts based on player level."""
+    if stat == "damage":
+        if level >= 20:
+            return base_amount + 2  # +3 total
+        elif level >= 10:
+            return base_amount + 1  # +2 total
+    elif stat == "fire_rate":
+        if level >= 15:
+            return base_amount - 2  # -5 total
+    return base_amount
+
+
 def generate_upgrade_options(level, weapon_stats):
-    """Generate 3 upgrade options. At milestone levels (5,10,15...), one is a weapon type."""
+    """Generate 3 upgrade options. At milestone levels, one is a weapon type."""
     options = random.sample(STAT_UPGRADES, min(3, len(STAT_UPGRADES)))
     options = [dict(o) for o in options]  # copy
-    is_milestone = level % 5 == 0
+    # Scale amounts based on level
+    for opt in options:
+        if "stat" in opt:
+            opt["amount"] = get_scaled_amount(opt["stat"], opt["amount"], level)
+    milestone_interval = 4 if level > 15 else 5
+    is_milestone = level % milestone_interval == 0
     if is_milestone:
         available_weapons = [w for w in WEAPON_TYPES if w != weapon_stats.get("weapon_type")]
         if available_weapons:

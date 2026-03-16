@@ -99,11 +99,11 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Add scaling multiplier to STAT_UPGRADES: after level 10, damage upgrades give +2 instead of +1; after level 20, +3
-- [ ] After level 15, fire rate upgrades give -5 instead of -3
-- [ ] Increase frequency of weapon type offerings at higher levels (every 4 levels instead of 5 after level 15)
-- [ ] Write tests for scaled upgrade amounts at different player levels
-- [ ] Run test suite - must pass before task 7
+- [x] Add scaling multiplier to STAT_UPGRADES: after level 10, damage upgrades give +2 instead of +1; after level 20, +3
+- [x] After level 15, fire rate upgrades give -5 instead of -3
+- [x] Increase frequency of weapon type offerings at higher levels (every 4 levels instead of 5 after level 15)
+- [x] Write tests for scaled upgrade amounts at different player levels
+- [x] Run test suite - must pass before task 7
 
 ### Task 7: Final validation
 

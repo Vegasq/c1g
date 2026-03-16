@@ -2,7 +2,7 @@ import unittest
 import math
 import pygame
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
-                  generate_upgrade_options, apply_upgrade, STAT_UPGRADES, WEAPON_TYPES,
+                  generate_upgrade_options, apply_upgrade, get_scaled_amount, STAT_UPGRADES, WEAPON_TYPES,
                   draw_glow, draw_game_scene, draw_dim_overlay,
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
@@ -274,6 +274,73 @@ class TestApplyUpgrade(unittest.TestCase):
         stats = default_weapon_stats()
         apply_upgrade(stats, {"name": "+Range", "stat": "range", "amount": 15})
         self.assertEqual(stats["range"], 105)
+
+
+class TestScaledUpgrades(unittest.TestCase):
+    def test_damage_scaling_below_10(self):
+        self.assertEqual(get_scaled_amount("damage", 1, 5), 1)
+
+    def test_damage_scaling_at_10(self):
+        self.assertEqual(get_scaled_amount("damage", 1, 10), 2)
+
+    def test_damage_scaling_at_15(self):
+        self.assertEqual(get_scaled_amount("damage", 1, 15), 2)
+
+    def test_damage_scaling_at_20(self):
+        self.assertEqual(get_scaled_amount("damage", 1, 20), 3)
+
+    def test_damage_scaling_at_25(self):
+        self.assertEqual(get_scaled_amount("damage", 1, 25), 3)
+
+    def test_fire_rate_scaling_below_15(self):
+        self.assertEqual(get_scaled_amount("fire_rate", -3, 10), -3)
+
+    def test_fire_rate_scaling_at_15(self):
+        self.assertEqual(get_scaled_amount("fire_rate", -3, 15), -5)
+
+    def test_fire_rate_scaling_at_20(self):
+        self.assertEqual(get_scaled_amount("fire_rate", -3, 20), -5)
+
+    def test_bullet_speed_no_scaling(self):
+        self.assertEqual(get_scaled_amount("bullet_speed", 2, 20), 2)
+
+    def test_range_no_scaling(self):
+        self.assertEqual(get_scaled_amount("range", 15, 20), 15)
+
+    def test_generate_options_scaled_damage_at_level_12(self):
+        stats = default_weapon_stats()
+        for _ in range(50):
+            options = generate_upgrade_options(12, stats)
+            for opt in options:
+                if opt.get("stat") == "damage":
+                    self.assertEqual(opt["amount"], 2)
+
+    def test_generate_options_scaled_fire_rate_at_level_16(self):
+        stats = default_weapon_stats()
+        for _ in range(50):
+            options = generate_upgrade_options(16, stats)
+            for opt in options:
+                if opt.get("stat") == "fire_rate":
+                    self.assertEqual(opt["amount"], -5)
+
+    def test_milestone_every_4_after_level_15(self):
+        stats = default_weapon_stats()
+        # Level 16 is a milestone (16 % 4 == 0) with new interval
+        found_weapon = False
+        for _ in range(100):
+            options = generate_upgrade_options(16, stats)
+            if any("weapon_type" in o for o in options):
+                found_weapon = True
+                break
+        self.assertTrue(found_weapon)
+
+    def test_level_17_not_milestone(self):
+        stats = default_weapon_stats()
+        # Level 17: 17 % 4 != 0, should not be milestone
+        for _ in range(50):
+            options = generate_upgrade_options(17, stats)
+            for opt in options:
+                self.assertNotIn("weapon_type", opt)
 
 
 class TestShotgunWeapon(unittest.TestCase):
