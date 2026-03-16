@@ -26,6 +26,7 @@ def init_pygame():
     font = pygame.font.SysFont(None, 36)
     title_font = pygame.font.SysFont(None, 72)
 
+
 # Game states
 STATE_MENU = 0
 STATE_PLAYING = 1
@@ -684,7 +685,9 @@ def run():
         player.draw(camera)
 
         # HUD
-        hud = font.render(f"Score: {score}   Squad: {1 + len(allies)}   Wave: {wave}   Lv: {level}   Weapon: {weapon_stats['weapon_type']}", True, (220, 220, 220))
+        wtype = weapon_stats['weapon_type']
+        hud_text = f"Score: {score}  Squad: {1 + len(allies)}  Wave: {wave}  Lv: {level}  Weapon: {wtype}"
+        hud = font.render(hud_text, True, (220, 220, 220))
         screen.blit(hud, (10, 10))
 
         # XP bar
