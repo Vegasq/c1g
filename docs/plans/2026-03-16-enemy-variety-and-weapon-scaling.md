@@ -35,13 +35,13 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Add enemy_type parameter to Enemy.__init__ with a config dict mapping type names to stats (hp, speed, radius, color, xp_value)
-- [ ] Define ENEMY_TYPES config dict with "basic" type matching current stats
-- [ ] Update Enemy.draw to use per-type color
-- [ ] Add xp_value per enemy type (basics=1, tougher enemies give more)
-- [ ] Update kill logic to use enemy.xp_value instead of hardcoded 1
-- [ ] Write tests for enemy type creation, stat assignment, and xp values
-- [ ] Run test suite - must pass before task 2
+- [x] Add enemy_type parameter to Enemy.__init__ with a config dict mapping type names to stats (hp, speed, radius, color, xp_value)
+- [x] Define ENEMY_TYPES config dict with "basic" type matching current stats
+- [x] Update Enemy.draw to use per-type color
+- [x] Add xp_value per enemy type (basics=1, tougher enemies give more)
+- [x] Update kill logic to use enemy.xp_value instead of hardcoded 1
+- [x] Write tests for enemy type creation, stat assignment, and xp values
+- [x] Run test suite - must pass before task 2
 
 ### Task 2: Add tier 2 enemy types (Runner and Brute)
 

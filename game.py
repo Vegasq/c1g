@@ -327,14 +327,24 @@ class Unit:
             pygame.draw.rect(screen, (100, 180, 255), (bx, by2, int(life_filled), 3))
 
 
+ENEMY_TYPES = {
+    "basic": {"hp": 2, "speed": 1.2, "radius": 12, "color": (255, 30, 60), "xp_value": 1},
+}
+
+
 class Enemy:
-    RADIUS = 12
-    SPEED = 1.2
     _next_id = 0
 
-    def __init__(self, camera):
+    def __init__(self, camera, enemy_type="basic"):
         Enemy._next_id += 1
         self.uid = Enemy._next_id
+        self.enemy_type = enemy_type
+        type_cfg = ENEMY_TYPES[enemy_type]
+        self.hp = type_cfg["hp"]
+        self.speed = type_cfg["speed"]
+        self.radius = type_cfg["radius"]
+        self.color = type_cfg["color"]
+        self.xp_value = type_cfg["xp_value"]
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
@@ -357,21 +367,20 @@ class Enemy:
         # Clamp to map bounds (with some allowance outside)
         self.x = max(-margin, min(MAP_WIDTH + margin, float(self.x)))
         self.y = max(-margin, min(MAP_HEIGHT + margin, float(self.y)))
-        self.hp = 2
 
     def update(self, target):
         dx, dy = target.x - self.x, target.y - self.y
         dist = math.hypot(dx, dy) or 1
-        self.x += dx / dist * self.SPEED
-        self.y += dy / dist * self.SPEED
+        self.x += dx / dist * self.speed
+        self.y += dy / dist * self.speed
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        r = self.RADIUS
+        r = self.radius
         points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
-        draw_glow(screen, ENEMY_COLOR, (sx, sy), r, intensity=80, layers=4)
-        pygame.draw.polygon(screen, ENEMY_COLOR, points)
-        enemy_outline = tuple(min(255, c + 60) for c in ENEMY_COLOR)
+        draw_glow(screen, self.color, (sx, sy), r, intensity=80, layers=4)
+        pygame.draw.polygon(screen, self.color, points)
+        enemy_outline = tuple(min(255, c + 60) for c in self.color)
         pygame.draw.polygon(screen, enemy_outline, points, 2)
 
 
@@ -870,6 +879,7 @@ def run():
         # Bullet-enemy collision
         new_enemies = []
         killed = 0
+        xp_earned = 0
         explosive_hits = []  # (x, y, damage, direct_hit_uid) for area damage
         for e in enemies:
             hit = False
@@ -878,7 +888,7 @@ def run():
                     continue
                 if e.uid in b.pierced_enemies:
                     continue
-                if math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
+                if math.hypot(b.x - e.x, b.y - e.y) < e.radius + b.RADIUS:
                     e.hp -= b.damage
                     if b.weapon_type == "piercing":
                         b.pierced_enemies.add(e.uid)
@@ -890,6 +900,7 @@ def run():
                     if e.hp <= 0:
                         hit = True
                         killed += 1
+                        xp_earned += e.xp_value
                     break
             if not hit:
                 new_enemies.append(e)
@@ -904,13 +915,14 @@ def run():
                     e.hp -= edmg
                     if e.hp <= 0:
                         killed += 1
+                        xp_earned += e.xp_value
                         continue
                 surviving_after_explosion.append(e)
             enemies = surviving_after_explosion
         score += killed
 
         # Award XP and check level-up
-        xp += killed
+        xp += xp_earned
         xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
         if leveled_up:
             upgrade_options = generate_upgrade_options(level, weapon_stats)
@@ -940,12 +952,12 @@ def run():
         for e in enemies:
             e.update(player)
             for obs in obstacles:
-                e.x, e.y = obs.push_circle_out(e.x, e.y, e.RADIUS)
+                e.x, e.y = obs.push_circle_out(e.x, e.y, e.radius)
 
         # Enemy-player collision (damage player)
         surviving = []
         for e in enemies:
-            if math.hypot(e.x - player.x, e.y - player.y) < e.RADIUS + player.RADIUS:
+            if math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
                 player.hp -= 1
             else:
                 surviving.append(e)

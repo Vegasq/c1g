@@ -6,7 +6,7 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   draw_glow, draw_game_scene, draw_dim_overlay,
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
-                  Camera, Enemy, Obstacle)
+                  Camera, Enemy, Obstacle, ENEMY_TYPES)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -847,6 +847,75 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """With zero options, always returns -1."""
         from game import get_hovered_upgrade_index, PANEL_X, PANEL_Y
         self.assertEqual(get_hovered_upgrade_index(PANEL_X + 100, PANEL_Y + 100, 0), -1)
+
+
+class TestEnemyTypes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self.camera = Camera()
+
+    def test_enemy_types_config_has_basic(self):
+        self.assertIn("basic", ENEMY_TYPES)
+        basic = ENEMY_TYPES["basic"]
+        self.assertEqual(basic["hp"], 2)
+        self.assertAlmostEqual(basic["speed"], 1.2)
+        self.assertEqual(basic["radius"], 12)
+        self.assertEqual(basic["xp_value"], 1)
+
+    def test_basic_enemy_creation(self):
+        e = Enemy(self.camera)
+        self.assertEqual(e.enemy_type, "basic")
+        self.assertEqual(e.hp, 2)
+        self.assertAlmostEqual(e.speed, 1.2)
+        self.assertEqual(e.radius, 12)
+        self.assertEqual(e.color, (255, 30, 60))
+        self.assertEqual(e.xp_value, 1)
+
+    def test_enemy_type_defaults_to_basic(self):
+        e = Enemy(self.camera)
+        self.assertEqual(e.enemy_type, "basic")
+
+    def test_explicit_basic_type(self):
+        e = Enemy(self.camera, enemy_type="basic")
+        self.assertEqual(e.enemy_type, "basic")
+        self.assertEqual(e.hp, 2)
+
+    def test_enemy_has_unique_uid(self):
+        e1 = Enemy(self.camera)
+        e2 = Enemy(self.camera)
+        self.assertNotEqual(e1.uid, e2.uid)
+
+    def test_enemy_xp_value_used_for_scoring(self):
+        """Basic enemies should give xp_value=1."""
+        e = Enemy(self.camera)
+        self.assertEqual(e.xp_value, 1)
+
+    def test_all_enemy_types_have_required_keys(self):
+        required_keys = {"hp", "speed", "radius", "color", "xp_value"}
+        for name, cfg in ENEMY_TYPES.items():
+            for key in required_keys:
+                self.assertIn(key, cfg, f"Enemy type '{name}' missing key '{key}'")
+
+    def test_enemy_draw_uses_type_color(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera)
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
 
 
 if __name__ == "__main__":
