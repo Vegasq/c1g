@@ -1134,5 +1134,36 @@ class TestSplitterEnemy(unittest.TestCase):
         self.assertAlmostEqual(minis[1].x, 112.0)
 
 
+    def test_elite_type_config(self):
+        self.assertIn("elite", ENEMY_TYPES)
+        cfg = ENEMY_TYPES["elite"]
+        self.assertEqual(cfg["hp"], 10)
+        self.assertEqual(cfg["speed"], 1.8)
+        self.assertEqual(cfg["radius"], 16)
+        self.assertEqual(cfg["color"], (255, 0, 255))
+        self.assertEqual(cfg["xp_value"], 8)
+
+    def test_elite_creation(self):
+        e = Enemy(self.camera, enemy_type="elite")
+        self.assertEqual(e.enemy_type, "elite")
+        self.assertEqual(e.hp, 10)
+        self.assertEqual(e.speed, 1.8)
+        self.assertEqual(e.xp_value, 8)
+
+    def test_elite_draw_renders(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera, enemy_type="elite")
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
+
+
 if __name__ == "__main__":
     unittest.main()

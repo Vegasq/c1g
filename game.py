@@ -334,6 +334,7 @@ ENEMY_TYPES = {
     "shielded": {"hp": 4, "speed": 1.0, "radius": 14, "color": (0, 255, 255), "xp_value": 4, "shield": True},
     "splitter": {"hp": 3, "speed": 1.0, "radius": 14, "color": (0, 255, 100), "xp_value": 2},
     "mini": {"hp": 1, "speed": 1.8, "radius": 7, "color": (0, 255, 100), "xp_value": 1},
+    "elite": {"hp": 10, "speed": 1.8, "radius": 16, "color": (255, 0, 255), "xp_value": 8},
 }
 
 
@@ -398,6 +399,17 @@ class Enemy:
                 (sx + r * math.cos(math.radians(72 * i - 90)),
                  sy + r * math.sin(math.radians(72 * i - 90)))
                 for i in range(5)
+            ]
+        elif self.enemy_type == "elite":
+            # Pulsing glow effect
+            pulse = (math.sin(pygame.time.get_ticks() * 0.005) + 1) / 2  # 0..1
+            extra_intensity = int(40 + 80 * pulse)
+            draw_glow(screen, self.color, (sx, sy), r, intensity=extra_intensity, layers=6)
+            # Octagon shape
+            points = [
+                (sx + r * math.cos(math.radians(45 * i)),
+                 sy + r * math.sin(math.radians(45 * i)))
+                for i in range(8)
             ]
         elif self.enemy_type in ("splitter", "mini"):
             # Star-like: 4-pointed star

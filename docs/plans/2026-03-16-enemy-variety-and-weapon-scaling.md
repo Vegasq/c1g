@@ -75,10 +75,10 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Add "elite" to ENEMY_TYPES: radius=16, speed=1.8, hp=10, color=neon magenta, xp=8
-- [ ] Give elite a pulsing glow effect in draw method
-- [ ] Write tests for elite creation and xp value
-- [ ] Run test suite - must pass before task 5
+- [x] Add "elite" to ENEMY_TYPES: radius=16, speed=1.8, hp=10, color=neon magenta, xp=8
+- [x] Give elite a pulsing glow effect in draw method
+- [x] Write tests for elite creation and xp value
+- [x] Run test suite - must pass before task 5
 
 ### Task 5: Wave-based enemy composition and tier replacement
 
