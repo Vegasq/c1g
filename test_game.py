@@ -828,16 +828,12 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """Click inside an option row returns correct index."""
         from game import (get_hovered_upgrade_index, PANEL_X, PANEL_Y,
                           OPTION_START_Y, OPTION_ROW_HEIGHT, OPTION_PADDING, PANEL_WIDTH)
-        # Click center of first option
+        row_h = OPTION_ROW_HEIGHT - 5  # actual row rect height
         mx = PANEL_X + PANEL_WIDTH // 2
-        my = PANEL_Y + OPTION_START_Y + OPTION_ROW_HEIGHT // 2 - 3
-        self.assertEqual(get_hovered_upgrade_index(mx, my, 3), 0)
-        # Click center of second option
-        my = PANEL_Y + OPTION_START_Y + OPTION_ROW_HEIGHT + OPTION_ROW_HEIGHT // 2 - 3
-        self.assertEqual(get_hovered_upgrade_index(mx, my, 3), 1)
-        # Click center of third option
-        my = PANEL_Y + OPTION_START_Y + 2 * OPTION_ROW_HEIGHT + OPTION_ROW_HEIGHT // 2 - 3
-        self.assertEqual(get_hovered_upgrade_index(mx, my, 3), 2)
+        for i in range(3):
+            # Click geometric center of each row
+            my = PANEL_Y + OPTION_START_Y + i * OPTION_ROW_HEIGHT + row_h // 2
+            self.assertEqual(get_hovered_upgrade_index(mx, my, 3), i)
 
     def test_get_hovered_upgrade_index_miss(self):
         """Click outside all option rows returns -1."""
