@@ -341,6 +341,7 @@ ENEMY_TYPES = {
 # Checked in descending order; first matching threshold is used.
 WAVE_COMPOSITION = [
     (12, {"runner": 10, "brute": 10, "shielded": 30, "splitter": 30, "elite": 20}),
+    (10, {"runner": 20, "brute": 20, "shielded": 25, "splitter": 25, "elite": 10}),
     (8, {"runner": 25, "brute": 25, "shielded": 25, "splitter": 25}),
     (6, {"basic": 30, "runner": 25, "brute": 20, "shielded": 15, "splitter": 10}),
     (3, {"basic": 60, "runner": 25, "brute": 15}),
@@ -977,8 +978,11 @@ def run():
                     if e.shield:
                         # Shield absorbs first hit without dealing damage
                         e.shield = False
-                    else:
-                        e.hp -= b.damage
+                        # Consume bullet (non-piercing) but don't deal damage
+                        if b.weapon_type != "piercing":
+                            b.life = 0
+                        break
+                    e.hp -= b.damage
                     if b.weapon_type == "piercing":
                         b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
@@ -1007,12 +1011,16 @@ def run():
                     if e.hp <= 0:
                         killed += 1
                         xp_earned += e.xp_value
+                        if e.enemy_type == "splitter":
+                            split_spawns.append((e.x, e.y))
                         continue
                 surviving_after_explosion.append(e)
             enemies = surviving_after_explosion
         # Spawn mini enemies from dead splitters
         for sx, sy in split_spawns:
             for offset in (-12, 12):
+                if len(enemies) >= MAX_ENEMIES:
+                    break
                 mini = Enemy(camera, enemy_type="mini")
                 mini.x = sx + offset
                 mini.y = sy

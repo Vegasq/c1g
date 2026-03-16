@@ -1202,6 +1202,18 @@ class TestSplitterEnemy(unittest.TestCase):
         self.assertAlmostEqual(minis[1].x, 112.0)
 
 
+class TestEliteEnemy(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self.camera = Camera()
+
     def test_elite_type_config(self):
         self.assertIn("elite", ENEMY_TYPES)
         cfg = ENEMY_TYPES["elite"]
@@ -1263,6 +1275,17 @@ class TestWaveComposition(unittest.TestCase):
             types_seen.add(get_enemy_type_for_wave(8))
         self.assertIn("shielded", types_seen)
         self.assertIn("splitter", types_seen)
+
+    def test_wave_10_has_elites(self):
+        types_seen = set()
+        for _ in range(500):
+            types_seen.add(get_enemy_type_for_wave(10))
+        self.assertIn("elite", types_seen)
+
+    def test_wave_10_no_basics(self):
+        for _ in range(200):
+            etype = get_enemy_type_for_wave(10)
+            self.assertNotEqual(etype, "basic")
 
     def test_wave_12_has_elites(self):
         types_seen = set()
