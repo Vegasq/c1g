@@ -469,13 +469,14 @@ class HealthPickup:
 
     def update(self, player):
         self.lifetime -= 1
-        if self.lifetime <= 0:
-            return
         dx, dy = player.x - self.x, player.y - self.y
         dist = math.hypot(dx, dy)
         if dist < self.COLLECT_RANGE:
             self.collected = True
-        elif dist < self.ATTRACT_RANGE and dist > 0:
+            return
+        if self.lifetime <= 0:
+            return
+        if dist < self.ATTRACT_RANGE and dist > 0:
             self.x += dx / dist * self.ATTRACT_SPEED
             self.y += dy / dist * self.ATTRACT_SPEED
 
@@ -577,7 +578,7 @@ def apply_upgrade(weapon_stats, option, player=None):
         weapon_stats["weapon_type"] = option["weapon_type"]
     elif option.get("stat") == "max_hp" and player is not None:
         player.max_hp += option["amount"]
-        player.hp = min(player.hp + 1, player.max_hp)
+        player.hp = min(player.hp + option["amount"], player.max_hp)
     elif option.get("stat") != "max_hp":
         weapon_stats[option["stat"]] += option["amount"]
         # Clamp fire_rate to minimum of 3
