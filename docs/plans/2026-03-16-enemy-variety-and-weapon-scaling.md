@@ -107,10 +107,10 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 
 ### Task 7: Final validation
 
-- [ ] Manual test: play through waves 1-15 and verify enemy variety progression
-- [ ] Run full test suite
-- [ ] Verify all enemy types spawn at correct waves
-- [ ] Verify weapon upgrades feel adequate against tougher enemies
+- [x] Manual test: play through waves 1-15 and verify enemy variety progression
+- [x] Run full test suite
+- [x] Verify all enemy types spawn at correct waves
+- [x] Verify weapon upgrades feel adequate against tougher enemies
 
 ## Post-completion
 
