@@ -526,8 +526,9 @@ class TestFullLevelUpFlow(unittest.TestCase):
         options = generate_upgrade_options(level, stats)
         self.assertEqual(len(options), 3)
 
-        # Apply first option
-        apply_upgrade(stats, options[0])
+        # Apply first non-max_hp option (max_hp doesn't change weapon stats)
+        option = next(o for o in options if o.get("stat") != "max_hp")
+        apply_upgrade(stats, option)
         # Stats should have changed from defaults
         changed = (
             stats["damage"] != 1 or stats["fire_rate"] != 25 or

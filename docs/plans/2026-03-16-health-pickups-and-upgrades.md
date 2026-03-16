@@ -64,10 +64,10 @@ Add health pickups that enemies randomly drop on death, plus a health upgrade op
 
 ## Final Validation
 
-- [ ] Manual test: kill enemies and verify green health pickups drop and auto-collect
-- [ ] Manual test: level up and verify +Max HP option appears and works
-- [ ] Run full test suite
-- [ ] Verify test coverage meets 80%+
+- [x] Manual test: kill enemies and verify green health pickups drop and auto-collect
+- [x] Manual test: level up and verify +Max HP option appears and works
+- [x] Run full test suite
+- [x] Verify test coverage meets 80%+
 
 ## Cleanup
 
