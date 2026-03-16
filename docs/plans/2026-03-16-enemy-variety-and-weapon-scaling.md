@@ -49,11 +49,11 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Add "runner" to ENEMY_TYPES: radius=8, speed=2.2, hp=1, color=neon yellow, xp=1
-- [ ] Add "brute" to ENEMY_TYPES: radius=18, speed=0.7, hp=6, color=neon orange, xp=3
-- [ ] Update Enemy.draw to render different shapes per type (runner=triangle, brute=hexagon)
-- [ ] Write tests for runner and brute creation and rendering
-- [ ] Run test suite - must pass before task 3
+- [x] Add "runner" to ENEMY_TYPES: radius=8, speed=2.2, hp=1, color=neon yellow, xp=1
+- [x] Add "brute" to ENEMY_TYPES: radius=18, speed=0.7, hp=6, color=neon orange, xp=3
+- [x] Update Enemy.draw to render different shapes per type (runner=triangle, brute=hexagon)
+- [x] Write tests for runner and brute creation and rendering
+- [x] Run test suite - must pass before task 3
 
 ### Task 3: Add tier 3 enemy types (Shielded and Splitter)
 

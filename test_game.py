@@ -918,5 +918,64 @@ class TestEnemyTypes(unittest.TestCase):
             game.screen = orig_screen
 
 
+    def test_runner_type_config(self):
+        self.assertIn("runner", ENEMY_TYPES)
+        cfg = ENEMY_TYPES["runner"]
+        self.assertEqual(cfg["hp"], 1)
+        self.assertEqual(cfg["speed"], 2.2)
+        self.assertEqual(cfg["radius"], 8)
+        self.assertEqual(cfg["xp_value"], 1)
+
+    def test_brute_type_config(self):
+        self.assertIn("brute", ENEMY_TYPES)
+        cfg = ENEMY_TYPES["brute"]
+        self.assertEqual(cfg["hp"], 6)
+        self.assertEqual(cfg["speed"], 0.7)
+        self.assertEqual(cfg["radius"], 18)
+        self.assertEqual(cfg["xp_value"], 3)
+
+    def test_runner_creation(self):
+        e = Enemy(self.camera, enemy_type="runner")
+        self.assertEqual(e.enemy_type, "runner")
+        self.assertEqual(e.hp, 1)
+        self.assertEqual(e.speed, 2.2)
+        self.assertEqual(e.radius, 8)
+
+    def test_brute_creation(self):
+        e = Enemy(self.camera, enemy_type="brute")
+        self.assertEqual(e.enemy_type, "brute")
+        self.assertEqual(e.hp, 6)
+        self.assertEqual(e.speed, 0.7)
+        self.assertEqual(e.radius, 18)
+
+    def test_runner_draw_renders_triangle(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera, enemy_type="runner")
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy + e.radius - 1)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
+
+    def test_brute_draw_renders_hexagon(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera, enemy_type="brute")
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
+
+
 if __name__ == "__main__":
     unittest.main()

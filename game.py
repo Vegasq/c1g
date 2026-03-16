@@ -329,6 +329,8 @@ class Unit:
 
 ENEMY_TYPES = {
     "basic": {"hp": 2, "speed": 1.2, "radius": 12, "color": (255, 30, 60), "xp_value": 1},
+    "runner": {"hp": 1, "speed": 2.2, "radius": 8, "color": (230, 255, 0), "xp_value": 1},
+    "brute": {"hp": 6, "speed": 0.7, "radius": 18, "color": (255, 140, 0), "xp_value": 3},
 }
 
 
@@ -377,8 +379,17 @@ class Enemy:
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
         r = self.radius
-        points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
         draw_glow(screen, self.color, (sx, sy), r, intensity=80, layers=4)
+        if self.enemy_type == "runner":
+            points = [(sx, sy - r), (sx + r, sy + r), (sx - r, sy + r)]
+        elif self.enemy_type == "brute":
+            points = [
+                (sx + r * math.cos(math.radians(60 * i - 90)),
+                 sy + r * math.sin(math.radians(60 * i - 90)))
+                for i in range(6)
+            ]
+        else:
+            points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
         pygame.draw.polygon(screen, self.color, points)
         enemy_outline = tuple(min(255, c + 60) for c in self.color)
         pygame.draw.polygon(screen, enemy_outline, points, 2)
