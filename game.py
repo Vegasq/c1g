@@ -34,20 +34,31 @@ STATE_GAME_OVER = 2
 STATE_LEVEL_UP = 3
 
 # Colors
-BG = (20, 20, 30)
-PLAYER_COLOR = (80, 200, 255)
+BG = (5, 5, 15)
+PLAYER_COLOR = (0, 220, 255)
 ALLY_COLORS = [
-    (100, 255, 100), (255, 255, 100), (255, 180, 50),
-    (200, 100, 255), (255, 100, 200), (100, 255, 220),
+    (0, 150, 255), (100, 80, 255), (180, 0, 255),
+    (255, 0, 200), (0, 200, 220), (120, 100, 255),
 ]
-ENEMY_COLOR = (255, 60, 60)
-BULLET_COLOR = (255, 255, 200)
+ENEMY_COLOR = (255, 30, 60)
+BULLET_COLOR = (200, 255, 255)
 HEALTH_BG = (60, 60, 60)
-HEALTH_FG = (80, 220, 80)
-GRID_COLOR = (30, 30, 45)
-BORDER_COLOR = (80, 80, 120)
-OBSTACLE_COLOR = (90, 70, 50)
-OBSTACLE_BORDER = (120, 100, 70)
+HEALTH_FG = (0, 255, 180)
+GRID_COLOR = (15, 15, 40)
+BORDER_COLOR = (150, 0, 255)
+OBSTACLE_COLOR = (15, 10, 30)
+OBSTACLE_BORDER = (120, 0, 200)
+
+
+def draw_glow(surface, color, center, radius, intensity=80, layers=4):
+    """Draw layered transparent circles to simulate neon glow."""
+    for i in range(layers, 0, -1):
+        layer_radius = int(radius * (1 + i * 0.5))
+        alpha = max(10, intensity // i)
+        glow_surf = pygame.Surface((layer_radius * 2, layer_radius * 2), pygame.SRCALPHA)
+        glow_color = (color[0], color[1], color[2], alpha)
+        pygame.draw.circle(glow_surf, glow_color, (layer_radius, layer_radius), layer_radius)
+        surface.blit(glow_surf, (center[0] - layer_radius, center[1] - layer_radius))
 
 
 class Camera:

@@ -22,7 +22,7 @@ Tron-style visual overhaul for Squad Survivors - neon glow effects with blue, pu
 **Files:**
 - Modify: `game.py` (color constants + new glow utility function)
 
-- [ ] Replace all color constants (BG, PLAYER_COLOR, ALLY_COLORS, ENEMY_COLOR, BULLET_COLOR, HEALTH_BG, HEALTH_FG, GRID_COLOR, BORDER_COLOR, OBSTACLE_COLOR, OBSTACLE_BORDER) with Tron neon palette:
+- [x] Replace all color constants (BG, PLAYER_COLOR, ALLY_COLORS, ENEMY_COLOR, BULLET_COLOR, HEALTH_BG, HEALTH_FG, GRID_COLOR, BORDER_COLOR, OBSTACLE_COLOR, OBSTACLE_BORDER) with Tron neon palette:
   - BG: near-black (5, 5, 15)
   - PLAYER_COLOR: bright cyan (0, 220, 255)
   - ALLY_COLORS: mix of blue, purple, magenta tones
@@ -33,9 +33,9 @@ Tron-style visual overhaul for Squad Survivors - neon glow effects with blue, pu
   - OBSTACLE_COLOR: dark (15, 10, 30)
   - OBSTACLE_BORDER: neon purple (120, 0, 200)
   - HEALTH_FG: neon green-cyan (0, 255, 180)
-- [ ] Add a draw_glow helper function that draws layered transparent circles to simulate neon glow (using a small Surface with alpha)
-- [ ] Write tests for the glow helper function
-- [ ] Run project test suite - must pass before task 2
+- [x] Add a draw_glow helper function that draws layered transparent circles to simulate neon glow (using a small Surface with alpha)
+- [x] Write tests for the glow helper function
+- [x] Run project test suite - must pass before task 2
 
 ### Task 2 - Neon glow on entities (player, allies, enemies, bullets)
 

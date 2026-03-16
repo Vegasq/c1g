@@ -1,7 +1,10 @@
 import unittest
 import math
+import pygame
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
-                  generate_upgrade_options, apply_upgrade, STAT_UPGRADES, WEAPON_TYPES)
+                  generate_upgrade_options, apply_upgrade, STAT_UPGRADES, WEAPON_TYPES,
+                  draw_glow, BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
+                  OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -504,6 +507,59 @@ class TestFullLevelUpFlow(unittest.TestCase):
         stats = default_weapon_stats()
         self.assertEqual(stats["damage"], 1)
         self.assertEqual(stats["weapon_type"], "normal")
+
+
+class TestTronColorPalette(unittest.TestCase):
+    def test_bg_is_near_black(self):
+        self.assertEqual(BG, (5, 5, 15))
+
+    def test_player_color_is_cyan(self):
+        self.assertEqual(PLAYER_COLOR, (0, 220, 255))
+
+    def test_enemy_color_is_neon_red(self):
+        self.assertEqual(ENEMY_COLOR, (255, 30, 60))
+
+    def test_grid_color_is_dim_blue(self):
+        self.assertEqual(GRID_COLOR, (15, 15, 40))
+
+    def test_border_color_is_neon_purple(self):
+        self.assertEqual(BORDER_COLOR, (150, 0, 255))
+
+    def test_obstacle_colors(self):
+        self.assertEqual(OBSTACLE_COLOR, (15, 10, 30))
+        self.assertEqual(OBSTACLE_BORDER, (120, 0, 200))
+
+    def test_bullet_color(self):
+        self.assertEqual(BULLET_COLOR, (200, 255, 255))
+
+    def test_health_fg_neon(self):
+        self.assertEqual(HEALTH_FG, (0, 255, 180))
+
+
+class TestDrawGlow(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        cls.surface = pygame.Surface((200, 200), pygame.SRCALPHA)
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def test_draw_glow_runs_without_error(self):
+        draw_glow(self.surface, (0, 220, 255), (100, 100), 10)
+
+    def test_draw_glow_custom_params(self):
+        draw_glow(self.surface, (255, 30, 60), (50, 50), 20, intensity=120, layers=6)
+
+    def test_draw_glow_modifies_surface(self):
+        surf = pygame.Surface((200, 200), pygame.SRCALPHA)
+        # Check a pixel far from center is transparent before glow
+        before = surf.get_at((100, 100))
+        draw_glow(surf, (0, 220, 255), (100, 100), 10)
+        after = surf.get_at((100, 100))
+        # Alpha should increase after drawing glow
+        self.assertGreater(after[3], before[3])
 
 
 if __name__ == "__main__":
