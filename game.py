@@ -48,7 +48,7 @@ GRID_COLOR = (15, 15, 40)
 BORDER_COLOR = (150, 0, 255)
 OBSTACLE_COLOR = (15, 10, 30)
 OBSTACLE_BORDER = (120, 0, 200)
-HEALTH_PICKUP_COLOR = (0, 255, 100)
+HEALTH_PICKUP_COLOR = (0, 255, 180)
 
 
 _glow_surface_cache = {}
@@ -469,12 +469,12 @@ class HealthPickup:
 
     def update(self, player):
         self.lifetime -= 1
+        if self.lifetime <= 0:
+            return
         dx, dy = player.x - self.x, player.y - self.y
         dist = math.hypot(dx, dy)
         if dist < self.COLLECT_RANGE:
             self.collected = True
-            return
-        if self.lifetime <= 0:
             return
         if dist < self.ATTRACT_RANGE and dist > 0:
             self.x += dx / dist * self.ATTRACT_SPEED
