@@ -42,12 +42,12 @@ Tron-style visual overhaul for Squad Survivors - neon glow effects with blue, pu
 **Files:**
 - Modify: `game.py` (Unit.draw, Enemy.draw, Bullet.draw methods)
 
-- [ ] Update Unit.draw to render a neon glow aura behind the unit circle using the glow helper, with a bright outline instead of white
-- [ ] Update Enemy.draw to render neon red glow behind the diamond shape
-- [ ] Update Bullet.draw to render small glow around bullets
-- [ ] Update Obstacle.draw to use neon border glow
-- [ ] Write tests verifying draw methods run without error with new visuals
-- [ ] Run project test suite - must pass before task 3
+- [x] Update Unit.draw to render a neon glow aura behind the unit circle using the glow helper, with a bright outline instead of white
+- [x] Update Enemy.draw to render neon red glow behind the diamond shape
+- [x] Update Bullet.draw to render small glow around bullets
+- [x] Update Obstacle.draw to use neon border glow
+- [x] Write tests verifying draw methods run without error with new visuals
+- [x] Run project test suite - must pass before task 3
 
 ### Task 3 - Neon grid, menus, and HUD
 

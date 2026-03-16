@@ -85,6 +85,9 @@ class Obstacle:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
+        cx, cy = sx + self.w // 2, sy + self.h // 2
+        glow_radius = max(self.w, self.h) // 2
+        draw_glow(screen, OBSTACLE_BORDER, (cx, cy), glow_radius, intensity=50, layers=3)
         pygame.draw.rect(screen, OBSTACLE_COLOR, (sx, sy, self.w, self.h))
         pygame.draw.rect(screen, OBSTACLE_BORDER, (sx, sy, self.w, self.h), 2)
 
@@ -187,6 +190,7 @@ class Bullet:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
+        draw_glow(screen, BULLET_COLOR, (sx, sy), self.RADIUS, intensity=60, layers=3)
         pygame.draw.circle(screen, BULLET_COLOR, (sx, sy), self.RADIUS)
 
 
@@ -264,8 +268,9 @@ class Unit:
         if not self.is_player and self.lifetime >= 0:
             fade = max(0.2, self.lifetime / self.ALLY_LIFETIME)
             draw_color = tuple(int(c * fade) for c in self.color)
+        draw_glow(screen, draw_color, (sx, sy), self.RADIUS, intensity=80, layers=4)
         pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS)
-        pygame.draw.circle(screen, (255, 255, 255), (sx, sy), self.RADIUS, 2)
+        pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS, 2)
         # HP bar
         bar_w = self.RADIUS * 2
         max_hp = 5 if self.is_player else 3
@@ -324,8 +329,9 @@ class Enemy:
         sx, sy = camera.apply(self.x, self.y)
         r = self.RADIUS
         points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
+        draw_glow(screen, ENEMY_COLOR, (sx, sy), r, intensity=80, layers=4)
         pygame.draw.polygon(screen, ENEMY_COLOR, points)
-        pygame.draw.polygon(screen, (200, 40, 40), points, 2)
+        pygame.draw.polygon(screen, ENEMY_COLOR, points, 2)
 
 
 def generate_xp_thresholds(max_level=50):

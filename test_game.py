@@ -4,7 +4,8 @@ import pygame
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
                   generate_upgrade_options, apply_upgrade, STAT_UPGRADES, WEAPON_TYPES,
                   draw_glow, BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
-                  OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG)
+                  OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
+                  Camera, Enemy, Obstacle)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -560,6 +561,41 @@ class TestDrawGlow(unittest.TestCase):
         after = surf.get_at((100, 100))
         # Alpha should increase after drawing glow
         self.assertGreater(after[3], before[3])
+
+
+class TestEntityDrawGlow(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        import game
+        game.screen = pygame.Surface((800, 600))
+        self.camera = Camera()
+
+    def test_unit_draw_with_glow(self):
+        unit = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        unit.draw(self.camera)
+
+    def test_ally_draw_with_glow(self):
+        unit = Unit(100, 100, (0, 150, 255), is_player=False)
+        unit.draw(self.camera)
+
+    def test_enemy_draw_with_glow(self):
+        enemy = Enemy(self.camera)
+        enemy.draw(self.camera)
+
+    def test_bullet_draw_with_glow(self):
+        bullet = Bullet(100, 100, 1, 0)
+        bullet.draw(self.camera)
+
+    def test_obstacle_draw_with_glow(self):
+        obstacle = Obstacle(100, 100, 50, 50)
+        obstacle.draw(self.camera)
 
 
 if __name__ == "__main__":
