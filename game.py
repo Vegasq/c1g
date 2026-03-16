@@ -519,6 +519,66 @@ PANEL_BORDER_GLOW_LAYERS = 4
 OPTION_ROW_HEIGHT = 55
 OPTION_PADDING = 10
 OPTION_START_Y = 90  # relative to panel top
+ICON_SIZE = 32
+
+
+def create_upgrade_icon(option):
+    """Create a 32x32 procedural icon for an upgrade option."""
+    surf = pygame.Surface((ICON_SIZE, ICON_SIZE), pygame.SRCALPHA)
+    cx, cy = ICON_SIZE // 2, ICON_SIZE // 2
+
+    if "weapon_type" in option:
+        wt = option["weapon_type"]
+        if wt == "shotgun":
+            # Spread pattern: three diverging lines
+            color = (255, 100, 0)
+            pygame.draw.line(surf, color, (4, cy), (28, 6), 2)
+            pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
+            pygame.draw.line(surf, color, (4, cy), (28, 26), 2)
+        elif wt == "piercing":
+            # Arrow line going through
+            color = (0, 255, 255)
+            pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
+            pygame.draw.line(surf, color, (20, 8), (28, cy), 2)
+            pygame.draw.line(surf, color, (20, 24), (28, cy), 2)
+            pygame.draw.circle(surf, color, (14, cy), 3, 1)
+        elif wt == "explosive":
+            # Explosion circle with rays
+            color = (255, 50, 50)
+            pygame.draw.circle(surf, color, (cx, cy), 8, 2)
+            for angle_pts in [((cx, 2), (cx, 8)), ((cx, 24), (cx, 30)),
+                              ((2, cy), (8, cy)), ((24, cy), (30, cy))]:
+                pygame.draw.line(surf, color, angle_pts[0], angle_pts[1], 1)
+    else:
+        stat = option.get("stat", "")
+        if stat == "damage":
+            # Sword shape
+            color = (255, 80, 80)
+            pygame.draw.line(surf, color, (cx, 4), (cx, 24), 3)
+            pygame.draw.line(surf, color, (cx - 8, 18), (cx + 8, 18), 2)
+            pygame.draw.rect(surf, color, (cx - 2, 24, 4, 4))
+        elif stat == "fire_rate":
+            # Lightning bolt
+            color = (255, 255, 0)
+            pygame.draw.polygon(surf, color, [
+                (18, 2), (10, 14), (16, 14), (12, 30), (22, 14), (16, 14), (18, 2)
+            ])
+        elif stat == "bullet_speed":
+            # Fast arrow
+            color = (0, 200, 255)
+            pygame.draw.line(surf, color, (4, cy), (26, cy), 2)
+            pygame.draw.polygon(surf, color, [(26, cy - 6), (26, cy + 6), (30, cy)])
+            pygame.draw.line(surf, color, (2, cy - 4), (8, cy), 1)
+            pygame.draw.line(surf, color, (2, cy + 4), (8, cy), 1)
+        elif stat == "range":
+            # Crosshair
+            color = (0, 255, 100)
+            pygame.draw.circle(surf, color, (cx, cy), 10, 1)
+            pygame.draw.circle(surf, color, (cx, cy), 5, 1)
+            pygame.draw.line(surf, color, (cx, 2), (cx, 30), 1)
+            pygame.draw.line(surf, color, (2, cy), (30, cy), 1)
+
+    return surf
 
 
 def draw_upgrade_panel(level, upgrade_options):
@@ -576,11 +636,17 @@ def draw_upgrade_panel(level, upgrade_options):
         else:
             pygame.draw.rect(panel_surf, (60, 40, 100, 120), row_rect, 1, border_radius=4)
 
-        # Option text
+        # Icon
+        icon = create_upgrade_icon(opt)
+        icon_x = OPTION_PADDING + 10
+        icon_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - ICON_SIZE // 2
+        panel_surf.blit(icon, (icon_x, icon_y))
+
+        # Option text (shifted right to make room for icon)
         color = (0, 255, 180) if "weapon_type" in opt else (100, 80, 255)
         text = font.render(f"[{i+1}] {opt['name']}", True, color)
         text_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - text.get_height() // 2
-        panel_surf.blit(text, (OPTION_PADDING + 15, text_y))
+        panel_surf.blit(text, (icon_x + ICON_SIZE + 10, text_y))
 
     screen.blit(panel_surf, (PANEL_X, PANEL_Y))
 

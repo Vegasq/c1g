@@ -771,5 +771,55 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self.assertEqual(center_y, HEIGHT // 2)
 
 
+    def test_create_upgrade_icon_returns_surface(self):
+        """Verify create_upgrade_icon returns a 32x32 surface for each upgrade type."""
+        from game import create_upgrade_icon, ICON_SIZE
+        test_options = [
+            {"name": "+Damage", "stat": "damage", "amount": 1},
+            {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
+            {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2},
+            {"name": "+Range", "stat": "range", "amount": 15},
+            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
+            {"name": "Weapon: Piercing", "weapon_type": "piercing"},
+            {"name": "Weapon: Explosive", "weapon_type": "explosive"},
+        ]
+        for opt in test_options:
+            icon = create_upgrade_icon(opt)
+            self.assertEqual(icon.get_width(), ICON_SIZE, f"Icon width wrong for {opt['name']}")
+            self.assertEqual(icon.get_height(), ICON_SIZE, f"Icon height wrong for {opt['name']}")
+
+    def test_create_upgrade_icon_not_blank(self):
+        """Verify icons have non-transparent pixels drawn on them."""
+        from game import create_upgrade_icon, ICON_SIZE
+        import pygame
+        test_options = [
+            {"name": "+Damage", "stat": "damage", "amount": 1},
+            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
+        ]
+        for opt in test_options:
+            icon = create_upgrade_icon(opt)
+            # Check that at least some pixels are non-transparent
+            has_pixel = False
+            for x in range(ICON_SIZE):
+                for y in range(ICON_SIZE):
+                    if icon.get_at((x, y))[3] > 0:
+                        has_pixel = True
+                        break
+                if has_pixel:
+                    break
+            self.assertTrue(has_pixel, f"Icon for {opt['name']} is completely blank")
+
+    def test_upgrade_panel_renders_with_icons(self):
+        """Verify draw_upgrade_panel works with all upgrade types (icons included)."""
+        from game import draw_upgrade_panel
+        options = [
+            {"name": "+Damage", "stat": "damage", "amount": 1},
+            {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
+            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
+        ]
+        result = draw_upgrade_panel(3, options)
+        self.assertIsNotNone(result)
+
+
 if __name__ == "__main__":
     unittest.main()

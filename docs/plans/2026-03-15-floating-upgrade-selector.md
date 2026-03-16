@@ -45,11 +45,11 @@ Redesign the level-up upgrade selector from a fullscreen text list into a floati
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create simple procedural icons using Pygame drawing (no external image files): sword for damage, lightning bolt for fire rate, arrow for bullet speed, crosshair for range, special shapes for weapon types (shotgun spread, piercing line, explosion circle)
-- [ ] Draw each icon as a small (32x32) SRCALPHA surface using lines, circles, and polygons in neon colors
-- [ ] Display the icon to the left of each upgrade name in the panel
-- [ ] Write tests verifying icons are created for each upgrade type
-- [ ] Run project test suite - must pass before task 4
+- [x] Create simple procedural icons using Pygame drawing (no external image files): sword for damage, lightning bolt for fire rate, arrow for bullet speed, crosshair for range, special shapes for weapon types (shotgun spread, piercing line, explosion circle)
+- [x] Draw each icon as a small (32x32) SRCALPHA surface using lines, circles, and polygons in neon colors
+- [x] Display the icon to the left of each upgrade name in the panel
+- [x] Write tests verifying icons are created for each upgrade type
+- [x] Run project test suite - must pass before task 4
 
 ## Task 4 - Add mouse click support
 
