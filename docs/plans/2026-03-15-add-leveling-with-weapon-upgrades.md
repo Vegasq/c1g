@@ -68,12 +68,12 @@ Add XP-based leveling system with weapon stat upgrades and new weapon types at m
 **Files:**
 - Modify: `game.py`
 
-- [ ] Show current level and weapon type in HUD
-- [ ] Add XP bar below health bar or in HUD area
-- [ ] Reset leveling state in reset_game()
-- [ ] Display level reached on game over screen
-- [ ] Write integration tests for full level-up flow
-- [ ] Run full test suite
+- [x] Show current level and weapon type in HUD
+- [x] Add XP bar below health bar or in HUD area
+- [x] Reset leveling state in reset_game()
+- [x] Display level reached on game over screen
+- [x] Write integration tests for full level-up flow
+- [x] Run full test suite
 
 ## Final Verification
 

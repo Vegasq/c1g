@@ -401,5 +401,110 @@ class TestWeaponTypeInShootAt(unittest.TestCase):
         self.assertEqual(bullets[0].weapon_type, "explosive")
 
 
+class TestFullLevelUpFlow(unittest.TestCase):
+    """Integration tests for the complete level-up flow."""
+
+    def test_full_flow_xp_to_level_up_to_upgrade(self):
+        """Simulate: accumulate XP -> level up -> generate options -> apply upgrade."""
+        thresholds = generate_xp_thresholds()
+        stats = default_weapon_stats()
+        xp, level = 0, 1
+
+        # Accumulate XP from kills
+        for _ in range(10):
+            xp += 1
+
+        # Level up
+        xp, level, leveled = check_level_up(xp, level, thresholds)
+        self.assertTrue(leveled)
+        self.assertEqual(level, 2)
+
+        # Generate upgrade options
+        options = generate_upgrade_options(level, stats)
+        self.assertEqual(len(options), 3)
+
+        # Apply first option
+        apply_upgrade(stats, options[0])
+        # Stats should have changed from defaults
+        changed = (
+            stats["damage"] != 1 or stats["fire_rate"] != 25 or
+            stats["bullet_speed"] != 8 or stats["range"] != 90
+        )
+        self.assertTrue(changed)
+
+    def test_flow_to_milestone_weapon_unlock(self):
+        """Simulate reaching level 5 milestone and getting a weapon type."""
+        thresholds = generate_xp_thresholds()
+        stats = default_weapon_stats()
+        xp, level = 0, 1
+
+        # Level up to level 5 step by step
+        while level < 5:
+            threshold = thresholds[level - 1]
+            xp += threshold
+            xp, level, leveled = check_level_up(xp, level, thresholds)
+
+        self.assertEqual(level, 5)
+
+        # At milestone, should get weapon option
+        found_weapon = False
+        for _ in range(50):
+            options = generate_upgrade_options(level, stats)
+            for opt in options:
+                if "weapon_type" in opt:
+                    apply_upgrade(stats, opt)
+                    self.assertIn(stats["weapon_type"], WEAPON_TYPES)
+                    found_weapon = True
+                    break
+            if found_weapon:
+                break
+        self.assertTrue(found_weapon)
+
+    def test_weapon_type_persists_through_stat_upgrades(self):
+        """After getting a weapon type, stat upgrades should not reset it."""
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
+        self.assertEqual(stats["weapon_type"], "shotgun")
+
+        # Apply a stat upgrade
+        apply_upgrade(stats, {"name": "+Damage", "stat": "damage", "amount": 1})
+        self.assertEqual(stats["weapon_type"], "shotgun")
+        self.assertEqual(stats["damage"], 2)
+
+    def test_multiple_level_ups_with_upgrades(self):
+        """Simulate multiple level-ups each with an upgrade applied."""
+        thresholds = generate_xp_thresholds()
+        stats = default_weapon_stats()
+        xp, level = 0, 1
+
+        for target_level in range(2, 5):
+            threshold = thresholds[level - 1]
+            xp += threshold
+            xp, level, leveled = check_level_up(xp, level, thresholds)
+            self.assertTrue(leveled)
+            self.assertEqual(level, target_level)
+
+            options = generate_upgrade_options(level, stats)
+            apply_upgrade(stats, options[0])
+
+        # After 3 upgrades, stats should differ from defaults
+        default = default_weapon_stats()
+        any_different = any(
+            stats[k] != default[k] for k in ["damage", "fire_rate", "bullet_speed", "range"]
+        )
+        self.assertTrue(any_different)
+
+    def test_reset_returns_to_defaults(self):
+        """Verify that resetting state returns to default values."""
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "+Damage", "stat": "damage", "amount": 5})
+        self.assertEqual(stats["damage"], 6)
+
+        # Reset by getting fresh defaults (as reset_game does)
+        stats = default_weapon_stats()
+        self.assertEqual(stats["damage"], 1)
+        self.assertEqual(stats["weapon_type"], "normal")
+
+
 if __name__ == "__main__":
     unittest.main()

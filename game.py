@@ -395,11 +395,11 @@ def draw_menu():
     pygame.display.flip()
 
 
-def draw_game_over(score):
+def draw_game_over(score, level=1):
     screen.fill(BG)
     t1 = title_font.render("GAME OVER", True, (255, 100, 100))
     screen.blit(t1, (WIDTH // 2 - t1.get_width() // 2, HEIGHT // 3))
-    t2 = font.render(f"Score: {score}", True, (220, 220, 220))
+    t2 = font.render(f"Score: {score}   Level: {level}", True, (220, 220, 220))
     screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, HEIGHT // 2 + 20))
     t3 = font.render("Press ENTER to Restart", True, (200, 200, 200))
     screen.blit(t3, (WIDTH // 2 - t3.get_width() // 2, HEIGHT // 2 + 60))
@@ -479,7 +479,7 @@ def run():
             continue
 
         if state == STATE_GAME_OVER:
-            draw_game_over(score)
+            draw_game_over(score, level)
             clock.tick(FPS)
             continue
 
@@ -657,7 +657,7 @@ def run():
         player.draw(camera)
 
         # HUD
-        hud = font.render(f"Score: {score}   Squad: {1 + len(allies)}   Wave: {wave}   Lv: {level}", True, (220, 220, 220))
+        hud = font.render(f"Score: {score}   Squad: {1 + len(allies)}   Wave: {wave}   Lv: {level}   Weapon: {weapon_stats['weapon_type']}", True, (220, 220, 220))
         screen.blit(hud, (10, 10))
 
         # XP bar
