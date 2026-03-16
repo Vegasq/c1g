@@ -597,6 +597,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
 
 _dim_overlay = None
 
+
 def draw_dim_overlay():
     """Draw a semi-transparent dark overlay to dim the game behind a panel."""
     global _dim_overlay
@@ -981,8 +982,10 @@ def run():
                         # Explosive bullets still trigger area damage even if shield absorbs direct hit
                         if b.weapon_type == "explosive":
                             explosive_hits.append((b.x, b.y, b.damage, e.uid))
-                        # Consume bullet (non-piercing) but don't deal damage
-                        if b.weapon_type != "piercing":
+                        if b.weapon_type == "piercing":
+                            # Track that this piercing bullet already hit this enemy
+                            b.pierced_enemies.add(e.uid)
+                        else:
                             b.life = 0
                         break
                     e.hp -= b.damage
@@ -1012,14 +1015,14 @@ def run():
                 if e.uid != direct_hit_uid and math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
                     if e.shield:
                         e.shield = False
-                        continue
-                    e.hp -= edmg
-                    if e.hp <= 0:
-                        killed += 1
-                        xp_earned += e.xp_value
-                        if e.enemy_type == "splitter":
-                            split_spawns.append((e.x, e.y))
-                        continue
+                    else:
+                        e.hp -= edmg
+                        if e.hp <= 0:
+                            killed += 1
+                            xp_earned += e.xp_value
+                            if e.enemy_type == "splitter":
+                                split_spawns.append((e.x, e.y))
+                            continue
                 surviving_after_explosion.append(e)
             enemies = surviving_after_explosion
         # Spawn mini enemies from dead splitters
