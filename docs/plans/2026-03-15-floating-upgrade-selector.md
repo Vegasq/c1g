@@ -56,12 +56,12 @@ Redesign the level-up upgrade selector from a fullscreen text list into a floati
 **Files:**
 - Modify: `game.py`
 
-- [ ] Track mouse position during STATE_LEVEL_UP to detect which upgrade option the cursor hovers over
-- [ ] Add hover visual feedback (brighter border or glow on the hovered option row)
-- [ ] Handle MOUSEBUTTONDOWN events to select the hovered upgrade on click
-- [ ] Keep existing keyboard (1/2/3) selection as alternative input
-- [ ] Write tests for click detection and hover state logic
-- [ ] Run project test suite - must pass before task 5
+- [x] Track mouse position during STATE_LEVEL_UP to detect which upgrade option the cursor hovers over
+- [x] Add hover visual feedback (brighter border or glow on the hovered option row)
+- [x] Handle MOUSEBUTTONDOWN events to select the hovered upgrade on click
+- [x] Keep existing keyboard (1/2/3) selection as alternative input
+- [x] Write tests for click detection and hover state logic
+- [x] Run project test suite - must pass before task 5
 
 ---
 

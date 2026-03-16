@@ -653,6 +653,19 @@ def draw_upgrade_panel(level, upgrade_options):
     return PANEL_X, PANEL_Y
 
 
+def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
+    """Return the index of the upgrade option under the mouse, or -1 if none."""
+    local_mx = mouse_x - PANEL_X
+    local_my = mouse_y - PANEL_Y
+    for i in range(num_options):
+        row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
+        row_rect = pygame.Rect(OPTION_PADDING, row_y,
+                               PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
+        if row_rect.collidepoint(local_mx, local_my):
+            return i
+    return -1
+
+
 def draw_menu():
     screen.fill(BG)
     # Neon cyan glow behind title
@@ -753,6 +766,13 @@ def run():
                         state = STATE_PLAYING
                     elif state == STATE_GAME_OVER:
                         reset_game()
+                        state = STATE_PLAYING
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if state == STATE_LEVEL_UP and upgrade_options:
+                    idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
+                    if 0 <= idx < len(upgrade_options):
+                        apply_upgrade(weapon_stats, upgrade_options[idx])
+                        upgrade_options = []
                         state = STATE_PLAYING
 
         if state == STATE_MENU:

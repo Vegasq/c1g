@@ -821,5 +821,34 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self.assertIsNotNone(result)
 
 
+    def test_get_hovered_upgrade_index_hit(self):
+        """Click inside an option row returns correct index."""
+        from game import (get_hovered_upgrade_index, PANEL_X, PANEL_Y,
+                          OPTION_START_Y, OPTION_ROW_HEIGHT, OPTION_PADDING, PANEL_WIDTH)
+        # Click center of first option
+        mx = PANEL_X + PANEL_WIDTH // 2
+        my = PANEL_Y + OPTION_START_Y + OPTION_ROW_HEIGHT // 2 - 3
+        self.assertEqual(get_hovered_upgrade_index(mx, my, 3), 0)
+        # Click center of second option
+        my = PANEL_Y + OPTION_START_Y + OPTION_ROW_HEIGHT + OPTION_ROW_HEIGHT // 2 - 3
+        self.assertEqual(get_hovered_upgrade_index(mx, my, 3), 1)
+        # Click center of third option
+        my = PANEL_Y + OPTION_START_Y + 2 * OPTION_ROW_HEIGHT + OPTION_ROW_HEIGHT // 2 - 3
+        self.assertEqual(get_hovered_upgrade_index(mx, my, 3), 2)
+
+    def test_get_hovered_upgrade_index_miss(self):
+        """Click outside all option rows returns -1."""
+        from game import get_hovered_upgrade_index, PANEL_X, PANEL_Y
+        # Click well outside panel
+        self.assertEqual(get_hovered_upgrade_index(0, 0, 3), -1)
+        # Click above options (in title area)
+        self.assertEqual(get_hovered_upgrade_index(PANEL_X + 100, PANEL_Y + 10, 3), -1)
+
+    def test_get_hovered_upgrade_index_no_options(self):
+        """With zero options, always returns -1."""
+        from game import get_hovered_upgrade_index, PANEL_X, PANEL_Y
+        self.assertEqual(get_hovered_upgrade_index(PANEL_X + 100, PANEL_Y + 100, 0), -1)
+
+
 if __name__ == "__main__":
     unittest.main()
