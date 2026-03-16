@@ -54,13 +54,13 @@ Tron-style visual overhaul for Squad Survivors - neon glow effects with blue, pu
 **Files:**
 - Modify: `game.py` (draw_grid, draw_menu, draw_game_over, level-up screen, HUD section)
 
-- [ ] Update draw_grid to render glowing grid lines (slightly brighter lines with subtle bloom)
-- [ ] Update draw_menu with neon-styled title (cyan glow) and prompt text
-- [ ] Update draw_game_over with neon red glow on "GAME OVER" text
-- [ ] Update level-up screen with neon purple/blue styling
-- [ ] Update HUD text and XP bar to use neon colors
-- [ ] Write tests for menu/HUD rendering
-- [ ] Run project test suite - must pass
+- [x] Update draw_grid to render glowing grid lines (slightly brighter lines with subtle bloom)
+- [x] Update draw_menu with neon-styled title (cyan glow) and prompt text
+- [x] Update draw_game_over with neon red glow on "GAME OVER" text
+- [x] Update level-up screen with neon purple/blue styling
+- [x] Update HUD text and XP bar to use neon colors
+- [x] Write tests for menu/HUD rendering
+- [x] Run project test suite - must pass
 
 ## Verification
 

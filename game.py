@@ -401,39 +401,57 @@ def find_closest_enemy(unit, enemies):
 
 def draw_grid(camera):
     grid_size = 128
+    # Brighter grid line color for subtle bloom effect
+    glow_color = (25, 25, 60)
     # Calculate visible grid lines
     start_x = int(camera.x // grid_size) * grid_size
     start_y = int(camera.y // grid_size) * grid_size
     for x in range(start_x, int(camera.x + WIDTH) + grid_size, grid_size):
         if 0 <= x <= MAP_WIDTH:
             sx = int(x - camera.x)
-            pygame.draw.line(screen, GRID_COLOR, (sx, 0), (sx, HEIGHT))
+            # Draw wider dim line for bloom, then bright center
+            pygame.draw.line(screen, GRID_COLOR, (sx, 0), (sx, HEIGHT), 3)
+            pygame.draw.line(screen, glow_color, (sx, 0), (sx, HEIGHT), 1)
     for y in range(start_y, int(camera.y + HEIGHT) + grid_size, grid_size):
         if 0 <= y <= MAP_HEIGHT:
             sy = int(y - camera.y)
-            pygame.draw.line(screen, GRID_COLOR, (0, sy), (WIDTH, sy))
-    # Draw map border
+            pygame.draw.line(screen, GRID_COLOR, (0, sy), (WIDTH, sy), 3)
+            pygame.draw.line(screen, glow_color, (0, sy), (WIDTH, sy), 1)
+    # Draw map border with glow
     bx, by = camera.apply(0, 0)
     bw, bh = MAP_WIDTH, MAP_HEIGHT
+    pygame.draw.rect(screen, (80, 0, 140), (bx - 2, by - 2, bw + 4, bh + 4), 5)
     pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
 
 
 def draw_menu():
     screen.fill(BG)
+    # Neon cyan glow behind title
     title = title_font.render("Squad Survivors", True, PLAYER_COLOR)
-    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
-    prompt = font.render("Press ENTER to Start", True, (200, 200, 200))
+    title_glow = title_font.render("Squad Survivors", True, (0, 100, 140))
+    tx = WIDTH // 2 - title.get_width() // 2
+    ty = HEIGHT // 3
+    screen.blit(title_glow, (tx - 2, ty - 2))
+    screen.blit(title_glow, (tx + 2, ty + 2))
+    screen.blit(title, (tx, ty))
+    prompt = font.render("Press ENTER to Start", True, (0, 180, 220))
     screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 40))
     pygame.display.flip()
 
 
 def draw_game_over(score, level=1):
     screen.fill(BG)
-    t1 = title_font.render("GAME OVER", True, (255, 100, 100))
-    screen.blit(t1, (WIDTH // 2 - t1.get_width() // 2, HEIGHT // 3))
-    t2 = font.render(f"Score: {score}   Level: {level}", True, (220, 220, 220))
+    # Neon red glow on GAME OVER
+    t1 = title_font.render("GAME OVER", True, ENEMY_COLOR)
+    t1_glow = title_font.render("GAME OVER", True, (140, 10, 30))
+    tx = WIDTH // 2 - t1.get_width() // 2
+    ty = HEIGHT // 3
+    screen.blit(t1_glow, (tx - 2, ty - 2))
+    screen.blit(t1_glow, (tx + 2, ty + 2))
+    screen.blit(t1, (tx, ty))
+    t2 = font.render(f"Score: {score}   Level: {level}", True, (200, 255, 255))
     screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, HEIGHT // 2 + 20))
-    t3 = font.render("Press ENTER to Restart", True, (200, 200, 200))
+    t3 = font.render("Press ENTER to Restart", True, (0, 180, 220))
     screen.blit(t3, (WIDTH // 2 - t3.get_width() // 2, HEIGHT // 2 + 60))
     pygame.display.flip()
 
@@ -520,12 +538,17 @@ def run():
 
         if state == STATE_LEVEL_UP:
             screen.fill(BG)
-            title = title_font.render(f"Level {level}!", True, (255, 220, 100))
-            screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 4))
-            subtitle = font.render("Choose an upgrade:", True, (200, 200, 200))
+            title = title_font.render(f"Level {level}!", True, BORDER_COLOR)
+            title_glow = title_font.render(f"Level {level}!", True, (80, 0, 140))
+            tx = WIDTH // 2 - title.get_width() // 2
+            ty = HEIGHT // 4
+            screen.blit(title_glow, (tx - 2, ty - 2))
+            screen.blit(title_glow, (tx + 2, ty + 2))
+            screen.blit(title, (tx, ty))
+            subtitle = font.render("Choose an upgrade:", True, (0, 180, 220))
             screen.blit(subtitle, (WIDTH // 2 - subtitle.get_width() // 2, HEIGHT // 4 + 70))
             for i, opt in enumerate(upgrade_options):
-                color = (180, 255, 180) if "weapon_type" in opt else (220, 220, 255)
+                color = (0, 255, 180) if "weapon_type" in opt else (100, 80, 255)
                 text = font.render(f"[{i+1}] {opt['name']}", True, color)
                 screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 + i * 50))
             pygame.display.flip()
@@ -704,10 +727,10 @@ def run():
         # HUD
         wtype = weapon_stats['weapon_type']
         hud_text = f"Score: {score}  Squad: {1 + len(allies)}  Wave: {wave}  Lv: {level}  Weapon: {wtype}"
-        hud = font.render(hud_text, True, (220, 220, 220))
+        hud = font.render(hud_text, True, PLAYER_COLOR)
         screen.blit(hud, (10, 10))
 
-        # XP bar
+        # XP bar with neon glow
         xp_bar_w = 200
         xp_bar_h = 8
         xp_bar_x = 10
@@ -715,7 +738,8 @@ def run():
         current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
         xp_fill = min(xp_bar_w, int(xp_bar_w * xp / current_threshold))
         pygame.draw.rect(screen, HEALTH_BG, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h))
-        pygame.draw.rect(screen, (180, 120, 255), (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
+        pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
+        pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h), 1)
 
         pygame.display.flip()
         clock.tick(FPS)

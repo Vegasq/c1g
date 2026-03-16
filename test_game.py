@@ -598,5 +598,46 @@ class TestEntityDrawGlow(unittest.TestCase):
         obstacle.draw(self.camera)
 
 
+class TestMenuAndHUDRendering(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def _make_mock_font(self):
+        """Create a mock font that returns a surface from render()."""
+        from unittest.mock import MagicMock
+        mock_font = MagicMock()
+        surf = pygame.Surface((100, 30))
+        mock_font.render.return_value = surf
+        return mock_font
+
+    def setUp(self):
+        import game
+        game.screen = pygame.Surface((1024, 768))
+        game.font = self._make_mock_font()
+        game.title_font = self._make_mock_font()
+
+    def test_draw_menu_runs_without_error(self):
+        from unittest.mock import patch
+        from game import draw_menu
+        with patch('pygame.display.flip'):
+            draw_menu()
+
+    def test_draw_game_over_runs_without_error(self):
+        from unittest.mock import patch
+        from game import draw_game_over
+        with patch('pygame.display.flip'):
+            draw_game_over(100, 3)
+
+    def test_draw_grid_runs_without_error(self):
+        from game import draw_grid
+        camera = Camera()
+        draw_grid(camera)
+
+
 if __name__ == "__main__":
     unittest.main()
