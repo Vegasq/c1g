@@ -77,9 +77,9 @@ Add XP-based leveling system with weapon stat upgrades and new weapon types at m
 
 ## Final Verification
 
-- [ ] manual test: kill enemies, gain XP, level up, pick upgrades, reach level 5 for weapon unlock
-- [ ] run full test suite
-- [ ] verify test coverage meets 80%+
+- [x] manual test: kill enemies, gain XP, level up, pick upgrades, reach level 5 for weapon unlock
+- [x] run full test suite
+- [x] verify test coverage meets 80%+
 
 ## Wrap-up
 
