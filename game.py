@@ -460,6 +460,8 @@ def run():
                         state = STATE_MENU
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
+                    elif state == STATE_LEVEL_UP:
+                        state = STATE_MENU
                     elif state == STATE_MENU:
                         running = False
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
