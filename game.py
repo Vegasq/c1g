@@ -246,7 +246,8 @@ class Unit:
         self.color = color
         self.is_player = is_player
         self.cooldown = 0
-        self.hp = 5 if is_player else 3
+        self.max_hp = 5 if is_player else 3
+        self.hp = self.max_hp
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
 
     def move_towards(self, tx, ty, allies, obstacles=()):
@@ -314,7 +315,7 @@ class Unit:
         pygame.draw.circle(screen, outline, (sx, sy), self.RADIUS, 2)
         # HP bar
         bar_w = self.RADIUS * 2
-        max_hp = 5 if self.is_player else 3
+        max_hp = self.max_hp
         filled = bar_w * max(0, self.hp) / max_hp
         bx = sx - bar_w // 2
         by = sy - self.RADIUS - 8
@@ -617,7 +618,7 @@ def draw_grid(camera):
 
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_stats, xp, xp_thresholds,
-                    health_pickups=None):
+                    health_pickups=None, heal_effects=None):
     """Draw the full game scene (background, entities, HUD, XP bar)."""
     screen.fill(BG)
     draw_grid(camera)
@@ -634,6 +635,14 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
         for hp_pickup in health_pickups:
             if _is_visible(camera, hp_pickup.x, hp_pickup.y):
                 hp_pickup.draw(camera)
+    if heal_effects:
+        for hx, hy, ht in heal_effects:
+            if _is_visible(camera, hx, hy):
+                sx, sy = camera.apply(hx, hy)
+                alpha_frac = ht / 15
+                r = int(20 + 20 * (1 - alpha_frac))
+                draw_glow(screen, HEALTH_PICKUP_COLOR, (sx, sy), r,
+                          intensity=int(120 * alpha_frac), layers=3)
     for a in allies:
         if _is_visible(camera, a.x, a.y):
             a.draw(camera)
@@ -864,6 +873,7 @@ def run():
     enemies = []
     bullets = []
     health_pickups = []
+    heal_effects = []
     score = 0
     spawn_timer = 0
     spawn_interval = 90  # frames between spawns
@@ -876,7 +886,7 @@ def run():
     upgrade_options = []
 
     def reset_game():
-        nonlocal camera, player, obstacles, allies, enemies, bullets, health_pickups, score
+        nonlocal camera, player, obstacles, allies, enemies, bullets, health_pickups, heal_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_stats, upgrade_options
         camera = Camera()
@@ -886,6 +896,7 @@ def run():
         enemies = []
         bullets = []
         health_pickups = []
+        heal_effects = []
         score = 0
         spawn_timer = 0
         spawn_interval = 90
@@ -1157,13 +1168,19 @@ def run():
         # Update health pickups
         for hp_pickup in health_pickups:
             hp_pickup.update(player)
+            if hp_pickup.collected:
+                player.hp = min(player.hp + hp_pickup.heal_amount, player.max_hp)
+                heal_effects.append((hp_pickup.x, hp_pickup.y, 15))
         health_pickups = [hp_pickup for hp_pickup in health_pickups
                           if not hp_pickup.collected and hp_pickup.lifetime > 0]
+
+        # Update heal effects (countdown timer)
+        heal_effects = [(x, y, t - 1) for x, y, t in heal_effects if t > 0]
 
         # Draw
         draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                         score, wave, level, weapon_stats, xp, xp_thresholds,
-                        health_pickups)
+                        health_pickups, heal_effects)
 
         pygame.display.flip()
         clock.tick(FPS)

@@ -1407,6 +1407,31 @@ class TestHealthDropSystem(unittest.TestCase):
         pickups = [p for p in pickups if not p.collected and p.lifetime > 0]
         self.assertEqual(len(pickups), 1)
 
+    def test_collection_heals_player(self):
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        player.hp = 3
+        hp_pickup = HealthPickup(100, 100)
+        hp_pickup.update(player)
+        self.assertTrue(hp_pickup.collected)
+        # Simulate game loop healing
+        player.hp = min(player.hp + hp_pickup.heal_amount, player.max_hp)
+        self.assertEqual(player.hp, 4)
+
+    def test_collection_caps_at_max_hp(self):
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        self.assertEqual(player.hp, player.max_hp)
+        hp_pickup = HealthPickup(100, 100, heal_amount=2)
+        hp_pickup.update(player)
+        player.hp = min(player.hp + hp_pickup.heal_amount, player.max_hp)
+        self.assertEqual(player.hp, player.max_hp)
+
+    def test_max_hp_attribute(self):
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        self.assertEqual(player.max_hp, 5)
+        self.assertEqual(player.hp, 5)
+        ally = Unit(100, 100, (255, 255, 255), is_player=False)
+        self.assertEqual(ally.max_hp, 3)
+
     def test_drop_chance_values_in_valid_range(self):
         for etype, chance in HEALTH_DROP_CHANCE.items():
             self.assertGreater(chance, 0, f"{etype} drop chance should be > 0")

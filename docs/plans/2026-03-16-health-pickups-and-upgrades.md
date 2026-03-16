@@ -44,11 +44,11 @@ Add health pickups that enemies randomly drop on death, plus a health upgrade op
 **Files:**
 - Modify: `game.py`
 
-- [ ] In the game loop, check player proximity to each pickup for auto-collect
-- [ ] On collection, restore 1 HP (capped at max HP)
-- [ ] Add a brief visual flash or particle effect on collection
-- [ ] Write tests for healing logic and max HP cap
-- [ ] Run project test suite - must pass before Task 4
+- [x] In the game loop, check player proximity to each pickup for auto-collect
+- [x] On collection, restore 1 HP (capped at max HP)
+- [x] Add a brief visual flash or particle effect on collection
+- [x] Write tests for healing logic and max HP cap
+- [x] Run project test suite - must pass before Task 4
 
 ## Task 4 - Max HP Upgrade in Level-Up Screen
 
