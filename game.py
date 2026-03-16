@@ -491,6 +491,22 @@ class HealthPickup:
         pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
 
 
+HEALTH_DROP_CHANCE = {
+    "basic": 0.05,
+    "runner": 0.05,
+    "brute": 0.12,
+    "shielded": 0.08,
+    "splitter": 0.06,
+    "mini": 0.03,
+    "elite": 0.15,
+}
+
+
+def get_health_drop_chance(enemy_type):
+    """Return the probability of dropping a health pickup for a given enemy type."""
+    return HEALTH_DROP_CHANCE.get(enemy_type, 0.05)
+
+
 def generate_xp_thresholds(max_level=50):
     """Generate XP thresholds for each level. Level n requires thresholds[n-1] XP."""
     thresholds = []
@@ -600,7 +616,8 @@ def draw_grid(camera):
 
 
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
-                    score, wave, level, weapon_stats, xp, xp_thresholds):
+                    score, wave, level, weapon_stats, xp, xp_thresholds,
+                    health_pickups=None):
     """Draw the full game scene (background, entities, HUD, XP bar)."""
     screen.fill(BG)
     draw_grid(camera)
@@ -613,6 +630,10 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     for e in enemies:
         if _is_visible(camera, e.x, e.y):
             e.draw(camera)
+    if health_pickups:
+        for hp_pickup in health_pickups:
+            if _is_visible(camera, hp_pickup.x, hp_pickup.y):
+                hp_pickup.draw(camera)
     for a in allies:
         if _is_visible(camera, a.x, a.y):
             a.draw(camera)
@@ -842,6 +863,7 @@ def run():
     allies = []
     enemies = []
     bullets = []
+    health_pickups = []
     score = 0
     spawn_timer = 0
     spawn_interval = 90  # frames between spawns
@@ -854,7 +876,7 @@ def run():
     upgrade_options = []
 
     def reset_game():
-        nonlocal camera, player, obstacles, allies, enemies, bullets, score
+        nonlocal camera, player, obstacles, allies, enemies, bullets, health_pickups, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_stats, upgrade_options
         camera = Camera()
@@ -863,6 +885,7 @@ def run():
         allies = []
         enemies = []
         bullets = []
+        health_pickups = []
         score = 0
         spawn_timer = 0
         spawn_interval = 90
@@ -1006,6 +1029,7 @@ def run():
         # Bullet-enemy collision
         new_enemies = []
         killed = 0
+        dead_enemies = []  # (x, y, enemy_type) for health pickup drops
         xp_earned = 0
         split_spawns = []  # (x, y) positions for mini enemies from splitters
         explosive_hits = []  # (x, y, damage, direct_hit_uid) for area damage
@@ -1041,6 +1065,7 @@ def run():
                         hit = True
                         killed += 1
                         xp_earned += e.xp_value
+                        dead_enemies.append((e.x, e.y, e.enemy_type))
                         if e.enemy_type == "splitter":
                             split_spawns.append((e.x, e.y))
                     break
@@ -1061,6 +1086,7 @@ def run():
                         if e.hp <= 0:
                             killed += 1
                             xp_earned += e.xp_value
+                            dead_enemies.append((e.x, e.y, e.enemy_type))
                             if e.enemy_type == "splitter":
                                 split_spawns.append((e.x, e.y))
                             continue
@@ -1077,6 +1103,11 @@ def run():
                 enemies.append(mini)
 
         score += killed
+
+        # Spawn health pickups from dead enemies
+        for dx, dy, etype in dead_enemies:
+            if random.random() < get_health_drop_chance(etype):
+                health_pickups.append(HealthPickup(dx, dy))
 
         # Award XP and check level-up
         xp += xp_earned
@@ -1123,9 +1154,16 @@ def run():
         if player.hp <= 0:
             state = STATE_GAME_OVER
 
+        # Update health pickups
+        for hp_pickup in health_pickups:
+            hp_pickup.update(player)
+        health_pickups = [hp_pickup for hp_pickup in health_pickups
+                          if not hp_pickup.collected and hp_pickup.lifetime > 0]
+
         # Draw
         draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
-                        score, wave, level, weapon_stats, xp, xp_thresholds)
+                        score, wave, level, weapon_stats, xp, xp_thresholds,
+                        health_pickups)
 
         pygame.display.flip()
         clock.tick(FPS)

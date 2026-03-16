@@ -8,7 +8,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
                   Camera, Enemy, Obstacle, ENEMY_TYPES,
                   WAVE_COMPOSITION, get_enemy_type_for_wave,
-                  HealthPickup, HEALTH_PICKUP_COLOR)
+                  HealthPickup, HEALTH_PICKUP_COLOR,
+                  HEALTH_DROP_CHANCE, get_health_drop_chance)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -1355,6 +1356,61 @@ class TestHealthPickup(unittest.TestCase):
         hp.lifetime = 1
         hp.update(player)
         self.assertEqual(hp.lifetime, 0)
+
+
+class TestHealthDropSystem(unittest.TestCase):
+    def test_drop_chance_basic_enemies(self):
+        self.assertEqual(get_health_drop_chance("basic"), 0.05)
+        self.assertEqual(get_health_drop_chance("runner"), 0.05)
+
+    def test_drop_chance_higher_for_tough_enemies(self):
+        self.assertGreater(get_health_drop_chance("brute"), get_health_drop_chance("basic"))
+        self.assertGreater(get_health_drop_chance("elite"), get_health_drop_chance("basic"))
+
+    def test_drop_chance_all_enemy_types_defined(self):
+        for etype in ENEMY_TYPES:
+            chance = get_health_drop_chance(etype)
+            self.assertGreater(chance, 0)
+            self.assertLessEqual(chance, 1.0)
+
+    def test_drop_chance_unknown_type_has_default(self):
+        self.assertEqual(get_health_drop_chance("unknown_type"), 0.05)
+
+    def test_elite_has_highest_drop_chance(self):
+        for etype in ENEMY_TYPES:
+            self.assertGreaterEqual(get_health_drop_chance("elite"),
+                                    get_health_drop_chance(etype))
+
+    def test_pickup_lifecycle_expired(self):
+        hp = HealthPickup(100, 100)
+        player = Unit(500, 500, (255, 255, 255), is_player=True)
+        hp.lifetime = 1
+        hp.update(player)
+        pickups = [hp]
+        pickups = [p for p in pickups if not p.collected and p.lifetime > 0]
+        self.assertEqual(len(pickups), 0)
+
+    def test_pickup_lifecycle_collected(self):
+        hp = HealthPickup(100, 100)
+        player = Unit(110, 100, (255, 255, 255), is_player=True)
+        hp.update(player)
+        self.assertTrue(hp.collected)
+        pickups = [hp]
+        pickups = [p for p in pickups if not p.collected and p.lifetime > 0]
+        self.assertEqual(len(pickups), 0)
+
+    def test_pickup_lifecycle_active(self):
+        hp = HealthPickup(100, 100)
+        player = Unit(500, 500, (255, 255, 255), is_player=True)
+        hp.update(player)
+        pickups = [hp]
+        pickups = [p for p in pickups if not p.collected and p.lifetime > 0]
+        self.assertEqual(len(pickups), 1)
+
+    def test_drop_chance_values_in_valid_range(self):
+        for etype, chance in HEALTH_DROP_CHANCE.items():
+            self.assertGreater(chance, 0, f"{etype} drop chance should be > 0")
+            self.assertLess(chance, 1.0, f"{etype} drop chance should be < 1.0")
 
 
 if __name__ == "__main__":

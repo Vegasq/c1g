@@ -33,11 +33,11 @@ Add health pickups that enemies randomly drop on death, plus a health upgrade op
 **Files:**
 - Modify: `game.py`
 
-- [ ] In the enemy death handler, add a random chance (e.g. 5-8%) to spawn a HealthPickup at enemy position
-- [ ] Higher XP enemies (brute, elite) get a higher drop chance
-- [ ] Add pickup list management (update positions, remove expired/collected)
-- [ ] Write tests for drop chance logic and pickup lifecycle
-- [ ] Run project test suite - must pass before Task 3
+- [x] In the enemy death handler, add a random chance (e.g. 5-8%) to spawn a HealthPickup at enemy position
+- [x] Higher XP enemies (brute, elite) get a higher drop chance
+- [x] Add pickup list management (update positions, remove expired/collected)
+- [x] Write tests for drop chance logic and pickup lifecycle
+- [x] Run project test suite - must pass before Task 3
 
 ## Task 3 - Collection and Healing
 
