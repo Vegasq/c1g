@@ -71,4 +71,4 @@ Tron-style visual overhaul for Squad Survivors - neon glow effects with blue, pu
 
 ## Wrap-up
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
