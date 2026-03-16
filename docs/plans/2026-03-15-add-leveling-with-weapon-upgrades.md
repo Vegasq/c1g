@@ -43,13 +43,13 @@ Add XP-based leveling system with weapon stat upgrades and new weapon types at m
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add STATE_LEVEL_UP game state that pauses gameplay
-- [ ] On level up, generate 3 random upgrade options: +damage, +fire_rate, +bullet_speed, +range (stat boosts)
-- [ ] At milestone levels (5, 10, 15...), replace one option with a new weapon type (shotgun, piercing, explosive)
-- [ ] Draw upgrade selection screen showing 3 options, selectable with 1/2/3 keys
-- [ ] Apply selected upgrade to player weapon stats
-- [ ] Write tests for upgrade generation logic and stat application
-- [ ] Run tests - must pass before task 4
+- [x] Add STATE_LEVEL_UP game state that pauses gameplay
+- [x] On level up, generate 3 random upgrade options: +damage, +fire_rate, +bullet_speed, +range (stat boosts)
+- [x] At milestone levels (5, 10, 15...), replace one option with a new weapon type (shotgun, piercing, explosive)
+- [x] Draw upgrade selection screen showing 3 options, selectable with 1/2/3 keys
+- [x] Apply selected upgrade to player weapon stats
+- [x] Write tests for upgrade generation logic and stat application
+- [x] Run tests - must pass before task 4
 
 ## Task 4 - New weapon types implementation
 

@@ -19,6 +19,7 @@ title_font = pygame.font.SysFont(None, 72)
 STATE_MENU = 0
 STATE_PLAYING = 1
 STATE_GAME_OVER = 2
+STATE_LEVEL_UP = 3
 
 # Colors
 BG = (20, 20, 30)
@@ -302,6 +303,44 @@ def check_level_up(xp, level, thresholds):
     return xp, level, False
 
 
+STAT_UPGRADES = [
+    {"name": "+Damage", "stat": "damage", "amount": 1},
+    {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
+    {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2},
+    {"name": "+Range", "stat": "range", "amount": 15},
+]
+
+WEAPON_TYPES = ["shotgun", "piercing", "explosive"]
+
+
+def generate_upgrade_options(level, weapon_stats):
+    """Generate 3 upgrade options. At milestone levels (5,10,15...), one is a weapon type."""
+    options = random.sample(STAT_UPGRADES, min(3, len(STAT_UPGRADES)))
+    options = [dict(o) for o in options]  # copy
+    is_milestone = level % 5 == 0
+    if is_milestone:
+        available_weapons = [w for w in WEAPON_TYPES if w != weapon_stats.get("weapon_type")]
+        if available_weapons:
+            weapon = random.choice(available_weapons)
+            options[random.randint(0, len(options) - 1)] = {
+                "name": f"Weapon: {weapon.title()}",
+                "weapon_type": weapon,
+            }
+    return options
+
+
+def apply_upgrade(weapon_stats, option):
+    """Apply an upgrade option to weapon stats. Returns updated stats."""
+    if "weapon_type" in option:
+        weapon_stats["weapon_type"] = option["weapon_type"]
+    else:
+        weapon_stats[option["stat"]] += option["amount"]
+        # Clamp fire_rate to minimum of 3
+        if option["stat"] == "fire_rate":
+            weapon_stats["fire_rate"] = max(3, weapon_stats["fire_rate"])
+    return weapon_stats
+
+
 def find_closest_enemy(unit, enemies):
     best, best_d = None, float('inf')
     for e in enemies:
@@ -367,11 +406,12 @@ def run():
     level = 1
     xp_thresholds = generate_xp_thresholds()
     weapon_stats = default_weapon_stats()
+    upgrade_options = []
 
     def reset_game():
         nonlocal camera, player, obstacles, allies, enemies, bullets, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
-        nonlocal xp, level, weapon_stats
+        nonlocal xp, level, weapon_stats, upgrade_options
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -386,6 +426,7 @@ def run():
         xp = 0
         level = 1
         weapon_stats = default_weapon_stats()
+        upgrade_options = []
 
     running = True
 
@@ -401,6 +442,12 @@ def run():
                         state = STATE_MENU
                     elif state == STATE_MENU:
                         running = False
+                elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
+                    idx = event.key - pygame.K_1
+                    if 0 <= idx < len(upgrade_options):
+                        apply_upgrade(weapon_stats, upgrade_options[idx])
+                        upgrade_options = []
+                        state = STATE_PLAYING
                 elif event.key == pygame.K_RETURN:
                     if state == STATE_MENU:
                         reset_game()
@@ -416,6 +463,20 @@ def run():
 
         if state == STATE_GAME_OVER:
             draw_game_over(score)
+            clock.tick(FPS)
+            continue
+
+        if state == STATE_LEVEL_UP:
+            screen.fill(BG)
+            title = title_font.render(f"Level {level}!", True, (255, 220, 100))
+            screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 4))
+            subtitle = font.render("Choose an upgrade:", True, (200, 200, 200))
+            screen.blit(subtitle, (WIDTH // 2 - subtitle.get_width() // 2, HEIGHT // 4 + 70))
+            for i, opt in enumerate(upgrade_options):
+                color = (180, 255, 180) if "weapon_type" in opt else (220, 220, 255)
+                text = font.render(f"[{i+1}] {opt['name']}", True, color)
+                screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 + i * 50))
+            pygame.display.flip()
             clock.tick(FPS)
             continue
 
@@ -510,9 +571,10 @@ def run():
 
         # Award XP and check level-up
         xp += killed
-        leveled_up = True
-        while leveled_up:
-            xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
+        xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
+        if leveled_up:
+            upgrade_options = generate_upgrade_options(level, weapon_stats)
+            state = STATE_LEVEL_UP
 
         # Spawn allies for kills (1-in-10 chance per kill)
         for _ in range(killed):

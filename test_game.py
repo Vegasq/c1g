@@ -1,6 +1,7 @@
 import unittest
 import math
-from game import generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit
+from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
+                  generate_upgrade_options, apply_upgrade, STAT_UPGRADES, WEAPON_TYPES)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -185,6 +186,88 @@ class TestShootAtWithWeaponStats(unittest.TestCase):
         stats["range"] = 5  # 5 * 8 = 40 pixels
         u.shoot_at(target, bullets, weapon_stats=stats)
         self.assertEqual(len(bullets), 1)
+
+
+class TestGenerateUpgradeOptions(unittest.TestCase):
+    def test_returns_3_options(self):
+        stats = default_weapon_stats()
+        options = generate_upgrade_options(3, stats)
+        self.assertEqual(len(options), 3)
+
+    def test_non_milestone_all_stat_upgrades(self):
+        stats = default_weapon_stats()
+        options = generate_upgrade_options(3, stats)
+        for opt in options:
+            self.assertIn("stat", opt)
+            self.assertIn("name", opt)
+
+    def test_milestone_has_weapon_option(self):
+        stats = default_weapon_stats()
+        # Level 5 is a milestone
+        found_weapon = False
+        # Run multiple times since it's random placement
+        for _ in range(50):
+            options = generate_upgrade_options(5, stats)
+            for opt in options:
+                if "weapon_type" in opt:
+                    found_weapon = True
+                    self.assertIn(opt["weapon_type"], WEAPON_TYPES)
+                    break
+            if found_weapon:
+                break
+        self.assertTrue(found_weapon)
+
+    def test_milestone_10(self):
+        stats = default_weapon_stats()
+        found_weapon = False
+        for _ in range(50):
+            options = generate_upgrade_options(10, stats)
+            if any("weapon_type" in o for o in options):
+                found_weapon = True
+                break
+        self.assertTrue(found_weapon)
+
+    def test_no_duplicate_weapon_type_offered(self):
+        stats = default_weapon_stats()
+        stats["weapon_type"] = "shotgun"
+        for _ in range(50):
+            options = generate_upgrade_options(5, stats)
+            for opt in options:
+                if "weapon_type" in opt:
+                    self.assertNotEqual(opt["weapon_type"], "shotgun")
+
+
+class TestApplyUpgrade(unittest.TestCase):
+    def test_apply_damage_upgrade(self):
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "+Damage", "stat": "damage", "amount": 1})
+        self.assertEqual(stats["damage"], 2)
+
+    def test_apply_fire_rate_upgrade(self):
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
+        self.assertEqual(stats["fire_rate"], 22)
+
+    def test_fire_rate_clamped_to_minimum(self):
+        stats = default_weapon_stats()
+        stats["fire_rate"] = 4
+        apply_upgrade(stats, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
+        self.assertEqual(stats["fire_rate"], 3)
+
+    def test_apply_weapon_type(self):
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
+        self.assertEqual(stats["weapon_type"], "shotgun")
+
+    def test_apply_bullet_speed(self):
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2})
+        self.assertEqual(stats["bullet_speed"], 10)
+
+    def test_apply_range(self):
+        stats = default_weapon_stats()
+        apply_upgrade(stats, {"name": "+Range", "stat": "range", "amount": 15})
+        self.assertEqual(stats["range"], 105)
 
 
 if __name__ == "__main__":
