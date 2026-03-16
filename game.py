@@ -52,6 +52,8 @@ OBSTACLE_BORDER = (120, 0, 200)
 
 def draw_glow(surface, color, center, radius, intensity=80, layers=4):
     """Draw layered transparent circles to simulate neon glow."""
+    if radius <= 0 or layers <= 0:
+        return
     for i in range(layers, 0, -1):
         layer_radius = int(radius * (1 + i * 0.5))
         alpha = max(10, intensity // i)
@@ -85,9 +87,14 @@ class Obstacle:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        cx, cy = sx + self.w // 2, sy + self.h // 2
-        glow_radius = max(self.w, self.h) // 2
-        draw_glow(screen, OBSTACLE_BORDER, (cx, cy), glow_radius, intensity=50, layers=3)
+        # Rectangular glow layers matching obstacle shape
+        for i in range(3, 0, -1):
+            pad = i * 4
+            alpha = max(10, 50 // i)
+            glow_surf = pygame.Surface((self.w + pad * 2, self.h + pad * 2), pygame.SRCALPHA)
+            glow_color = (OBSTACLE_BORDER[0], OBSTACLE_BORDER[1], OBSTACLE_BORDER[2], alpha)
+            pygame.draw.rect(glow_surf, glow_color, (0, 0, self.w + pad * 2, self.h + pad * 2))
+            screen.blit(glow_surf, (sx - pad, sy - pad))
         pygame.draw.rect(screen, OBSTACLE_COLOR, (sx, sy, self.w, self.h))
         pygame.draw.rect(screen, OBSTACLE_BORDER, (sx, sy, self.w, self.h), 2)
 

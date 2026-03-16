@@ -551,7 +551,28 @@ class TestDrawGlow(unittest.TestCase):
         draw_glow(self.surface, (0, 220, 255), (100, 100), 10)
 
     def test_draw_glow_custom_params(self):
-        draw_glow(self.surface, (255, 30, 60), (50, 50), 20, intensity=120, layers=6)
+        surf = pygame.Surface((200, 200), pygame.SRCALPHA)
+        draw_glow(surf, (255, 30, 60), (50, 50), 20, intensity=120, layers=6)
+        # Verify pixels were actually drawn near center
+        pixel = surf.get_at((50, 50))
+        self.assertGreater(pixel[3], 0)
+
+    def test_draw_glow_zero_radius(self):
+        surf = pygame.Surface((100, 100), pygame.SRCALPHA)
+        # Should not raise an error
+        draw_glow(surf, (255, 0, 0), (50, 50), 0)
+        # Surface should be unchanged
+        self.assertEqual(surf.get_at((50, 50))[3], 0)
+
+    def test_draw_glow_negative_radius(self):
+        surf = pygame.Surface((100, 100), pygame.SRCALPHA)
+        draw_glow(surf, (255, 0, 0), (50, 50), -5)
+        self.assertEqual(surf.get_at((50, 50))[3], 0)
+
+    def test_draw_glow_zero_layers(self):
+        surf = pygame.Surface((100, 100), pygame.SRCALPHA)
+        draw_glow(surf, (255, 0, 0), (50, 50), 10, layers=0)
+        self.assertEqual(surf.get_at((50, 50))[3], 0)
 
     def test_draw_glow_modifies_surface(self):
         surf = pygame.Surface((200, 200), pygame.SRCALPHA)
@@ -574,28 +595,51 @@ class TestEntityDrawGlow(unittest.TestCase):
 
     def setUp(self):
         import game
+        self._orig_screen = game.screen
         game.screen = pygame.Surface((800, 600))
         self.camera = Camera()
 
+    def tearDown(self):
+        import game
+        game.screen = self._orig_screen
+
     def test_unit_draw_with_glow(self):
+        import game
         unit = Unit(100, 100, PLAYER_COLOR, is_player=True)
         unit.draw(self.camera)
+        # Verify pixels drawn at unit position
+        pixel = game.screen.get_at((100, 100))
+        self.assertNotEqual(pixel, (0, 0, 0, 255))
 
     def test_ally_draw_with_glow(self):
+        import game
         unit = Unit(100, 100, (0, 150, 255), is_player=False)
         unit.draw(self.camera)
+        pixel = game.screen.get_at((100, 100))
+        self.assertNotEqual(pixel, (0, 0, 0, 255))
 
     def test_enemy_draw_with_glow(self):
+        import game
         enemy = Enemy(self.camera)
+        enemy.x, enemy.y = 200, 200
         enemy.draw(self.camera)
+        sx, sy = self.camera.apply(enemy.x, enemy.y)
+        pixel = game.screen.get_at((int(sx), int(sy)))
+        self.assertNotEqual(pixel, (0, 0, 0, 255))
 
     def test_bullet_draw_with_glow(self):
+        import game
         bullet = Bullet(100, 100, 1, 0)
         bullet.draw(self.camera)
+        pixel = game.screen.get_at((100, 100))
+        self.assertNotEqual(pixel, (0, 0, 0, 255))
 
     def test_obstacle_draw_with_glow(self):
+        import game
         obstacle = Obstacle(100, 100, 50, 50)
         obstacle.draw(self.camera)
+        pixel = game.screen.get_at((125, 125))
+        self.assertNotEqual(pixel, (0, 0, 0, 255))
 
 
 class TestMenuAndHUDRendering(unittest.TestCase):
@@ -617,9 +661,18 @@ class TestMenuAndHUDRendering(unittest.TestCase):
 
     def setUp(self):
         import game
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
         game.screen = pygame.Surface((1024, 768))
         game.font = self._make_mock_font()
         game.title_font = self._make_mock_font()
+
+    def tearDown(self):
+        import game
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
 
     def test_draw_menu_runs_without_error(self):
         from unittest.mock import patch
