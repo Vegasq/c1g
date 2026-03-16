@@ -55,10 +55,10 @@ Add health pickups that enemies randomly drop on death, plus a health upgrade op
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add a new upgrade option "+Max HP" to the level-up choices (alongside existing stat upgrades)
-- [ ] When selected, increase player max HP by 1 and heal 1 HP
-- [ ] Write tests for the upgrade option and its effect
-- [ ] Run project test suite - must pass before final validation
+- [x] Add a new upgrade option "+Max HP" to the level-up choices (alongside existing stat upgrades)
+- [x] When selected, increase player max HP by 1 and heal 1 HP
+- [x] Write tests for the upgrade option and its effect
+- [x] Run project test suite - must pass before final validation
 
 ---
 

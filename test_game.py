@@ -277,6 +277,34 @@ class TestApplyUpgrade(unittest.TestCase):
         apply_upgrade(stats, {"name": "+Range", "stat": "range", "amount": 15})
         self.assertEqual(stats["range"], 105)
 
+    def test_apply_max_hp_upgrade(self):
+        stats = default_weapon_stats()
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        self.assertEqual(player.max_hp, 5)
+        self.assertEqual(player.hp, 5)
+        apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1}, player)
+        self.assertEqual(player.max_hp, 6)
+        self.assertEqual(player.hp, 6)
+
+    def test_apply_max_hp_upgrade_heals_one(self):
+        stats = default_weapon_stats()
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        player.hp = 3  # damaged
+        apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1}, player)
+        self.assertEqual(player.max_hp, 6)
+        self.assertEqual(player.hp, 4)  # healed 1, not to full
+
+    def test_apply_max_hp_without_player_is_noop(self):
+        stats = default_weapon_stats()
+        original = dict(stats)
+        apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1})
+        self.assertEqual(stats, original)
+
+    def test_max_hp_in_upgrade_options(self):
+        """Max HP should be available as a possible upgrade option."""
+        stat_names = [u["stat"] for u in STAT_UPGRADES if "stat" in u]
+        self.assertIn("max_hp", stat_names)
+
 
 class TestScaledUpgrades(unittest.TestCase):
     def test_damage_scaling_below_10(self):

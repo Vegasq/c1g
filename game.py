@@ -531,6 +531,7 @@ STAT_UPGRADES = [
     {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
     {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2},
     {"name": "+Range", "stat": "range", "amount": 15},
+    {"name": "+Max HP", "stat": "max_hp", "amount": 1},
 ]
 
 WEAPON_TYPES = ["shotgun", "piercing", "explosive"]
@@ -570,11 +571,14 @@ def generate_upgrade_options(level, weapon_stats):
     return options
 
 
-def apply_upgrade(weapon_stats, option):
+def apply_upgrade(weapon_stats, option, player=None):
     """Apply an upgrade option to weapon stats. Returns updated stats."""
     if "weapon_type" in option:
         weapon_stats["weapon_type"] = option["weapon_type"]
-    else:
+    elif option.get("stat") == "max_hp" and player is not None:
+        player.max_hp += option["amount"]
+        player.hp = min(player.hp + 1, player.max_hp)
+    elif option.get("stat") != "max_hp":
         weapon_stats[option["stat"]] += option["amount"]
         # Clamp fire_rate to minimum of 3
         if option["stat"] == "fire_rate":
@@ -746,6 +750,13 @@ def create_upgrade_icon(option):
             pygame.draw.circle(surf, color, (cx, cy), 5, 1)
             pygame.draw.line(surf, color, (cx, 2), (cx, 30), 1)
             pygame.draw.line(surf, color, (2, cy), (30, cy), 1)
+        elif stat == "max_hp":
+            # Heart shape
+            color = (255, 50, 100)
+            pygame.draw.polygon(surf, color, [
+                (cx, 28), (4, 14), (4, 8), (10, 4), (cx, 12),
+                (22, 4), (28, 8), (28, 14)
+            ])
 
     return surf
 
@@ -926,7 +937,7 @@ def run():
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
-                        apply_upgrade(weapon_stats, upgrade_options[idx])
+                        apply_upgrade(weapon_stats, upgrade_options[idx], player)
                         upgrade_options = []
                         state = STATE_PLAYING
                 elif event.key == pygame.K_RETURN:
@@ -940,7 +951,7 @@ def run():
                 if state == STATE_LEVEL_UP and upgrade_options:
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
-                        apply_upgrade(weapon_stats, upgrade_options[idx])
+                        apply_upgrade(weapon_stats, upgrade_options[idx], player)
                         upgrade_options = []
                         state = STATE_PLAYING
 
