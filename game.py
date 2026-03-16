@@ -48,6 +48,7 @@ GRID_COLOR = (15, 15, 40)
 BORDER_COLOR = (150, 0, 255)
 OBSTACLE_COLOR = (15, 10, 30)
 OBSTACLE_BORDER = (120, 0, 200)
+HEALTH_PICKUP_COLOR = (0, 255, 100)
 
 
 _glow_surface_cache = {}
@@ -448,6 +449,46 @@ class Enemy:
         if self.shield:
             shield_color = (100, 255, 255)
             pygame.draw.circle(screen, shield_color, (sx, sy), r + 4, 2)
+
+
+class HealthPickup:
+    RADIUS = 8
+    LIFETIME = 600  # frames (~10 seconds)
+    ATTRACT_RANGE = 100
+    ATTRACT_SPEED = 4.0
+    COLLECT_RANGE = 20
+
+    def __init__(self, x, y, heal_amount=1):
+        self.x = float(x)
+        self.y = float(y)
+        self.heal_amount = heal_amount
+        self.radius = self.RADIUS
+        self.lifetime = self.LIFETIME
+        self.collected = False
+
+    def update(self, player):
+        self.lifetime -= 1
+        if self.lifetime <= 0:
+            return
+        dx, dy = player.x - self.x, player.y - self.y
+        dist = math.hypot(dx, dy)
+        if dist < self.COLLECT_RANGE:
+            self.collected = True
+        elif dist < self.ATTRACT_RANGE and dist > 0:
+            self.x += dx / dist * self.ATTRACT_SPEED
+            self.y += dy / dist * self.ATTRACT_SPEED
+
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        fade = max(0.3, self.lifetime / self.LIFETIME)
+        color = tuple(int(c * fade) for c in HEALTH_PICKUP_COLOR)
+        draw_glow(screen, color, (sx, sy), self.radius, intensity=100, layers=5)
+        pygame.draw.circle(screen, color, (sx, sy), self.radius)
+        # Cross symbol
+        cx_half = self.radius // 2
+        bright = tuple(min(255, c + 80) for c in color)
+        pygame.draw.line(screen, bright, (sx - cx_half, sy), (sx + cx_half, sy), 2)
+        pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
 
 
 def generate_xp_thresholds(max_level=50):

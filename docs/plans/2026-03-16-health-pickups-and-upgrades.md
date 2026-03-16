@@ -22,11 +22,11 @@ Add health pickups that enemies randomly drop on death, plus a health upgrade op
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create a `HealthPickup` class with `x`, `y`, `radius`, `heal_amount`, and a lifetime timer
-- [ ] Add neon green glow rendering (to distinguish from other entities)
-- [ ] Add attraction behavior: when player is within ~100px, pickup moves toward player; collected on contact
-- [ ] Write tests for HealthPickup creation, attraction movement, and collection
-- [ ] Run project test suite - must pass before Task 2
+- [x] Create a `HealthPickup` class with `x`, `y`, `radius`, `heal_amount`, and a lifetime timer
+- [x] Add neon green glow rendering (to distinguish from other entities)
+- [x] Add attraction behavior: when player is within ~100px, pickup moves toward player; collected on contact
+- [x] Write tests for HealthPickup creation, attraction movement, and collection
+- [x] Run project test suite - must pass before Task 2
 
 ## Task 2 - Drop System on Enemy Death
 

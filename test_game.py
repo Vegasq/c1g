@@ -7,7 +7,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
                   Camera, Enemy, Obstacle, ENEMY_TYPES,
-                  WAVE_COMPOSITION, get_enemy_type_for_wave)
+                  WAVE_COMPOSITION, get_enemy_type_for_wave,
+                  HealthPickup, HEALTH_PICKUP_COLOR)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -1306,6 +1307,54 @@ class TestWaveComposition(unittest.TestCase):
         for _, weights in WAVE_COMPOSITION:
             for etype in weights:
                 self.assertIn(etype, ENEMY_TYPES)
+
+
+class TestHealthPickup(unittest.TestCase):
+    def test_creation(self):
+        hp = HealthPickup(100, 200, heal_amount=2)
+        self.assertEqual(hp.x, 100.0)
+        self.assertEqual(hp.y, 200.0)
+        self.assertEqual(hp.heal_amount, 2)
+        self.assertEqual(hp.lifetime, HealthPickup.LIFETIME)
+        self.assertFalse(hp.collected)
+
+    def test_default_heal_amount(self):
+        hp = HealthPickup(0, 0)
+        self.assertEqual(hp.heal_amount, 1)
+
+    def test_lifetime_decreases(self):
+        hp = HealthPickup(0, 0)
+        player = Unit(500, 500, (255, 255, 255), is_player=True)
+        hp.update(player)
+        self.assertEqual(hp.lifetime, HealthPickup.LIFETIME - 1)
+
+    def test_attraction_moves_toward_player(self):
+        hp = HealthPickup(100, 100)
+        player = Unit(150, 100, (255, 255, 255), is_player=True)
+        old_x = hp.x
+        hp.update(player)
+        self.assertGreater(hp.x, old_x)
+
+    def test_no_attraction_when_far(self):
+        hp = HealthPickup(100, 100)
+        player = Unit(500, 500, (255, 255, 255), is_player=True)
+        old_x, old_y = hp.x, hp.y
+        hp.update(player)
+        self.assertEqual(hp.x, old_x)
+        self.assertEqual(hp.y, old_y)
+
+    def test_collected_on_contact(self):
+        hp = HealthPickup(100, 100)
+        player = Unit(110, 100, (255, 255, 255), is_player=True)
+        hp.update(player)
+        self.assertTrue(hp.collected)
+
+    def test_expires_after_lifetime(self):
+        hp = HealthPickup(0, 0)
+        player = Unit(500, 500, (255, 255, 255), is_player=True)
+        hp.lifetime = 1
+        hp.update(player)
+        self.assertEqual(hp.lifetime, 0)
 
 
 if __name__ == "__main__":
