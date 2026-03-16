@@ -1174,9 +1174,6 @@ def run():
                 surviving.append(e)
         enemies = surviving
 
-        if player.hp <= 0:
-            state = STATE_GAME_OVER
-
         # Update health pickups
         for hp_pickup in health_pickups:
             hp_pickup.update(player)
@@ -1188,6 +1185,9 @@ def run():
 
         # Update heal effects (countdown timer)
         heal_effects = [(x, y, t - 1) for x, y, t in heal_effects if t > 0]
+
+        if player.hp <= 0:
+            state = STATE_GAME_OVER
 
         # Draw
         draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
