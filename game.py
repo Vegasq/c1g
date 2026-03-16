@@ -277,7 +277,8 @@ class Unit:
             draw_color = tuple(int(c * fade) for c in self.color)
         draw_glow(screen, draw_color, (sx, sy), self.RADIUS, intensity=80, layers=4)
         pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS)
-        pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS, 2)
+        outline = tuple(min(255, c + 60) for c in draw_color)
+        pygame.draw.circle(screen, outline, (sx, sy), self.RADIUS, 2)
         # HP bar
         bar_w = self.RADIUS * 2
         max_hp = 5 if self.is_player else 3
@@ -338,7 +339,8 @@ class Enemy:
         points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
         draw_glow(screen, ENEMY_COLOR, (sx, sy), r, intensity=80, layers=4)
         pygame.draw.polygon(screen, ENEMY_COLOR, points)
-        pygame.draw.polygon(screen, ENEMY_COLOR, points, 2)
+        enemy_outline = tuple(min(255, c + 60) for c in ENEMY_COLOR)
+        pygame.draw.polygon(screen, enemy_outline, points, 2)
 
 
 def generate_xp_thresholds(max_level=50):
