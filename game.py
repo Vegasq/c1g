@@ -502,11 +502,15 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h), 1)
 
 
+_dim_overlay = None
+
 def draw_dim_overlay():
     """Draw a semi-transparent dark overlay to dim the game behind a panel."""
-    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-    overlay.fill((0, 0, 0, 153))  # ~60% opacity
-    screen.blit(overlay, (0, 0))
+    global _dim_overlay
+    if _dim_overlay is None:
+        _dim_overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        _dim_overlay.fill((0, 0, 0, 153))  # ~60% opacity
+    screen.blit(_dim_overlay, (0, 0))
 
 
 # Upgrade panel constants
@@ -617,15 +621,13 @@ def draw_upgrade_panel(level, upgrade_options):
 
     # Upgrade option rows
     mouse_x, mouse_y = pygame.mouse.get_pos()
+    hovered_idx = get_hovered_upgrade_index(mouse_x, mouse_y, len(upgrade_options))
     for i, opt in enumerate(upgrade_options):
         row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
         row_rect = pygame.Rect(OPTION_PADDING, row_y,
                                PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
 
-        # Check hover (convert mouse to panel-local coords)
-        local_mx = mouse_x - PANEL_X
-        local_my = mouse_y - PANEL_Y
-        hovered = row_rect.collidepoint(local_mx, local_my)
+        hovered = (i == hovered_idx)
 
         # Row background
         if hovered:
@@ -636,8 +638,8 @@ def draw_upgrade_panel(level, upgrade_options):
         else:
             pygame.draw.rect(panel_surf, (60, 40, 100, 120), row_rect, 1, border_radius=4)
 
-        # Icon
-        icon = create_upgrade_icon(opt)
+        # Icon (use cached if available)
+        icon = opt.get('_icon') or create_upgrade_icon(opt)
         icon_x = OPTION_PADDING + 10
         icon_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - ICON_SIZE // 2
         panel_surf.blit(icon, (icon_x, icon_y))
@@ -649,8 +651,6 @@ def draw_upgrade_panel(level, upgrade_options):
         panel_surf.blit(text, (icon_x + ICON_SIZE + 10, text_y))
 
     screen.blit(panel_surf, (PANEL_X, PANEL_Y))
-
-    return PANEL_X, PANEL_Y
 
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
@@ -813,6 +813,8 @@ def run():
             player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
             for obs in obstacles:
                 player.x, player.y = obs.push_circle_out(player.x, player.y, player.RADIUS)
+            player.x = max(player.RADIUS, min(MAP_WIDTH - player.RADIUS, player.x))
+            player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
 
         # Update camera
         camera.update(player)
@@ -912,6 +914,8 @@ def run():
         xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
         if leveled_up:
             upgrade_options = generate_upgrade_options(level, weapon_stats)
+            for opt in upgrade_options:
+                opt['_icon'] = create_upgrade_icon(opt)
             state = STATE_LEVEL_UP
             # Spawn allies before pausing (reward kills even on level-up frame)
             for _ in range(killed):

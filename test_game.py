@@ -746,21 +746,25 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """Verify draw_upgrade_panel runs without raising."""
         from game import draw_upgrade_panel
         options = [
-            {"name": "Damage +10%", "stat": "damage", "delta": 1},
-            {"name": "Fire Rate +10%", "stat": "fire_rate", "delta": -2},
-            {"name": "Shotgun", "weapon_type": "shotgun", "name": "Shotgun"},
+            {"name": "Damage +10%", "stat": "damage", "amount": 1},
+            {"name": "Fire Rate +10%", "stat": "fire_rate", "amount": -2},
+            {"name": "Shotgun", "weapon_type": "shotgun"},
         ]
         # Should not raise
-        result = draw_upgrade_panel(2, options)
-        self.assertIsNotNone(result)
+        draw_upgrade_panel(2, options)
 
-    def test_upgrade_panel_returns_position(self):
-        """Verify draw_upgrade_panel returns the panel's top-left position."""
-        from game import draw_upgrade_panel, PANEL_X, PANEL_Y
-        options = [{"name": "Test", "stat": "damage", "delta": 1}]
-        px, py = draw_upgrade_panel(1, options)
-        self.assertEqual(px, PANEL_X)
-        self.assertEqual(py, PANEL_Y)
+    def test_upgrade_panel_draws_to_screen(self):
+        """Verify draw_upgrade_panel actually draws pixels in the panel region."""
+        import game
+        from game import draw_upgrade_panel, PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT
+        game.screen.fill((0, 0, 0))
+        options = [{"name": "Test", "stat": "damage", "amount": 1}]
+        draw_upgrade_panel(1, options)
+        # Check that a pixel inside the panel region is no longer black
+        cx = PANEL_X + PANEL_WIDTH // 2
+        cy = PANEL_Y + PANEL_HEIGHT // 2
+        pixel = game.screen.get_at((cx, cy))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
 
     def test_upgrade_panel_centered_on_screen(self):
         """Verify the panel is centered horizontally and vertically."""
@@ -817,8 +821,7 @@ class TestMenuAndHUDRendering(unittest.TestCase):
             {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
             {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
         ]
-        result = draw_upgrade_panel(3, options)
-        self.assertIsNotNone(result)
+        draw_upgrade_panel(3, options)
 
 
     def test_get_hovered_upgrade_index_hit(self):
