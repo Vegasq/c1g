@@ -968,7 +968,8 @@ def run():
 
         if state == STATE_LEVEL_UP:
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
-                            score, wave, level, weapon_stats, xp, xp_thresholds)
+                            score, wave, level, weapon_stats, xp, xp_thresholds,
+                            health_pickups, heal_effects)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
