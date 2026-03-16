@@ -83,4 +83,4 @@ Add XP-based leveling system with weapon stat upgrades and new weapon types at m
 
 ## Wrap-up
 
-- [ ] move this plan to `docs/plans/completed/`
+- [x] move this plan to `docs/plans/completed/`
