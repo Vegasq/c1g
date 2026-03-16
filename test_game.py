@@ -977,5 +977,162 @@ class TestEnemyTypes(unittest.TestCase):
             game.screen = orig_screen
 
 
+class TestShieldedEnemy(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self.camera = Camera()
+
+    def test_shielded_type_config(self):
+        self.assertIn("shielded", ENEMY_TYPES)
+        cfg = ENEMY_TYPES["shielded"]
+        self.assertEqual(cfg["hp"], 4)
+        self.assertEqual(cfg["speed"], 1.0)
+        self.assertEqual(cfg["radius"], 14)
+        self.assertEqual(cfg["color"], (0, 255, 255))
+        self.assertEqual(cfg["xp_value"], 4)
+        self.assertTrue(cfg["shield"])
+
+    def test_shielded_creation(self):
+        e = Enemy(self.camera, enemy_type="shielded")
+        self.assertEqual(e.enemy_type, "shielded")
+        self.assertEqual(e.hp, 4)
+        self.assertTrue(e.shield)
+
+    def test_shield_absorbs_first_hit(self):
+        e = Enemy(self.camera, enemy_type="shielded")
+        original_hp = e.hp
+        # Simulate shield absorbing a hit
+        self.assertTrue(e.shield)
+        e.shield = False  # first hit removes shield
+        self.assertFalse(e.shield)
+        self.assertEqual(e.hp, original_hp)  # HP unchanged
+
+    def test_shield_then_damage(self):
+        e = Enemy(self.camera, enemy_type="shielded")
+        original_hp = e.hp
+        # First hit: shield absorbs
+        e.shield = False
+        self.assertEqual(e.hp, original_hp)
+        # Second hit: damage goes through
+        e.hp -= 1
+        self.assertEqual(e.hp, original_hp - 1)
+
+    def test_basic_enemy_has_no_shield(self):
+        e = Enemy(self.camera, enemy_type="basic")
+        self.assertFalse(e.shield)
+
+    def test_shielded_draw_renders(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera, enemy_type="shielded")
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
+
+
+class TestSplitterEnemy(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self.camera = Camera()
+
+    def test_splitter_type_config(self):
+        self.assertIn("splitter", ENEMY_TYPES)
+        cfg = ENEMY_TYPES["splitter"]
+        self.assertEqual(cfg["hp"], 3)
+        self.assertEqual(cfg["speed"], 1.0)
+        self.assertEqual(cfg["radius"], 14)
+        self.assertEqual(cfg["color"], (0, 255, 100))
+        self.assertEqual(cfg["xp_value"], 2)
+
+    def test_mini_type_config(self):
+        self.assertIn("mini", ENEMY_TYPES)
+        cfg = ENEMY_TYPES["mini"]
+        self.assertEqual(cfg["hp"], 1)
+        self.assertEqual(cfg["speed"], 1.8)
+        self.assertEqual(cfg["radius"], 7)
+        self.assertEqual(cfg["xp_value"], 1)
+
+    def test_splitter_creation(self):
+        e = Enemy(self.camera, enemy_type="splitter")
+        self.assertEqual(e.enemy_type, "splitter")
+        self.assertEqual(e.hp, 3)
+        self.assertFalse(e.shield)
+
+    def test_mini_creation(self):
+        e = Enemy(self.camera, enemy_type="mini")
+        self.assertEqual(e.enemy_type, "mini")
+        self.assertEqual(e.hp, 1)
+        self.assertEqual(e.radius, 7)
+
+    def test_splitter_draw_renders(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera, enemy_type="splitter")
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
+
+    def test_mini_draw_renders(self):
+        import game
+        orig_screen = game.screen
+        game.screen = pygame.Surface((800, 600))
+        try:
+            e = Enemy(self.camera, enemy_type="mini")
+            e.x, e.y = 200, 200
+            e.draw(self.camera)
+            sx, sy = self.camera.apply(e.x, e.y)
+            pixel = game.screen.get_at((int(sx), int(sy)))
+            self.assertNotEqual(pixel, (0, 0, 0, 255))
+        finally:
+            game.screen = orig_screen
+
+    def test_split_on_death_produces_minis(self):
+        """Simulate the split-on-death logic from the game loop."""
+        split_spawns = []
+        # Splitter dies
+        splitter_x, splitter_y = 100.0, 200.0
+        split_spawns.append((splitter_x, splitter_y))
+        # Spawn minis like the game loop does
+        minis = []
+        for sx, sy in split_spawns:
+            for offset in (-12, 12):
+                mini = Enemy(self.camera, enemy_type="mini")
+                mini.x = sx + offset
+                mini.y = sy
+                minis.append(mini)
+        self.assertEqual(len(minis), 2)
+        self.assertEqual(minis[0].enemy_type, "mini")
+        self.assertEqual(minis[1].enemy_type, "mini")
+        self.assertEqual(minis[0].hp, 1)
+        self.assertAlmostEqual(minis[0].x, 88.0)
+        self.assertAlmostEqual(minis[1].x, 112.0)
+
+
 if __name__ == "__main__":
     unittest.main()

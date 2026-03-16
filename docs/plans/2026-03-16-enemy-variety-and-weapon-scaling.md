@@ -61,13 +61,13 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Add "shielded" to ENEMY_TYPES: radius=14, speed=1.0, hp=4, color=neon cyan, xp=4, has shield attribute
-- [ ] Implement shield behavior: first hit removes shield (visual change) instead of dealing damage
-- [ ] Add "splitter" to ENEMY_TYPES: radius=14, speed=1.0, hp=3, color=neon green, xp=2
-- [ ] Implement split-on-death: when splitter dies, spawn 2 "mini" enemies (radius=7, speed=1.8, hp=1)
-- [ ] Add "mini" to ENEMY_TYPES for splitter children (no further splitting)
-- [ ] Write tests for shield mechanic and split-on-death behavior
-- [ ] Run test suite - must pass before task 4
+- [x] Add "shielded" to ENEMY_TYPES: radius=14, speed=1.0, hp=4, color=neon cyan, xp=4, has shield attribute
+- [x] Implement shield behavior: first hit removes shield (visual change) instead of dealing damage
+- [x] Add "splitter" to ENEMY_TYPES: radius=14, speed=1.0, hp=3, color=neon green, xp=2
+- [x] Implement split-on-death: when splitter dies, spawn 2 "mini" enemies (radius=7, speed=1.8, hp=1)
+- [x] Add "mini" to ENEMY_TYPES for splitter children (no further splitting)
+- [x] Write tests for shield mechanic and split-on-death behavior
+- [x] Run test suite - must pass before task 4
 
 ### Task 4: Add tier 4 enemy type (Elite)
 

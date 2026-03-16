@@ -331,6 +331,9 @@ ENEMY_TYPES = {
     "basic": {"hp": 2, "speed": 1.2, "radius": 12, "color": (255, 30, 60), "xp_value": 1},
     "runner": {"hp": 1, "speed": 2.2, "radius": 8, "color": (230, 255, 0), "xp_value": 1},
     "brute": {"hp": 6, "speed": 0.7, "radius": 18, "color": (255, 140, 0), "xp_value": 3},
+    "shielded": {"hp": 4, "speed": 1.0, "radius": 14, "color": (0, 255, 255), "xp_value": 4, "shield": True},
+    "splitter": {"hp": 3, "speed": 1.0, "radius": 14, "color": (0, 255, 100), "xp_value": 2},
+    "mini": {"hp": 1, "speed": 1.8, "radius": 7, "color": (0, 255, 100), "xp_value": 1},
 }
 
 
@@ -347,6 +350,7 @@ class Enemy:
         self.radius = type_cfg["radius"]
         self.color = type_cfg["color"]
         self.xp_value = type_cfg["xp_value"]
+        self.shield = type_cfg.get("shield", False)
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
@@ -388,11 +392,29 @@ class Enemy:
                  sy + r * math.sin(math.radians(60 * i - 90)))
                 for i in range(6)
             ]
+        elif self.enemy_type == "shielded":
+            # Pentagon shape
+            points = [
+                (sx + r * math.cos(math.radians(72 * i - 90)),
+                 sy + r * math.sin(math.radians(72 * i - 90)))
+                for i in range(5)
+            ]
+        elif self.enemy_type in ("splitter", "mini"):
+            # Star-like: 4-pointed star
+            points = []
+            for i in range(8):
+                angle = math.radians(45 * i - 90)
+                dist = r if i % 2 == 0 else r * 0.5
+                points.append((sx + dist * math.cos(angle), sy + dist * math.sin(angle)))
         else:
             points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
         pygame.draw.polygon(screen, self.color, points)
         enemy_outline = tuple(min(255, c + 60) for c in self.color)
         pygame.draw.polygon(screen, enemy_outline, points, 2)
+        # Draw shield ring if active
+        if self.shield:
+            shield_color = (100, 255, 255)
+            pygame.draw.circle(screen, shield_color, (sx, sy), r + 4, 2)
 
 
 def generate_xp_thresholds(max_level=50):
@@ -891,6 +913,7 @@ def run():
         new_enemies = []
         killed = 0
         xp_earned = 0
+        split_spawns = []  # (x, y) positions for mini enemies from splitters
         explosive_hits = []  # (x, y, damage, direct_hit_uid) for area damage
         for e in enemies:
             hit = False
@@ -900,7 +923,11 @@ def run():
                 if e.uid in b.pierced_enemies:
                     continue
                 if math.hypot(b.x - e.x, b.y - e.y) < e.radius + b.RADIUS:
-                    e.hp -= b.damage
+                    if e.shield:
+                        # Shield absorbs first hit without dealing damage
+                        e.shield = False
+                    else:
+                        e.hp -= b.damage
                     if b.weapon_type == "piercing":
                         b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
@@ -912,6 +939,8 @@ def run():
                         hit = True
                         killed += 1
                         xp_earned += e.xp_value
+                        if e.enemy_type == "splitter":
+                            split_spawns.append((e.x, e.y))
                     break
             if not hit:
                 new_enemies.append(e)
@@ -930,6 +959,14 @@ def run():
                         continue
                 surviving_after_explosion.append(e)
             enemies = surviving_after_explosion
+        # Spawn mini enemies from dead splitters
+        for sx, sy in split_spawns:
+            for offset in (-12, 12):
+                mini = Enemy(camera, enemy_type="mini")
+                mini.x = sx + offset
+                mini.y = sy
+                enemies.append(mini)
+
         score += killed
 
         # Award XP and check level-up
