@@ -978,6 +978,9 @@ def run():
                     if e.shield:
                         # Shield absorbs first hit without dealing damage
                         e.shield = False
+                        # Explosive bullets still trigger area damage even if shield absorbs direct hit
+                        if b.weapon_type == "explosive":
+                            explosive_hits.append((b.x, b.y, b.damage, e.uid))
                         # Consume bullet (non-piercing) but don't deal damage
                         if b.weapon_type != "piercing":
                             b.life = 0
@@ -1007,6 +1010,9 @@ def run():
             surviving_after_explosion = []
             for e in enemies:
                 if e.uid != direct_hit_uid and math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
+                    if e.shield:
+                        e.shield = False
+                        continue
                     e.hp -= edmg
                     if e.hp <= 0:
                         killed += 1
