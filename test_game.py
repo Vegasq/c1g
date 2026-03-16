@@ -6,7 +6,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   draw_glow, draw_game_scene, draw_dim_overlay,
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
-                  Camera, Enemy, Obstacle, ENEMY_TYPES)
+                  Camera, Enemy, Obstacle, ENEMY_TYPES,
+                  WAVE_COMPOSITION, get_enemy_type_for_wave)
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -1163,6 +1164,58 @@ class TestSplitterEnemy(unittest.TestCase):
             self.assertNotEqual(pixel, (0, 0, 0, 255))
         finally:
             game.screen = orig_screen
+
+
+class TestWaveComposition(unittest.TestCase):
+    def test_wave_1_only_basic(self):
+        for _ in range(50):
+            etype = get_enemy_type_for_wave(1)
+            self.assertEqual(etype, "basic")
+
+    def test_wave_2_only_basic(self):
+        for _ in range(50):
+            etype = get_enemy_type_for_wave(2)
+            self.assertEqual(etype, "basic")
+
+    def test_wave_3_includes_tier2(self):
+        types_seen = set()
+        for _ in range(200):
+            types_seen.add(get_enemy_type_for_wave(3))
+        self.assertIn("runner", types_seen)
+        self.assertIn("brute", types_seen)
+        self.assertIn("basic", types_seen)
+
+    def test_wave_8_no_basics(self):
+        for _ in range(200):
+            etype = get_enemy_type_for_wave(8)
+            self.assertNotEqual(etype, "basic")
+
+    def test_wave_8_has_tier3(self):
+        types_seen = set()
+        for _ in range(200):
+            types_seen.add(get_enemy_type_for_wave(8))
+        self.assertIn("shielded", types_seen)
+        self.assertIn("splitter", types_seen)
+
+    def test_wave_12_has_elites(self):
+        types_seen = set()
+        for _ in range(500):
+            types_seen.add(get_enemy_type_for_wave(12))
+        self.assertIn("elite", types_seen)
+
+    def test_wave_12_no_basics(self):
+        for _ in range(200):
+            etype = get_enemy_type_for_wave(12)
+            self.assertNotEqual(etype, "basic")
+
+    def test_wave_composition_sorted_descending(self):
+        thresholds = [t for t, _ in WAVE_COMPOSITION]
+        self.assertEqual(thresholds, sorted(thresholds, reverse=True))
+
+    def test_all_types_valid(self):
+        for _, weights in WAVE_COMPOSITION:
+            for etype in weights:
+                self.assertIn(etype, ENEMY_TYPES)
 
 
 if __name__ == "__main__":

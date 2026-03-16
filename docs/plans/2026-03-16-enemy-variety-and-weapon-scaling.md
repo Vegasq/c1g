@@ -86,12 +86,12 @@ Weapon scaling: increase upgrade amounts at higher levels and add a new "scaling
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Create WAVE_COMPOSITION dict mapping wave ranges to spawn weight tables (e.g. wave 1-2: 100% basic, wave 3-5: 60% basic 25% runner 15% brute, etc.)
-- [ ] At wave 8+, basics stop spawning entirely; tier 2 becomes common, tier 3 mixes in
-- [ ] At wave 12+, tier 2 becomes rare, tier 3 common, tier 4 elites begin appearing
-- [ ] Modify spawn loop to select enemy type based on current wave's weight table
-- [ ] Write tests for spawn composition at different wave numbers
-- [ ] Run test suite - must pass before task 6
+- [x] Create WAVE_COMPOSITION dict mapping wave ranges to spawn weight tables (e.g. wave 1-2: 100% basic, wave 3-5: 60% basic 25% runner 15% brute, etc.)
+- [x] At wave 8+, basics stop spawning entirely; tier 2 becomes common, tier 3 mixes in
+- [x] At wave 12+, tier 2 becomes rare, tier 3 common, tier 4 elites begin appearing
+- [x] Modify spawn loop to select enemy type based on current wave's weight table
+- [x] Write tests for spawn composition at different wave numbers
+- [x] Run test suite - must pass before task 6
 
 ### Task 6: Scale weapon upgrades with enemy progression
 

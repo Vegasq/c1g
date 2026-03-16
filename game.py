@@ -337,6 +337,26 @@ ENEMY_TYPES = {
     "elite": {"hp": 10, "speed": 1.8, "radius": 16, "color": (255, 0, 255), "xp_value": 8},
 }
 
+# Wave-based spawn weight tables: maps wave thresholds to enemy type weights.
+# Checked in descending order; first matching threshold is used.
+WAVE_COMPOSITION = [
+    (12, {"runner": 10, "brute": 10, "shielded": 30, "splitter": 30, "elite": 20}),
+    (8, {"runner": 25, "brute": 25, "shielded": 25, "splitter": 25}),
+    (6, {"basic": 30, "runner": 25, "brute": 20, "shielded": 15, "splitter": 10}),
+    (3, {"basic": 60, "runner": 25, "brute": 15}),
+    (1, {"basic": 100}),
+]
+
+
+def get_enemy_type_for_wave(wave):
+    """Select a random enemy type based on the current wave's weight table."""
+    for threshold, weights in WAVE_COMPOSITION:
+        if wave >= threshold:
+            types = list(weights.keys())
+            cumulative = list(weights.values())
+            return random.choices(types, weights=cumulative, k=1)[0]
+    return "basic"
+
 
 class Enemy:
     _next_id = 0
@@ -885,7 +905,8 @@ def run():
             for _ in range(wave + wave // 2):
                 if len(enemies) >= MAX_ENEMIES:
                     break
-                enemies.append(Enemy(camera))
+                etype = get_enemy_type_for_wave(wave)
+                enemies.append(Enemy(camera, enemy_type=etype))
 
         # Tick ally lifetimes and remove expired allies
         for a in allies:
