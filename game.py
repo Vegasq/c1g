@@ -262,8 +262,11 @@ class Unit:
 class Enemy:
     RADIUS = 12
     SPEED = 1.2
+    _next_id = 0
 
     def __init__(self, camera):
+        Enemy._next_id += 1
+        self.uid = Enemy._next_id
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
@@ -577,12 +580,12 @@ def run():
             for b in bullets:
                 if b.life <= 0:
                     continue
-                if id(e) in b.pierced_enemies:
+                if e.uid in b.pierced_enemies:
                     continue
                 if math.hypot(b.x - e.x, b.y - e.y) < e.RADIUS + b.RADIUS:
                     e.hp -= b.damage
                     if b.weapon_type == "piercing":
-                        b.pierced_enemies.add(id(e))
+                        b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
                         explosive_hits.append((b.x, b.y, b.damage))
                         b.life = 0
