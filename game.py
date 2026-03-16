@@ -509,6 +509,84 @@ def draw_dim_overlay():
     screen.blit(overlay, (0, 0))
 
 
+# Upgrade panel constants
+PANEL_WIDTH = 500
+PANEL_HEIGHT = 350
+PANEL_X = (WIDTH - PANEL_WIDTH) // 2
+PANEL_Y = (HEIGHT - PANEL_HEIGHT) // 2
+PANEL_BG_COLOR = (10, 5, 25, 200)
+PANEL_BORDER_GLOW_LAYERS = 4
+OPTION_ROW_HEIGHT = 55
+OPTION_PADDING = 10
+OPTION_START_Y = 90  # relative to panel top
+
+
+def draw_upgrade_panel(level, upgrade_options):
+    """Draw a centered floating panel with neon border for the upgrade selector."""
+    # Panel background
+    panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
+    panel_surf.fill(PANEL_BG_COLOR)
+
+    # Neon glow border
+    for i in range(PANEL_BORDER_GLOW_LAYERS, 0, -1):
+        alpha = max(15, 80 // i)
+        glow_color = (BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], alpha)
+        expand = i * 3
+        glow_rect = pygame.Rect(-expand, -expand,
+                                PANEL_WIDTH + expand * 2, PANEL_HEIGHT + expand * 2)
+        glow_surf = pygame.Surface((glow_rect.width, glow_rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius=8)
+        screen.blit(glow_surf, (PANEL_X - expand, PANEL_Y - expand))
+
+    # Solid border
+    pygame.draw.rect(panel_surf, BORDER_COLOR,
+                     pygame.Rect(0, 0, PANEL_WIDTH, PANEL_HEIGHT), 2, border_radius=6)
+
+    # Title
+    title = title_font.render(f"Level {level}!", True, BORDER_COLOR)
+    title_glow = title_font.render(f"Level {level}!", True, (80, 0, 140))
+    tx = PANEL_WIDTH // 2 - title.get_width() // 2
+    ty = 15
+    panel_surf.blit(title_glow, (tx - 2, ty - 2))
+    panel_surf.blit(title_glow, (tx + 2, ty + 2))
+    panel_surf.blit(title, (tx, ty))
+
+    # Subtitle
+    subtitle = font.render("Choose an upgrade:", True, (0, 180, 220))
+    panel_surf.blit(subtitle, (PANEL_WIDTH // 2 - subtitle.get_width() // 2, 60))
+
+    # Upgrade option rows
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    for i, opt in enumerate(upgrade_options):
+        row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
+        row_rect = pygame.Rect(OPTION_PADDING, row_y,
+                               PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
+
+        # Check hover (convert mouse to panel-local coords)
+        local_mx = mouse_x - PANEL_X
+        local_my = mouse_y - PANEL_Y
+        hovered = row_rect.collidepoint(local_mx, local_my)
+
+        # Row background
+        if hovered:
+            row_bg = pygame.Surface((row_rect.width, row_rect.height), pygame.SRCALPHA)
+            row_bg.fill((BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], 40))
+            panel_surf.blit(row_bg, row_rect.topleft)
+            pygame.draw.rect(panel_surf, BORDER_COLOR, row_rect, 1, border_radius=4)
+        else:
+            pygame.draw.rect(panel_surf, (60, 40, 100, 120), row_rect, 1, border_radius=4)
+
+        # Option text
+        color = (0, 255, 180) if "weapon_type" in opt else (100, 80, 255)
+        text = font.render(f"[{i+1}] {opt['name']}", True, color)
+        text_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - text.get_height() // 2
+        panel_surf.blit(text, (OPTION_PADDING + 15, text_y))
+
+    screen.blit(panel_surf, (PANEL_X, PANEL_Y))
+
+    return PANEL_X, PANEL_Y
+
+
 def draw_menu():
     screen.fill(BG)
     # Neon cyan glow behind title
@@ -625,19 +703,7 @@ def run():
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_stats, xp, xp_thresholds)
             draw_dim_overlay()
-            title = title_font.render(f"Level {level}!", True, BORDER_COLOR)
-            title_glow = title_font.render(f"Level {level}!", True, (80, 0, 140))
-            tx = WIDTH // 2 - title.get_width() // 2
-            ty = HEIGHT // 4
-            screen.blit(title_glow, (tx - 2, ty - 2))
-            screen.blit(title_glow, (tx + 2, ty + 2))
-            screen.blit(title, (tx, ty))
-            subtitle = font.render("Choose an upgrade:", True, (0, 180, 220))
-            screen.blit(subtitle, (WIDTH // 2 - subtitle.get_width() // 2, HEIGHT // 4 + 70))
-            for i, opt in enumerate(upgrade_options):
-                color = (0, 255, 180) if "weapon_type" in opt else (100, 80, 255)
-                text = font.render(f"[{i+1}] {opt['name']}", True, color)
-                screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 + i * 50))
+            draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
             clock.tick(FPS)
             continue

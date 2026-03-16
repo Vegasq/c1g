@@ -734,5 +734,42 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         draw_dim_overlay()
 
 
+    def test_upgrade_panel_dimensions(self):
+        """Verify panel constants define a centered ~500x350 panel."""
+        from game import PANEL_WIDTH, PANEL_HEIGHT, PANEL_X, PANEL_Y, WIDTH, HEIGHT
+        self.assertEqual(PANEL_WIDTH, 500)
+        self.assertEqual(PANEL_HEIGHT, 350)
+        self.assertEqual(PANEL_X, (WIDTH - PANEL_WIDTH) // 2)
+        self.assertEqual(PANEL_Y, (HEIGHT - PANEL_HEIGHT) // 2)
+
+    def test_upgrade_panel_renders_without_error(self):
+        """Verify draw_upgrade_panel runs without raising."""
+        from game import draw_upgrade_panel
+        options = [
+            {"name": "Damage +10%", "stat": "damage", "delta": 1},
+            {"name": "Fire Rate +10%", "stat": "fire_rate", "delta": -2},
+            {"name": "Shotgun", "weapon_type": "shotgun", "name": "Shotgun"},
+        ]
+        # Should not raise
+        result = draw_upgrade_panel(2, options)
+        self.assertIsNotNone(result)
+
+    def test_upgrade_panel_returns_position(self):
+        """Verify draw_upgrade_panel returns the panel's top-left position."""
+        from game import draw_upgrade_panel, PANEL_X, PANEL_Y
+        options = [{"name": "Test", "stat": "damage", "delta": 1}]
+        px, py = draw_upgrade_panel(1, options)
+        self.assertEqual(px, PANEL_X)
+        self.assertEqual(py, PANEL_Y)
+
+    def test_upgrade_panel_centered_on_screen(self):
+        """Verify the panel is centered horizontally and vertically."""
+        from game import PANEL_WIDTH, PANEL_HEIGHT, PANEL_X, PANEL_Y, WIDTH, HEIGHT
+        center_x = PANEL_X + PANEL_WIDTH // 2
+        center_y = PANEL_Y + PANEL_HEIGHT // 2
+        self.assertEqual(center_x, WIDTH // 2)
+        self.assertEqual(center_y, HEIGHT // 2)
+
+
 if __name__ == "__main__":
     unittest.main()

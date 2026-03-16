@@ -33,12 +33,12 @@ Redesign the level-up upgrade selector from a fullscreen text list into a floati
 **Files:**
 - Modify: `game.py`
 
-- [ ] Draw a centered panel rectangle (~500x350px) with semi-transparent dark background
-- [ ] Add neon glow border around the panel using the existing draw_glow pattern and BORDER_COLOR
-- [ ] Render "Level Up!" title and upgrade options inside the panel instead of at screen center
-- [ ] Position upgrade options as card-like rows within the panel (each option gets its own rectangular area with hover highlight)
-- [ ] Write tests for panel dimensions and positioning
-- [ ] Run project test suite - must pass before task 3
+- [x] Draw a centered panel rectangle (~500x350px) with semi-transparent dark background
+- [x] Add neon glow border around the panel using the existing draw_glow pattern and BORDER_COLOR
+- [x] Render "Level Up!" title and upgrade options inside the panel instead of at screen center
+- [x] Position upgrade options as card-like rows within the panel (each option gets its own rectangular area with hover highlight)
+- [x] Write tests for panel dimensions and positioning
+- [x] Run project test suite - must pass before task 3
 
 ## Task 3 - Add icons to upgrades
 
