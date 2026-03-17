@@ -54,6 +54,8 @@ MENU_ITEM_HEIGHT = 60
 MENU_HOVER_INDENT = 15
 menu_selected_index = 0  # keyboard selection index
 menu_font = None  # initialized in init_pygame
+menu_fade_alpha = 0  # fade-in alpha (0-255)
+menu_fade_active = True  # whether fade-in is in progress
 
 # Colors
 BG = (5, 5, 15)
@@ -1233,8 +1235,26 @@ def get_hovered_menu_index(mx, my):
     return -1
 
 
+def draw_menu_separator(surface, x, y, width, ticks):
+    """Draw an animated orange line separator between menu items."""
+    # Pulsing alpha based on time
+    pulse = int(80 + 40 * math.sin(ticks * 0.003))
+    color = (255, 140, 0)
+    # Draw the line
+    pygame.draw.line(surface, color, (x, y), (x + width, y), 1)
+    # Animated glow sweep - a brighter spot that moves along the line
+    sweep_pos = int((ticks * 0.1) % (width + 40)) - 20
+    glow_width = 40
+    for i in range(glow_width):
+        gx = sweep_pos - glow_width // 2 + i
+        if x <= gx <= x + width:
+            intensity = max(0, pulse - abs(i - glow_width // 2) * 4)
+            glow_color = (min(255, 255), min(255, intensity + 60), 0)
+            pygame.draw.line(surface, glow_color, (gx, y - 1), (gx, y + 1), 1)
+
+
 def draw_menu():
-    global _menu_background, menu_selected_index
+    global _menu_background, menu_selected_index, menu_fade_alpha, menu_fade_active
     screen.fill(BG)
 
     # Draw animated fractal city background
@@ -1257,6 +1277,8 @@ def draw_menu():
     if hover_index >= 0:
         menu_selected_index = hover_index
 
+    ticks = pygame.time.get_ticks()
+
     # Draw menu items - Half-Life style
     _mf = menu_font or font
     for i, item_text in enumerate(MENU_ITEMS):
@@ -1276,6 +1298,22 @@ def draw_menu():
 
         text_surf = _mf.render(item_text, True, text_color)
         screen.blit(text_surf, (x, y))
+
+        # Draw separator line after each item except the last
+        if i < len(MENU_ITEMS) - 1:
+            sep_y = y + MENU_ITEM_HEIGHT - 10
+            draw_menu_separator(screen, MENU_X, sep_y, 200, ticks)
+
+    # Fade-in overlay
+    if menu_fade_active:
+        menu_fade_alpha = min(menu_fade_alpha + 8, 255)
+        if menu_fade_alpha < 255:
+            fade_overlay = pygame.Surface((WIDTH, HEIGHT))
+            fade_overlay.fill(BG)
+            fade_overlay.set_alpha(255 - menu_fade_alpha)
+            screen.blit(fade_overlay, (0, 0))
+        else:
+            menu_fade_active = False
 
     pygame.display.flip()
 
@@ -1298,7 +1336,7 @@ def draw_game_over(score, level=1):
 
 
 def run():
-    global options_selected_index, options_resolution_index, options_fullscreen, menu_selected_index
+    global options_selected_index, options_resolution_index, options_fullscreen, menu_selected_index, menu_fade_alpha, menu_fade_active
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1358,12 +1396,20 @@ def run():
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_OPTIONS:
                         state = STATE_MENU
+                        menu_fade_alpha = 0
+                        menu_fade_active = True
                     elif state == STATE_PLAYING:
                         state = STATE_MENU
+                        menu_fade_alpha = 0
+                        menu_fade_active = True
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
+                        menu_fade_alpha = 0
+                        menu_fade_active = True
                     elif state == STATE_LEVEL_UP:
                         state = STATE_MENU
+                        menu_fade_alpha = 0
+                        menu_fade_active = True
                     elif state == STATE_MENU:
                         running = False
                 elif state == STATE_OPTIONS:

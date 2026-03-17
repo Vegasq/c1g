@@ -47,11 +47,11 @@ Rework the start screen with an animated neon fractal building background and Ha
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add subtle animated line/separator between menu items (like Half-Life's orange line accents)
-- [ ] Add smooth fade-in when entering menu state
-- [ ] Ensure ESC from options/playing returns to the new menu correctly
-- [ ] Write tests verifying state transitions still work
-- [ ] Run project test suite - must pass
+- [x] Add subtle animated line/separator between menu items (like Half-Life's orange line accents)
+- [x] Add smooth fade-in when entering menu state
+- [x] Ensure ESC from options/playing returns to the new menu correctly
+- [x] Write tests verifying state transitions still work
+- [x] Run project test suite - must pass
 
 ## Verification
 

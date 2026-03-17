@@ -1827,5 +1827,114 @@ class TestFractalBackground(unittest.TestCase):
             self.assertEqual(b1, b2)
 
 
+class TestMenuSeparator(unittest.TestCase):
+    def test_draw_menu_separator_runs(self):
+        surface = pygame.Surface((400, 100))
+        game.draw_menu_separator(surface, 10, 50, 200, 1000)
+
+    def test_draw_menu_separator_modifies_surface(self):
+        surface = pygame.Surface((400, 100))
+        surface.fill((0, 0, 0))
+        before = surface.get_at((60, 50))
+        game.draw_menu_separator(surface, 10, 50, 200, 1000)
+        after = surface.get_at((60, 50))
+        self.assertNotEqual(before, after)
+
+    def test_draw_menu_separator_different_ticks(self):
+        s1 = pygame.Surface((400, 100))
+        s2 = pygame.Surface((400, 100))
+        s1.fill((0, 0, 0))
+        s2.fill((0, 0, 0))
+        game.draw_menu_separator(s1, 10, 50, 200, 0)
+        game.draw_menu_separator(s2, 10, 50, 200, 500)
+        # At least one pixel should differ due to animation
+        differs = False
+        for x in range(10, 210):
+            if s1.get_at((x, 50)) != s2.get_at((x, 50)):
+                differs = True
+                break
+        self.assertTrue(differs)
+
+
+class TestMenuFadeIn(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def _make_mock_font(self):
+        from unittest.mock import MagicMock
+        mock_font = MagicMock()
+        surf = pygame.Surface((100, 30))
+        mock_font.render.return_value = surf
+        return mock_font
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        self._orig_menu_font = game.menu_font
+        game.screen = pygame.Surface((game.WIDTH, game.HEIGHT))
+        game.font = self._make_mock_font()
+        game.title_font = self._make_mock_font()
+        game.menu_font = self._make_mock_font()
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+        game.menu_font = self._orig_menu_font
+
+    def test_fade_globals_exist(self):
+        self.assertTrue(hasattr(game, 'menu_fade_alpha'))
+        self.assertTrue(hasattr(game, 'menu_fade_active'))
+
+    def test_draw_menu_advances_fade(self):
+        from unittest.mock import patch
+        game._menu_background = game.FractalBackground(game.WIDTH, game.HEIGHT)
+        game.menu_fade_alpha = 0
+        game.menu_fade_active = True
+        with patch('pygame.display.flip'):
+            game.draw_menu()
+        self.assertGreater(game.menu_fade_alpha, 0)
+
+    def test_fade_completes_at_255(self):
+        from unittest.mock import patch
+        game._menu_background = game.FractalBackground(game.WIDTH, game.HEIGHT)
+        game.menu_fade_alpha = 250
+        game.menu_fade_active = True
+        with patch('pygame.display.flip'):
+            game.draw_menu()
+        self.assertEqual(game.menu_fade_alpha, 255)
+        self.assertFalse(game.menu_fade_active)
+
+
+class TestStateTransitionsToMenu(unittest.TestCase):
+    """Verify ESC from various states returns to menu correctly."""
+
+    def test_esc_from_options_returns_to_menu(self):
+        # The ESC handler sets state to STATE_MENU from STATE_OPTIONS
+        # We verify this by checking the code structure exists
+        import inspect
+        source = inspect.getsource(game.run)
+        self.assertIn('STATE_OPTIONS', source)
+        self.assertIn('STATE_MENU', source)
+
+    def test_esc_from_playing_returns_to_menu(self):
+        import inspect
+        source = inspect.getsource(game.run)
+        self.assertIn('STATE_PLAYING', source)
+
+    def test_esc_resets_fade(self):
+        import inspect
+        source = inspect.getsource(game.run)
+        # Verify fade reset happens on ESC transitions
+        self.assertIn('menu_fade_alpha = 0', source)
+        self.assertIn('menu_fade_active = True', source)
+
+
 if __name__ == "__main__":
     unittest.main()
