@@ -1391,18 +1391,22 @@ def run():
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_OPTIONS:
                         state = STATE_MENU
+                        menu_selected_index = 0
                         menu_fade_alpha = 0
                         menu_fade_active = True
                     elif state == STATE_PLAYING:
                         state = STATE_MENU
+                        menu_selected_index = 0
                         menu_fade_alpha = 0
                         menu_fade_active = True
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
+                        menu_selected_index = 0
                         menu_fade_alpha = 0
                         menu_fade_active = True
                     elif state == STATE_LEVEL_UP:
                         state = STATE_MENU
+                        menu_selected_index = 0
                         menu_fade_alpha = 0
                         menu_fade_active = True
                     elif state == STATE_MENU:
@@ -1425,6 +1429,7 @@ def run():
                     elif event.key == pygame.K_RETURN:
                         if options_selected_index == 2:
                             state = STATE_MENU
+                            menu_selected_index = 0
                             menu_fade_alpha = 0
                             menu_fade_active = True
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
