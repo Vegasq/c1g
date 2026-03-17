@@ -1425,6 +1425,8 @@ def run():
                     elif event.key == pygame.K_RETURN:
                         if options_selected_index == 2:
                             state = STATE_MENU
+                            menu_fade_alpha = 0
+                            menu_fade_active = True
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
