@@ -760,7 +760,6 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
             obs.draw(camera)
     if escape_rooms:
         for er in escape_rooms:
-            er.pulse_timer += 1
             if _is_rect_visible(camera, er.x, er.y, er.w, er.h):
                 er.draw(camera)
     for b in bullets:
@@ -858,6 +857,8 @@ def _draw_escape_room_indicator(camera, er, player):
     px, py = camera.apply(player.x, player.y)
     dx, dy = sx - px, sy - py
     dist = math.sqrt(dx * dx + dy * dy)
+    if dist == 0:
+        return
     nx, ny = dx / dist, dy / dist
 
     # Pulsing effect synced with escape room
@@ -1579,6 +1580,10 @@ def run():
 
         if player.hp <= 0:
             state = STATE_GAME_OVER
+
+        # Tick escape room pulse timers
+        for er in escape_rooms:
+            er.pulse_timer += 1
 
         # Tick escape flash
         if escape_flash_timer > 0:
