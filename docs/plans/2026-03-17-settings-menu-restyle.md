@@ -29,10 +29,10 @@ Restyle the settings/options menu in game.py to match the main menu's visual sty
 **Files:**
 - Modify: `game.py` (draw_options_menu method)
 
-- [ ] Use menu_font (size 52) for option items instead of smaller font
-- [ ] Apply same color scheme: selected = orange (255, 140, 0) with white text, unselected = gray (180, 180, 180)
-- [ ] Add hover indent effect (15px right shift on selected item)
-- [ ] Add animated orange line separators between settings items with same pulsing/sweep effect as main menu
+- [x] Use menu_font (size 52) for option items instead of smaller font
+- [x] Apply same color scheme: selected = orange (255, 140, 0) with white text, unselected = gray (180, 180, 180)
+- [x] Add hover indent effect (15px right shift on selected item)
+- [x] Add animated orange line separators between settings items with same pulsing/sweep effect as main menu
 
 ### Task 3 - Handle settings-specific value displays
 
