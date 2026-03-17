@@ -49,11 +49,11 @@ Add an "Escape Room" safe zone entity to the game. When the player enters the es
 
 ## Verification
 
-- [ ] Manual test: run game, find escape room, enter it, verify enemies die and room relocates
-- [ ] Manual test: verify enemies cannot enter the escape room
-- [ ] Run full test suite: `python -m pytest test_game.py`
-- [ ] Run linter: check with flake8 or project linter
-- [ ] Verify test coverage meets 80%+
+- [x] Manual test: run game, find escape room, enter it, verify enemies die and room relocates
+- [x] Manual test: verify enemies cannot enter the escape room
+- [x] Run full test suite: `python -m pytest test_game.py`
+- [x] Run linter: check with flake8 or project linter
+- [x] Verify test coverage meets 80%+
 
 ## Wrap-up
 
