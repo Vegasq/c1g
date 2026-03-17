@@ -55,12 +55,12 @@ Rework the start screen with an animated neon fractal building background and Ha
 
 ## Verification
 
-- [ ] Manual test: launch game, verify animated background renders smoothly
-- [ ] Manual test: hover over menu items, verify glow/highlight effect
-- [ ] Manual test: click each menu item, verify correct action
-- [ ] Manual test: keyboard navigation still works
-- [ ] Run full test suite: `python -m pytest test_game.py`
-- [ ] Verify test coverage meets 80%+
+- [x] Manual test: launch game, verify animated background renders smoothly
+- [x] Manual test: hover over menu items, verify glow/highlight effect
+- [x] Manual test: click each menu item, verify correct action
+- [x] Manual test: keyboard navigation still works
+- [x] Run full test suite: `python -m pytest test_game.py`
+- [x] Verify test coverage meets 80%+
 
 ## Wrap-up
 
