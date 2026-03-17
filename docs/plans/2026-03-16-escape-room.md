@@ -44,8 +44,8 @@ Add an "Escape Room" safe zone entity to the game. When the player enters the es
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add a small indicator on the HUD or minimap showing the escape room's direction/distance relative to the player (arrow or dot at screen edge pointing toward it when off-screen)
-- [ ] Write tests for indicator positioning logic
+- [x] Add a small indicator on the HUD or minimap showing the escape room's direction/distance relative to the player (arrow or dot at screen edge pointing toward it when off-screen)
+- [x] Write tests for indicator positioning logic
 
 ## Verification
 

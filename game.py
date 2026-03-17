@@ -797,6 +797,83 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
     pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h), 1)
 
+    # Escape room off-screen indicator
+    if escape_rooms:
+        for er in escape_rooms:
+            _draw_escape_room_indicator(camera, er, player)
+
+
+def compute_indicator_position(screen_x, screen_y, screen_w, screen_h,
+                               margin=40, pad=30):
+    """Compute off-screen indicator position. Returns (ix, iy) or None if on-screen."""
+    if margin <= screen_x <= screen_w - margin and margin <= screen_y <= screen_h - margin:
+        return None  # On screen
+
+    cx, cy = screen_w / 2, screen_h / 2
+    dx = screen_x - cx
+    dy = screen_y - cy
+    dist = math.sqrt(dx * dx + dy * dy)
+    if dist == 0:
+        return None
+    nx, ny = dx / dist, dy / dist
+
+    t_vals = []
+    if nx != 0:
+        t_vals.append((pad - cx) / nx if nx < 0 else (screen_w - pad - cx) / nx)
+    if ny != 0:
+        t_vals.append((pad - cy) / ny if ny < 0 else (screen_h - pad - cy) / ny)
+    t = min(t for t in t_vals if t > 0) if t_vals else 1
+    ix = max(pad, min(screen_w - pad, cx + nx * t))
+    iy = max(pad, min(screen_h - pad, cy + ny * t))
+    return ix, iy
+
+
+def _draw_escape_room_indicator(camera, er, player):
+    """Draw an arrow at screen edge pointing toward escape room when off-screen."""
+    er_cx = er.x + er.w / 2
+    er_cy = er.y + er.h / 2
+    sx, sy = camera.apply(er_cx, er_cy)
+
+    result = compute_indicator_position(sx, sy, WIDTH, HEIGHT)
+    if result is None:
+        return
+    ix, iy = result
+
+    # Direction
+    cx, cy = WIDTH / 2, HEIGHT / 2
+    dx, dy = sx - cx, sy - cy
+    dist = math.sqrt(dx * dx + dy * dy)
+    nx, ny = dx / dist, dy / dist
+
+    # Pulsing effect synced with escape room
+    pulse = 0.6 + 0.4 * math.sin(er.pulse_timer * 0.05)
+    color = tuple(int(c * pulse) for c in ESCAPE_ROOM_BORDER)
+
+    # Draw arrow triangle pointing toward escape room
+    angle = math.atan2(ny, nx)
+    size = 10
+    tip_x = ix + nx * size
+    tip_y = iy + ny * size
+    left_x = ix + math.cos(angle + 2.5) * size
+    left_y = iy + math.sin(angle + 2.5) * size
+    right_x = ix + math.cos(angle - 2.5) * size
+    right_y = iy + math.sin(angle - 2.5) * size
+    pygame.draw.polygon(screen, color, [
+        (int(tip_x), int(tip_y)),
+        (int(left_x), int(left_y)),
+        (int(right_x), int(right_y)),
+    ])
+
+    # Draw distance text
+    world_dx = er_cx - player.x
+    world_dy = er_cy - player.y
+    world_dist = int(math.sqrt(world_dx * world_dx + world_dy * world_dy))
+    dist_text = font.render(str(world_dist), True, color)
+    text_x = int(ix - dist_text.get_width() / 2)
+    text_y = int(iy - 20)
+    text_y = max(5, min(HEIGHT - 20, text_y))
+    screen.blit(dist_text, (text_x, text_y))
+
 
 _dim_overlay = None
 

@@ -1723,5 +1723,52 @@ class TestEscapeRoomIntegration(unittest.TestCase):
         self.assertEqual(xp_earned, expected_xp)
 
 
+class TestEscapeRoomIndicator(unittest.TestCase):
+    def test_indicator_returns_none_when_on_screen(self):
+        """No indicator when escape room is visible on screen."""
+        from game import compute_indicator_position
+        result = compute_indicator_position(512, 384, 1024, 768)
+        self.assertIsNone(result)
+
+    def test_indicator_returns_position_when_off_screen_right(self):
+        """Indicator appears when escape room is off-screen to the right."""
+        from game import compute_indicator_position
+        result = compute_indicator_position(2000, 384, 1024, 768)
+        self.assertIsNotNone(result)
+        ix, iy = result
+        # Should be clamped to right edge area
+        self.assertGreater(ix, 500)
+        self.assertLessEqual(ix, 1024 - 30)
+
+    def test_indicator_returns_position_when_off_screen_left(self):
+        """Indicator appears when escape room is off-screen to the left."""
+        from game import compute_indicator_position
+        result = compute_indicator_position(-500, 384, 1024, 768)
+        self.assertIsNotNone(result)
+        ix, iy = result
+        self.assertLessEqual(ix, 100)
+        self.assertGreaterEqual(ix, 30)
+
+    def test_indicator_returns_position_when_off_screen_above(self):
+        """Indicator appears when escape room is off-screen above."""
+        from game import compute_indicator_position
+        result = compute_indicator_position(512, -500, 1024, 768)
+        self.assertIsNotNone(result)
+        ix, iy = result
+        self.assertLessEqual(iy, 100)
+
+    def test_indicator_position_clamped_to_screen(self):
+        """Indicator position stays within screen bounds."""
+        from game import compute_indicator_position
+        # Far off bottom-right
+        result = compute_indicator_position(5000, 5000, 1024, 768)
+        self.assertIsNotNone(result)
+        ix, iy = result
+        self.assertGreaterEqual(ix, 30)
+        self.assertLessEqual(ix, 994)
+        self.assertGreaterEqual(iy, 30)
+        self.assertLessEqual(iy, 738)
+
+
 if __name__ == "__main__":
     unittest.main()
