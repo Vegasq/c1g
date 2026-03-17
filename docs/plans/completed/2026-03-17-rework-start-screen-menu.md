@@ -64,4 +64,4 @@ Rework the start screen with an animated neon fractal building background and Ha
 
 ## Wrap-up
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
