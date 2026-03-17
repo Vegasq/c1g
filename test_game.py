@@ -12,9 +12,9 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   HEALTH_DROP_CHANCE, get_health_drop_chance,
                   STATE_OPTIONS,
                   SUPPORTED_RESOLUTIONS, apply_resolution,
-                  EscapeRoom, ESCAPE_ROOM_COLOR, ESCAPE_ROOM_BORDER,
+                  EscapeRoom,
                   MAP_WIDTH, MAP_HEIGHT,
-                  _is_visible, WIDTH, HEIGHT)
+                  _is_visible)
 import game
 
 
