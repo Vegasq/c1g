@@ -777,12 +777,15 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         game.screen = pygame.Surface((1024, 768))
         game.font = self._make_mock_font()
         game.title_font = self._make_mock_font()
+        self._orig_menu_font = game.menu_font
+        game.menu_font = self._make_mock_font()
 
     def tearDown(self):
         import game
         game.screen = self._orig_screen
         game.font = self._orig_font
         game.title_font = self._orig_title_font
+        game.menu_font = self._orig_menu_font
 
     def test_draw_menu_runs_without_error(self):
         from unittest.mock import patch
@@ -1877,6 +1880,9 @@ class TestMenuFadeIn(unittest.TestCase):
         self._orig_font = game.font
         self._orig_title_font = game.title_font
         self._orig_menu_font = game.menu_font
+        self._orig_fade_alpha = game.menu_fade_alpha
+        self._orig_fade_active = game.menu_fade_active
+        self._orig_menu_bg = game._menu_background
         game.screen = pygame.Surface((game.WIDTH, game.HEIGHT))
         game.font = self._make_mock_font()
         game.title_font = self._make_mock_font()
@@ -1887,6 +1893,9 @@ class TestMenuFadeIn(unittest.TestCase):
         game.font = self._orig_font
         game.title_font = self._orig_title_font
         game.menu_font = self._orig_menu_font
+        game.menu_fade_alpha = self._orig_fade_alpha
+        game.menu_fade_active = self._orig_fade_active
+        game._menu_background = self._orig_menu_bg
 
     def test_fade_globals_exist(self):
         self.assertTrue(hasattr(game, 'menu_fade_alpha'))
@@ -1913,35 +1922,36 @@ class TestMenuFadeIn(unittest.TestCase):
 
 
 class TestMenuKeyboardNavigation(unittest.TestCase):
-    """Verify keyboard navigation updates menu_selected_index correctly."""
+    """Verify menu configuration and reset helper."""
 
-    def test_down_key_increments_selection(self):
-        game.menu_selected_index = 0
-        game.menu_selected_index = (game.menu_selected_index + 1) % len(game.MENU_ITEMS)
-        self.assertEqual(game.menu_selected_index, 1)
+    def setUp(self):
+        self._orig_idx = game.menu_selected_index
+        self._orig_alpha = game.menu_fade_alpha
+        self._orig_active = game.menu_fade_active
 
-    def test_up_key_decrements_selection(self):
-        game.menu_selected_index = 1
-        game.menu_selected_index = (game.menu_selected_index - 1) % len(game.MENU_ITEMS)
-        self.assertEqual(game.menu_selected_index, 0)
+    def tearDown(self):
+        game.menu_selected_index = self._orig_idx
+        game.menu_fade_alpha = self._orig_alpha
+        game.menu_fade_active = self._orig_active
 
-    def test_down_wraps_around(self):
-        game.menu_selected_index = len(game.MENU_ITEMS) - 1
-        game.menu_selected_index = (game.menu_selected_index + 1) % len(game.MENU_ITEMS)
-        self.assertEqual(game.menu_selected_index, 0)
+    def test_menu_items_defined(self):
+        self.assertEqual(len(game.MENU_ITEMS), 3)
+        self.assertIn("NEW GAME", game.MENU_ITEMS)
+        self.assertIn("OPTIONS", game.MENU_ITEMS)
+        self.assertIn("QUIT", game.MENU_ITEMS)
 
-    def test_up_wraps_around(self):
-        game.menu_selected_index = 0
-        game.menu_selected_index = (game.menu_selected_index - 1) % len(game.MENU_ITEMS)
-        self.assertEqual(game.menu_selected_index, len(game.MENU_ITEMS) - 1)
+    def test_menu_selection_wraps_around(self):
+        # Verify modular arithmetic wraps correctly for the menu size
+        n = len(game.MENU_ITEMS)
+        self.assertEqual((n - 1 + 1) % n, 0)  # last + 1 = first
+        self.assertEqual((0 - 1) % n, n - 1)  # first - 1 = last
 
-    def test_fade_reset_values(self):
-        # Verify that the fade reset pattern works correctly
+    def test_reset_menu_state(self):
+        game.menu_selected_index = 2
         game.menu_fade_alpha = 200
         game.menu_fade_active = False
-        # Simulate ESC transition reset
-        game.menu_fade_alpha = 0
-        game.menu_fade_active = True
+        game._reset_menu_state()
+        self.assertEqual(game.menu_selected_index, 0)
         self.assertEqual(game.menu_fade_alpha, 0)
         self.assertTrue(game.menu_fade_active)
 

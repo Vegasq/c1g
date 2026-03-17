@@ -95,7 +95,16 @@ class FractalBackground:
         while x < self.width:
             w = rng.randint(30, 80)
             h = rng.randint(80, self.height // 2 + 100)
-            buildings.append({"x": x, "w": w, "h": h})
+            by = self.height - h
+            # Precompute window positions for this building
+            win_rng = random.Random(x * 1000 + w)
+            windows = []
+            for wy in range(by + 8, self.height - 8, 14):
+                for wx in range(x + 4, x + w - 4, 10):
+                    if win_rng.random() < 0.3:
+                        flicker = win_rng.random() < 0.1
+                        windows.append((wx, wy, flicker))
+            buildings.append({"x": x, "w": w, "h": h, "windows": windows})
             x += w + rng.randint(2, 8)
         return buildings
 
@@ -131,19 +140,26 @@ class FractalBackground:
                 pygame.draw.line(surface, line_color,
                                  (bx + 1, by + sy), (bx + bw - 2, by + sy))
 
-            # Scattered lit windows
-            rng = random.Random(bx * 1000 + bw)
-            for wy in range(by + 8, self.height - 8, 14):
-                for wx in range(bx + 4, bx + bw - 4, 10):
-                    if rng.random() < 0.3:
-                        brightness = 0.5 + 0.5 * pulse if rng.random() < 0.1 else 0.3
-                        wc = (int(edge_color[0] * brightness),
-                              int(edge_color[1] * brightness),
-                              int(edge_color[2] * brightness))
-                        pygame.draw.rect(surface, wc, (wx, wy, 4, 4))
+            # Precomputed lit windows
+            for wx, wy, flicker in b["windows"]:
+                brightness = 0.5 + 0.5 * pulse if flicker else 0.3
+                wc = (int(edge_color[0] * brightness),
+                      int(edge_color[1] * brightness),
+                      int(edge_color[2] * brightness))
+                pygame.draw.rect(surface, wc, (wx, wy, 4, 4))
 
 
 _menu_background = None
+_fade_overlay = None
+
+
+def _reset_menu_state():
+    """Reset menu selection and fade-in state for transitions back to menu."""
+    global menu_selected_index, menu_fade_alpha, menu_fade_active
+    menu_selected_index = 0
+    menu_fade_alpha = 0
+    menu_fade_active = True
+
 
 CULL_MARGIN = 80  # extra pixels beyond screen edge before culling
 
@@ -1143,7 +1159,7 @@ def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
 
 def apply_resolution():
     """Apply the current resolution and fullscreen settings."""
-    global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background
+    global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background, _fade_overlay
     res = SUPPORTED_RESOLUTIONS[options_resolution_index]
     WIDTH, HEIGHT = res
     flags = pygame.FULLSCREEN if options_fullscreen else 0
@@ -1154,6 +1170,7 @@ def apply_resolution():
         options_fullscreen = False
         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
     _menu_background = None  # Reset so it regenerates at new size
+    _fade_overlay = None
 
 
 def draw_options_menu():
@@ -1274,7 +1291,6 @@ def draw_menu():
     ticks = pygame.time.get_ticks()
 
     # Draw menu items - Half-Life style
-    _mf = menu_font or font
     for i, item_text in enumerate(MENU_ITEMS):
         y = MENU_START_Y + i * MENU_ITEM_HEIGHT
         is_selected = (i == menu_selected_index)
@@ -1284,13 +1300,13 @@ def draw_menu():
             # Orange/white highlight with neon glow
             glow_color = (255, 140, 0)
             text_color = (255, 255, 255)
-            glow_surf = _mf.render(item_text, True, glow_color)
+            glow_surf = menu_font.render(item_text, True, glow_color)
             screen.blit(glow_surf, (x - 1, y - 1))
             screen.blit(glow_surf, (x + 1, y + 1))
         else:
             text_color = (180, 180, 180)
 
-        text_surf = _mf.render(item_text, True, text_color)
+        text_surf = menu_font.render(item_text, True, text_color)
         screen.blit(text_surf, (x, y))
 
         # Draw separator line after each item except the last
@@ -1300,12 +1316,14 @@ def draw_menu():
 
     # Fade-in overlay
     if menu_fade_active:
+        global _fade_overlay
         menu_fade_alpha = min(menu_fade_alpha + 8, 255)
         if menu_fade_alpha < 255:
-            fade_overlay = pygame.Surface((WIDTH, HEIGHT))
-            fade_overlay.fill(BG)
-            fade_overlay.set_alpha(255 - menu_fade_alpha)
-            screen.blit(fade_overlay, (0, 0))
+            if _fade_overlay is None or _fade_overlay.get_size() != (WIDTH, HEIGHT):
+                _fade_overlay = pygame.Surface((WIDTH, HEIGHT))
+            _fade_overlay.fill(BG)
+            _fade_overlay.set_alpha(255 - menu_fade_alpha)
+            screen.blit(_fade_overlay, (0, 0))
         else:
             menu_fade_active = False
 
@@ -1331,7 +1349,7 @@ def draw_game_over(score, level=1):
 
 def run():
     global options_selected_index, options_resolution_index, options_fullscreen
-    global menu_selected_index, menu_fade_alpha, menu_fade_active
+    global menu_selected_index
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1391,24 +1409,16 @@ def run():
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_OPTIONS:
                         state = STATE_MENU
-                        menu_selected_index = 0
-                        menu_fade_alpha = 0
-                        menu_fade_active = True
+                        _reset_menu_state()
                     elif state == STATE_PLAYING:
                         state = STATE_MENU
-                        menu_selected_index = 0
-                        menu_fade_alpha = 0
-                        menu_fade_active = True
+                        _reset_menu_state()
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
-                        menu_selected_index = 0
-                        menu_fade_alpha = 0
-                        menu_fade_active = True
+                        _reset_menu_state()
                     elif state == STATE_LEVEL_UP:
                         state = STATE_MENU
-                        menu_selected_index = 0
-                        menu_fade_alpha = 0
-                        menu_fade_active = True
+                        _reset_menu_state()
                     elif state == STATE_MENU:
                         running = False
                 elif state == STATE_OPTIONS:
@@ -1429,9 +1439,7 @@ def run():
                     elif event.key == pygame.K_RETURN:
                         if options_selected_index == 2:
                             state = STATE_MENU
-                            menu_selected_index = 0
-                            menu_fade_alpha = 0
-                            menu_fade_active = True
+                            _reset_menu_state()
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
