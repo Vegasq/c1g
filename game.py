@@ -126,9 +126,8 @@ class FractalBackground:
 
             # Animated scanline effect (horizontal lines moving down)
             scanline_offset = (ticks // 30) % bh
+            line_color = (edge_color[0] // 4, edge_color[1] // 4, edge_color[2] // 4)
             for sy in range(scanline_offset % 6, bh, 6):
-                alpha = int(30 + 20 * pulse)
-                line_color = (edge_color[0] // 4, edge_color[1] // 4, edge_color[2] // 4)
                 pygame.draw.line(surface, line_color,
                                  (bx + 1, by + sy), (bx + bw - 2, by + sy))
 
@@ -1249,7 +1248,7 @@ def draw_menu_separator(surface, x, y, width, ticks):
         gx = sweep_pos - glow_width // 2 + i
         if x <= gx <= x + width:
             intensity = max(0, pulse - abs(i - glow_width // 2) * 4)
-            glow_color = (min(255, 255), min(255, intensity + 60), 0)
+            glow_color = (255, min(255, intensity + 60), 0)
             pygame.draw.line(surface, glow_color, (gx, y - 1), (gx, y + 1), 1)
 
 
