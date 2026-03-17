@@ -1143,7 +1143,7 @@ def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
 
 def apply_resolution():
     """Apply the current resolution and fullscreen settings."""
-    global screen, WIDTH, HEIGHT, options_fullscreen
+    global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background
     res = SUPPORTED_RESOLUTIONS[options_resolution_index]
     WIDTH, HEIGHT = res
     flags = pygame.FULLSCREEN if options_fullscreen else 0
@@ -1153,6 +1153,7 @@ def apply_resolution():
         # Fallback to windowed mode if fullscreen fails
         options_fullscreen = False
         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
+    _menu_background = None  # Reset so it regenerates at new size
 
 
 def draw_options_menu():
@@ -1253,7 +1254,7 @@ def draw_menu_separator(surface, x, y, width, ticks):
 
 
 def draw_menu():
-    global _menu_background, menu_selected_index, menu_fade_alpha, menu_fade_active
+    global _menu_background, menu_fade_alpha, menu_fade_active
     screen.fill(BG)
 
     # Draw animated fractal city background
@@ -1269,12 +1270,6 @@ def draw_menu():
     screen.blit(title_glow, (tx - 2, ty - 2))
     screen.blit(title_glow, (tx + 2, ty + 2))
     screen.blit(title, (tx, ty))
-
-    # Determine hovered item from mouse
-    mx, my = pygame.mouse.get_pos()
-    hover_index = get_hovered_menu_index(mx, my)
-    if hover_index >= 0:
-        menu_selected_index = hover_index
 
     ticks = pygame.time.get_ticks()
 
@@ -1335,7 +1330,8 @@ def draw_game_over(score, level=1):
 
 
 def run():
-    global options_selected_index, options_resolution_index, options_fullscreen, menu_selected_index, menu_fade_alpha, menu_fade_active
+    global options_selected_index, options_resolution_index, options_fullscreen
+    global menu_selected_index, menu_fade_alpha, menu_fade_active
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1453,6 +1449,10 @@ def run():
                     if state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
+            if event.type == pygame.MOUSEMOTION and state == STATE_MENU:
+                idx = get_hovered_menu_index(event.pos[0], event.pos[1])
+                if idx >= 0:
+                    menu_selected_index = idx
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if state == STATE_MENU:
                     idx = get_hovered_menu_index(event.pos[0], event.pos[1])
@@ -1464,7 +1464,7 @@ def run():
                         state = STATE_OPTIONS
                     elif idx == 2:  # QUIT
                         running = False
-                if state == STATE_LEVEL_UP and upgrade_options:
+                elif state == STATE_LEVEL_UP and upgrade_options:
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
                         apply_upgrade(weapon_stats, upgrade_options[idx], player)
