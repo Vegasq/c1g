@@ -1,4 +1,5 @@
 .coverage
+.serena/
 __pycache__/
 # ralphex progress logs
 progress*.txt
