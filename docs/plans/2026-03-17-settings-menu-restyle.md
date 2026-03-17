@@ -19,10 +19,10 @@ Restyle the settings/options menu in game.py to match the main menu's visual sty
 **Files:**
 - Modify: `game.py` (draw_options_menu method)
 
-- [ ] Remove the centered panel/box approach (PANEL_WIDTH, PANEL_HEIGHT, bordered rectangle)
-- [ ] Let the fractal background show through fully (no opaque panel overlay)
-- [ ] Add "Options" title using title_font (size 72) with cyan glow, matching main menu title style
-- [ ] Position menu items left-aligned at MENU_X=60, starting below the title, with MENU_ITEM_HEIGHT=60
+- [x] Remove the centered panel/box approach (PANEL_WIDTH, PANEL_HEIGHT, bordered rectangle)
+- [x] Let the fractal background show through fully (no opaque panel overlay)
+- [x] Add "Options" title using title_font (size 72) with cyan glow, matching main menu title style
+- [x] Position menu items left-aligned at MENU_X=60, starting below the title, with MENU_ITEM_HEIGHT=60
 
 ### Task 2 - Apply main menu item styling to settings items
 

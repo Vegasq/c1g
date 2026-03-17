@@ -1179,35 +1179,24 @@ def apply_resolution():
 
 
 def draw_options_menu():
-    """Draw an options menu panel with resolution and fullscreen settings."""
+    """Draw the options menu matching main menu visual style."""
+    global _menu_background
     screen.fill(BG)
-    opt_panel_w, opt_panel_h = 500, 300
-    opt_panel_x = (WIDTH - opt_panel_w) // 2
-    opt_panel_y = (HEIGHT - opt_panel_h) // 2
 
-    # Neon glow border
-    for i in range(PANEL_BORDER_GLOW_LAYERS, 0, -1):
-        alpha = max(15, 80 // i)
-        glow_color = (BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], alpha)
-        expand = i * 3
-        glow_rect = pygame.Rect(-expand, -expand,
-                                opt_panel_w + expand * 2, opt_panel_h + expand * 2)
-        glow_surf = pygame.Surface((glow_rect.width, glow_rect.height), pygame.SRCALPHA)
-        pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius=8)
-        screen.blit(glow_surf, (opt_panel_x - expand, opt_panel_y - expand))
+    # Draw animated fractal city background
+    if _menu_background is None:
+        _menu_background = FractalBackground(WIDTH, HEIGHT)
+    _menu_background.draw(screen)
 
-    panel_surf = pygame.Surface((opt_panel_w, opt_panel_h), pygame.SRCALPHA)
-    panel_surf.fill(PANEL_BG_COLOR)
-    pygame.draw.rect(panel_surf, BORDER_COLOR,
-                     pygame.Rect(0, 0, opt_panel_w, opt_panel_h), 2, border_radius=6)
-
-    # Title
-    title = title_font.render("Options", True, BORDER_COLOR)
-    title_glow = title_font.render("Options", True, (80, 0, 140))
-    tx = opt_panel_w // 2 - title.get_width() // 2
-    panel_surf.blit(title_glow, (tx - 2, 13))
-    panel_surf.blit(title_glow, (tx + 2, 17))
-    panel_surf.blit(title, (tx, 15))
+    # Title in upper-left area matching main menu style
+    options_start_y = MENU_START_Y
+    title = title_font.render("Options", True, PLAYER_COLOR)
+    title_glow = title_font.render("Options", True, (0, 100, 140))
+    tx = MENU_X
+    ty = options_start_y - 120
+    screen.blit(title_glow, (tx - 2, ty - 2))
+    screen.blit(title_glow, (tx + 2, ty + 2))
+    screen.blit(title, (tx, ty))
 
     items = [
         ("Resolution",
@@ -1217,29 +1206,35 @@ def draw_options_menu():
         ("Back", ""),
     ]
 
-    row_h = 55
-    start_y = 90
+    ticks = pygame.time.get_ticks()
+
     for i, (label, value) in enumerate(items):
-        row_y = start_y + i * row_h
-        row_rect = pygame.Rect(10, row_y, opt_panel_w - 20, row_h - 5)
-        selected = (i == options_selected_index)
-        if selected:
-            row_bg = pygame.Surface((row_rect.width, row_rect.height), pygame.SRCALPHA)
-            row_bg.fill((BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], 40))
-            panel_surf.blit(row_bg, row_rect.topleft)
-            pygame.draw.rect(panel_surf, BORDER_COLOR, row_rect, 1, border_radius=4)
+        y = options_start_y + i * MENU_ITEM_HEIGHT
+        is_selected = (i == options_selected_index)
+        x = MENU_X + (MENU_HOVER_INDENT if is_selected else 0)
+
+        if is_selected:
+            glow_color = (255, 140, 0)
+            text_color = (255, 255, 255)
+            glow_surf = menu_font.render(label, True, glow_color)
+            screen.blit(glow_surf, (x - 1, y - 1))
+            screen.blit(glow_surf, (x + 1, y + 1))
         else:
-            pygame.draw.rect(panel_surf, (60, 40, 100, 120), row_rect, 1, border_radius=4)
+            text_color = (180, 180, 180)
 
-        color = (0, 255, 180) if selected else (0, 180, 220)
-        lbl = font.render(label, True, color)
-        text_y = row_y + (row_h - 5) // 2 - lbl.get_height() // 2
-        panel_surf.blit(lbl, (20, text_y))
+        text_surf = menu_font.render(label, True, text_color)
+        screen.blit(text_surf, (x, y))
+
         if value:
-            val_surf = font.render(value, True, color)
-            panel_surf.blit(val_surf, (opt_panel_w - 20 - val_surf.get_width(), text_y))
+            val_color = (255, 140, 0) if is_selected else (180, 180, 180)
+            val_surf = menu_font.render(f"  {value}", True, val_color)
+            screen.blit(val_surf, (x + text_surf.get_width(), y))
 
-    screen.blit(panel_surf, (opt_panel_x, opt_panel_y))
+        # Draw separator line after each item except the last
+        if i < len(items) - 1:
+            sep_y = y + MENU_ITEM_HEIGHT - 10
+            draw_menu_separator(screen, MENU_X, sep_y, 200, ticks)
+
     pygame.display.flip()
 
 
