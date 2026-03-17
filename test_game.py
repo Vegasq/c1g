@@ -790,6 +790,34 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         with patch('pygame.display.flip'):
             draw_menu()
 
+    def test_menu_item_rect_positions(self):
+        from game import get_menu_item_rect, MENU_X, MENU_START_Y, MENU_ITEM_HEIGHT
+        for i in range(3):
+            rect = get_menu_item_rect(i)
+            self.assertEqual(rect.x, MENU_X)
+            self.assertEqual(rect.y, MENU_START_Y + i * MENU_ITEM_HEIGHT)
+            self.assertEqual(rect.width, 300)
+
+    def test_menu_hover_detection(self):
+        from game import get_hovered_menu_index, get_menu_item_rect
+        # Click inside first item
+        r = get_menu_item_rect(0)
+        self.assertEqual(get_hovered_menu_index(r.centerx, r.centery), 0)
+        # Click inside second item
+        r = get_menu_item_rect(1)
+        self.assertEqual(get_hovered_menu_index(r.centerx, r.centery), 1)
+        # Click inside third item
+        r = get_menu_item_rect(2)
+        self.assertEqual(get_hovered_menu_index(r.centerx, r.centery), 2)
+        # Click outside
+        self.assertEqual(get_hovered_menu_index(900, 900), -1)
+
+    def test_draw_menu_with_hover(self):
+        from unittest.mock import patch
+        from game import draw_menu
+        with patch('pygame.display.flip'), patch('pygame.mouse.get_pos', return_value=(100, 300)):
+            draw_menu()
+
     def test_draw_game_over_runs_without_error(self):
         from unittest.mock import patch
         from game import draw_game_over

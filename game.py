@@ -16,7 +16,7 @@ title_font = None
 
 
 def init_pygame():
-    global screen, clock, font, title_font
+    global screen, clock, font, title_font, menu_font
     if screen is not None:
         return
     pygame.init()
@@ -25,6 +25,7 @@ def init_pygame():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
     title_font = pygame.font.SysFont(None, 72)
+    menu_font = pygame.font.SysFont(None, 52)
 
 
 # Game states
@@ -44,6 +45,15 @@ SUPPORTED_RESOLUTIONS = [
 options_selected_index = 0  # 0=resolution, 1=fullscreen, 2=back
 options_resolution_index = 1  # default 1024x768
 options_fullscreen = False
+
+# Menu configuration
+MENU_ITEMS = ["NEW GAME", "OPTIONS", "QUIT"]
+MENU_X = 60
+MENU_START_Y = 300
+MENU_ITEM_HEIGHT = 60
+MENU_HOVER_INDENT = 15
+menu_selected_index = 0  # keyboard selection index
+menu_font = None  # initialized in init_pygame
 
 # Colors
 BG = (5, 5, 15)
@@ -1209,8 +1219,22 @@ def draw_options_menu():
     pygame.display.flip()
 
 
+def get_menu_item_rect(index):
+    """Return the clickable pygame.Rect for a menu item by index."""
+    y = MENU_START_Y + index * MENU_ITEM_HEIGHT
+    return pygame.Rect(MENU_X, y, 300, MENU_ITEM_HEIGHT - 5)
+
+
+def get_hovered_menu_index(mx, my):
+    """Return menu item index under mouse position, or -1 if none."""
+    for i in range(len(MENU_ITEMS)):
+        if get_menu_item_rect(i).collidepoint(mx, my):
+            return i
+    return -1
+
+
 def draw_menu():
-    global _menu_background
+    global _menu_background, menu_selected_index
     screen.fill(BG)
 
     # Draw animated fractal city background
@@ -1218,18 +1242,41 @@ def draw_menu():
         _menu_background = FractalBackground(WIDTH, HEIGHT)
     _menu_background.draw(screen)
 
-    # Neon cyan glow behind title
+    # Title in upper-left area
     title = title_font.render("Squad Survivors", True, PLAYER_COLOR)
     title_glow = title_font.render("Squad Survivors", True, (0, 100, 140))
-    tx = WIDTH // 2 - title.get_width() // 2
-    ty = HEIGHT // 3
+    tx = MENU_X
+    ty = MENU_START_Y - 120
     screen.blit(title_glow, (tx - 2, ty - 2))
     screen.blit(title_glow, (tx + 2, ty + 2))
     screen.blit(title, (tx, ty))
-    prompt = font.render("Press ENTER to Start", True, (0, 180, 220))
-    screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 40))
-    options_prompt = font.render("Press O for Options", True, (0, 180, 220))
-    screen.blit(options_prompt, (WIDTH // 2 - options_prompt.get_width() // 2, HEIGHT // 2 + 80))
+
+    # Determine hovered item from mouse
+    mx, my = pygame.mouse.get_pos()
+    hover_index = get_hovered_menu_index(mx, my)
+    if hover_index >= 0:
+        menu_selected_index = hover_index
+
+    # Draw menu items - Half-Life style
+    _mf = menu_font or font
+    for i, item_text in enumerate(MENU_ITEMS):
+        y = MENU_START_Y + i * MENU_ITEM_HEIGHT
+        is_selected = (i == menu_selected_index)
+        x = MENU_X + (MENU_HOVER_INDENT if is_selected else 0)
+
+        if is_selected:
+            # Orange/white highlight with neon glow
+            glow_color = (255, 140, 0)
+            text_color = (255, 255, 255)
+            glow_surf = _mf.render(item_text, True, glow_color)
+            screen.blit(glow_surf, (x - 1, y - 1))
+            screen.blit(glow_surf, (x + 1, y + 1))
+        else:
+            text_color = (180, 180, 180)
+
+        text_surf = _mf.render(item_text, True, text_color)
+        screen.blit(text_surf, (x, y))
+
     pygame.display.flip()
 
 
@@ -1251,7 +1298,7 @@ def draw_game_over(score, level=1):
 
 
 def run():
-    global options_selected_index, options_resolution_index, options_fullscreen
+    global options_selected_index, options_resolution_index, options_fullscreen, menu_selected_index
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1343,18 +1390,35 @@ def run():
                         apply_upgrade(weapon_stats, upgrade_options[idx], player)
                         upgrade_options = []
                         state = STATE_PLAYING
-                elif event.key == pygame.K_o:
-                    if state == STATE_MENU:
-                        options_selected_index = 0
-                        state = STATE_OPTIONS
+                elif state == STATE_MENU:
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        menu_selected_index = (menu_selected_index - 1) % len(MENU_ITEMS)
+                    elif event.key in (pygame.K_DOWN, pygame.K_s):
+                        menu_selected_index = (menu_selected_index + 1) % len(MENU_ITEMS)
+                    elif event.key == pygame.K_RETURN:
+                        if menu_selected_index == 0:  # NEW GAME
+                            reset_game()
+                            state = STATE_PLAYING
+                        elif menu_selected_index == 1:  # OPTIONS
+                            options_selected_index = 0
+                            state = STATE_OPTIONS
+                        elif menu_selected_index == 2:  # QUIT
+                            running = False
                 elif event.key == pygame.K_RETURN:
-                    if state == STATE_MENU:
-                        reset_game()
-                        state = STATE_PLAYING
-                    elif state == STATE_GAME_OVER:
+                    if state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if state == STATE_MENU:
+                    idx = get_hovered_menu_index(event.pos[0], event.pos[1])
+                    if idx == 0:  # NEW GAME
+                        reset_game()
+                        state = STATE_PLAYING
+                    elif idx == 1:  # OPTIONS
+                        options_selected_index = 0
+                        state = STATE_OPTIONS
+                    elif idx == 2:  # QUIT
+                        running = False
                 if state == STATE_LEVEL_UP and upgrade_options:
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):

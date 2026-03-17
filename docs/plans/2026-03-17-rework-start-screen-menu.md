@@ -32,15 +32,15 @@ Rework the start screen with an animated neon fractal building background and Ha
 **Files:**
 - Modify: `game.py`
 
-- [ ] Replace current centered menu text with left-aligned menu items positioned at roughly x=60, vertically centered on left side
-- [ ] Menu items: NEW GAME, OPTIONS, QUIT - rendered in large bold font with Half-Life style (white/orange text, highlight on hover)
-- [ ] Add hover detection using pygame mouse position - highlighted item gets neon glow effect and slight indent
-- [ ] Add click handling in the main event loop for STATE_MENU mouse clicks on menu items
-- [ ] Keep keyboard navigation working (up/down arrows to select, enter to confirm)
-- [ ] Move title text to upper-left area above menu items
-- [ ] Update draw_menu() to use new menu rendering
-- [ ] Write tests for menu item hover detection and click region calculation
-- [ ] Run project test suite - must pass before task 3
+- [x] Replace current centered menu text with left-aligned menu items positioned at roughly x=60, vertically centered on left side
+- [x] Menu items: NEW GAME, OPTIONS, QUIT - rendered in large bold font with Half-Life style (white/orange text, highlight on hover)
+- [x] Add hover detection using pygame mouse position - highlighted item gets neon glow effect and slight indent
+- [x] Add click handling in the main event loop for STATE_MENU mouse clicks on menu items
+- [x] Keep keyboard navigation working (up/down arrows to select, enter to confirm)
+- [x] Move title text to upper-left area above menu items
+- [x] Update draw_menu() to use new menu rendering
+- [x] Write tests for menu item hover detection and click region calculation
+- [x] Run project test suite - must pass before task 3
 
 ## Task 3: Polish and integration
 
