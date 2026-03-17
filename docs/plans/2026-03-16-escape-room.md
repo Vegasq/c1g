@@ -20,11 +20,11 @@ Add an "Escape Room" safe zone entity to the game. When the player enters the es
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add EscapeRoom class with properties: x, y, w, h (rectangular, similar to Obstacle), a distinct neon color (e.g. green/teal glow)
-- [ ] Add draw(camera) method with visibility culling, glow effect, and distinct visual (pulsing border or shimmer to distinguish from obstacles)
-- [ ] Add collides_circle(cx, cy, radius) method (reuse Obstacle pattern) for detecting player entry and enemy repulsion
-- [ ] Add relocate(obstacles, escape_rooms) method that picks a new random position on the map (avoiding obstacles and spawn center, similar to obstacle generation logic)
-- [ ] Write tests for EscapeRoom: construction, collision detection, relocation avoids obstacles
+- [x] Add EscapeRoom class with properties: x, y, w, h (rectangular, similar to Obstacle), a distinct neon color (e.g. green/teal glow)
+- [x] Add draw(camera) method with visibility culling, glow effect, and distinct visual (pulsing border or shimmer to distinguish from obstacles)
+- [x] Add collides_circle(cx, cy, radius) method (reuse Obstacle pattern) for detecting player entry and enemy repulsion
+- [x] Add relocate(obstacles, escape_rooms) method that picks a new random position on the map (avoiding obstacles and spawn center, similar to obstacle generation logic)
+- [x] Write tests for EscapeRoom: construction, collision detection, relocation avoids obstacles
 
 ## Task 2 - Integrate EscapeRoom into game loop
 

@@ -61,6 +61,8 @@ BORDER_COLOR = (150, 0, 255)
 OBSTACLE_COLOR = (15, 10, 30)
 OBSTACLE_BORDER = (120, 0, 200)
 HEALTH_PICKUP_COLOR = (0, 255, 180)
+ESCAPE_ROOM_COLOR = (10, 25, 20)
+ESCAPE_ROOM_BORDER = (0, 255, 200)
 
 
 _glow_surface_cache = {}
@@ -178,6 +180,106 @@ class Obstacle:
             cx += dx / dist * overlap
             cy += dy / dist * overlap
         return cx, cy
+
+
+class EscapeRoom:
+    def __init__(self, x, y, w=120, h=120):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.pulse_timer = 0
+
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        sw = getattr(camera, 'screen_w', 800)
+        sh = getattr(camera, 'screen_h', 600)
+        if (sx + self.w < -CULL_MARGIN or sx > sw + CULL_MARGIN or
+                sy + self.h < -CULL_MARGIN or sy > sh + CULL_MARGIN):
+            return
+        self.pulse_timer += 1
+        pulse = 0.6 + 0.4 * math.sin(self.pulse_timer * 0.05)
+        # Glow layers
+        for i in range(4, 0, -1):
+            pad = i * 6
+            alpha = max(10, int(60 * pulse) // i)
+            dim = (self.w + pad * 2, self.h + pad * 2)
+            glow_surf = _get_glow_surface(dim)
+            glow_surf.fill((0, 0, 0, 0))
+            glow_color = (ESCAPE_ROOM_BORDER[0], ESCAPE_ROOM_BORDER[1],
+                          ESCAPE_ROOM_BORDER[2], alpha)
+            pygame.draw.rect(glow_surf, glow_color, (0, 0, dim[0], dim[1]))
+            screen.blit(glow_surf, (sx - pad, sy - pad))
+        pygame.draw.rect(screen, ESCAPE_ROOM_COLOR, (sx, sy, self.w, self.h))
+        border_col = tuple(int(c * pulse) for c in ESCAPE_ROOM_BORDER)
+        pygame.draw.rect(screen, border_col, (sx, sy, self.w, self.h), 3)
+
+    def collides_circle(self, cx, cy, radius):
+        closest_x = max(self.x, min(cx, self.x + self.w))
+        closest_y = max(self.y, min(cy, self.y + self.h))
+        dx = cx - closest_x
+        dy = cy - closest_y
+        return dx * dx + dy * dy < radius * radius
+
+    def push_circle_out(self, cx, cy, radius):
+        closest_x = max(self.x, min(cx, self.x + self.w))
+        closest_y = max(self.y, min(cy, self.y + self.h))
+        dx = cx - closest_x
+        dy = cy - closest_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq == 0:
+            left = cx - self.x
+            right = (self.x + self.w) - cx
+            top = cy - self.y
+            bottom = (self.y + self.h) - cy
+            min_dist = min(left, right, top, bottom)
+            if min_dist == left:
+                cx = self.x - radius
+            elif min_dist == right:
+                cx = self.x + self.w + radius
+            elif min_dist == top:
+                cy = self.y - radius
+            else:
+                cy = self.y + self.h + radius
+            return cx, cy
+        if dist_sq < radius * radius:
+            dist = math.sqrt(dist_sq)
+            overlap = radius - dist
+            cx += dx / dist * overlap
+            cy += dy / dist * overlap
+        return cx, cy
+
+    def relocate(self, obstacles, escape_rooms=None):
+        spawn_center_x = MAP_WIDTH / 2
+        spawn_center_y = MAP_HEIGHT / 2
+        spawn_safe_radius = 200
+        if escape_rooms is None:
+            escape_rooms = []
+        for _attempt in range(50):
+            x = random.randint(50, MAP_WIDTH - self.w - 50)
+            y = random.randint(50, MAP_HEIGHT - self.h - 50)
+            cx = x + self.w / 2
+            cy = y + self.h / 2
+            if math.hypot(cx - spawn_center_x, cy - spawn_center_y) < spawn_safe_radius:
+                continue
+            overlap = False
+            for o in obstacles:
+                if (x < o.x + o.w + 20 and x + self.w + 20 > o.x and
+                        y < o.y + o.h + 20 and y + self.h + 20 > o.y):
+                    overlap = True
+                    break
+            if not overlap:
+                for er in escape_rooms:
+                    if er is self:
+                        continue
+                    if (x < er.x + er.w + 20 and x + self.w + 20 > er.x and
+                            y < er.y + er.h + 20 and y + self.h + 20 > er.y):
+                        overlap = True
+                        break
+            if not overlap:
+                self.x = x
+                self.y = y
+                return
 
 
 def generate_obstacles(count=30):

@@ -11,7 +11,9 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   HealthPickup, HEALTH_PICKUP_COLOR,
                   HEALTH_DROP_CHANCE, get_health_drop_chance,
                   STATE_OPTIONS,
-                  SUPPORTED_RESOLUTIONS, apply_resolution)
+                  SUPPORTED_RESOLUTIONS, apply_resolution,
+                  EscapeRoom, ESCAPE_ROOM_COLOR, ESCAPE_ROOM_BORDER,
+                  MAP_WIDTH, MAP_HEIGHT)
 import game
 
 
@@ -1549,6 +1551,79 @@ class TestHealthDropSystem(unittest.TestCase):
         for etype, chance in HEALTH_DROP_CHANCE.items():
             self.assertGreater(chance, 0, f"{etype} drop chance should be > 0")
             self.assertLess(chance, 1.0, f"{etype} drop chance should be < 1.0")
+
+
+class TestEscapeRoom(unittest.TestCase):
+    def test_construction(self):
+        er = EscapeRoom(100, 200, 120, 120)
+        self.assertEqual(er.x, 100)
+        self.assertEqual(er.y, 200)
+        self.assertEqual(er.w, 120)
+        self.assertEqual(er.h, 120)
+
+    def test_default_size(self):
+        er = EscapeRoom(50, 50)
+        self.assertEqual(er.w, 120)
+        self.assertEqual(er.h, 120)
+
+    def test_collides_circle_inside(self):
+        er = EscapeRoom(100, 100, 120, 120)
+        # Circle center inside the room
+        self.assertTrue(er.collides_circle(160, 160, 10))
+
+    def test_collides_circle_outside(self):
+        er = EscapeRoom(100, 100, 120, 120)
+        # Circle far away
+        self.assertFalse(er.collides_circle(500, 500, 10))
+
+    def test_collides_circle_edge(self):
+        er = EscapeRoom(100, 100, 120, 120)
+        # Circle just touching the edge
+        self.assertTrue(er.collides_circle(100, 90, 15))
+
+    def test_collides_circle_just_outside(self):
+        er = EscapeRoom(100, 100, 120, 120)
+        # Circle just outside
+        self.assertFalse(er.collides_circle(100, 80, 5))
+
+    def test_push_circle_out(self):
+        er = EscapeRoom(100, 100, 120, 120)
+        # Circle overlapping from the left
+        cx, cy = er.push_circle_out(90, 160, 20)
+        dist_x = max(er.x, min(cx, er.x + er.w)) - cx
+        dist_y = max(er.y, min(cy, er.y + er.h)) - cy
+        self.assertGreaterEqual(dist_x * dist_x + dist_y * dist_y, 20 * 20 - 1)
+
+    def test_relocate_avoids_obstacles(self):
+        obstacles = [Obstacle(x * 200, 100, 150, 150) for x in range(10)]
+        er = EscapeRoom(50, 50, 120, 120)
+        er.relocate(obstacles)
+        # After relocate, should not overlap any obstacle
+        for o in obstacles:
+            overlaps = (er.x < o.x + o.w + 20 and er.x + er.w + 20 > o.x and
+                        er.y < o.y + o.h + 20 and er.y + er.h + 20 > o.y)
+            self.assertFalse(overlaps, "EscapeRoom should not overlap obstacles after relocate")
+
+    def test_relocate_avoids_spawn_center(self):
+        er = EscapeRoom(50, 50, 120, 120)
+        for _ in range(10):
+            er.relocate([])
+            cx = er.x + er.w / 2
+            cy = er.y + er.h / 2
+            dist = math.hypot(cx - MAP_WIDTH / 2, cy - MAP_HEIGHT / 2)
+            self.assertGreaterEqual(dist, 200)
+
+    def test_relocate_changes_position(self):
+        er = EscapeRoom(50, 50, 120, 120)
+        old_x, old_y = er.x, er.y
+        # Run multiple times - at least one should change position
+        changed = False
+        for _ in range(10):
+            er.relocate([])
+            if er.x != old_x or er.y != old_y:
+                changed = True
+                break
+        self.assertTrue(changed, "relocate should move the escape room")
 
 
 if __name__ == "__main__":
