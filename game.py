@@ -775,7 +775,8 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
 
     # Escape room flash effect
     if escape_flash_timer > 0:
-        flash_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        flash_surface = _get_glow_surface((WIDTH, HEIGHT))
+        flash_surface.fill((0, 0, 0, 0))
         alpha = int(180 * (escape_flash_timer / 15))
         flash_surface.fill((0, 255, 200, alpha))
         screen.blit(flash_surface, (0, 0))
@@ -822,7 +823,8 @@ def compute_indicator_position(screen_x, screen_y, screen_w, screen_h,
         t_vals.append((pad - cx) / nx if nx < 0 else (screen_w - pad - cx) / nx)
     if ny != 0:
         t_vals.append((pad - cy) / ny if ny < 0 else (screen_h - pad - cy) / ny)
-    t = min(t for t in t_vals if t > 0) if t_vals else 1
+    positive_t = [t for t in t_vals if t > 0]
+    t = min(positive_t) if positive_t else 1
     ix = max(pad, min(screen_w - pad, cx + nx * t))
     iy = max(pad, min(screen_h - pad, cy + ny * t))
     return ix, iy
@@ -1290,7 +1292,7 @@ def run():
         if state == STATE_LEVEL_UP:
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_stats, xp, xp_thresholds,
-                            health_pickups, heal_effects)
+                            health_pickups, heal_effects, escape_rooms)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
