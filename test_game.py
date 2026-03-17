@@ -1386,6 +1386,14 @@ class TestHealthPickup(unittest.TestCase):
         hp.update(player)
         self.assertEqual(hp.lifetime, 0)
 
+    def test_collected_on_last_frame(self):
+        """Pickup should still be collected if player is in range on the frame it expires."""
+        hp = HealthPickup(100, 100)
+        player = Unit(110, 100, (255, 255, 255), is_player=True)
+        hp.lifetime = 1
+        hp.update(player)
+        self.assertTrue(hp.collected)
+
 
 class TestHealthDropSystem(unittest.TestCase):
     def test_drop_chance_basic_enemies(self):

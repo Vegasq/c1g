@@ -463,18 +463,17 @@ class HealthPickup:
         self.x = float(x)
         self.y = float(y)
         self.heal_amount = heal_amount
-        self.radius = self.RADIUS
         self.lifetime = self.LIFETIME
         self.collected = False
 
     def update(self, player):
         self.lifetime -= 1
-        if self.lifetime <= 0:
-            return
         dx, dy = player.x - self.x, player.y - self.y
         dist = math.hypot(dx, dy)
         if dist < self.COLLECT_RANGE:
             self.collected = True
+            return
+        if self.lifetime <= 0:
             return
         if dist < self.ATTRACT_RANGE and dist > 0:
             self.x += dx / dist * self.ATTRACT_SPEED
@@ -484,10 +483,10 @@ class HealthPickup:
         sx, sy = camera.apply(self.x, self.y)
         fade = max(0.3, self.lifetime / self.LIFETIME)
         color = tuple(int(c * fade) for c in HEALTH_PICKUP_COLOR)
-        draw_glow(screen, color, (sx, sy), self.radius, intensity=100, layers=5)
-        pygame.draw.circle(screen, color, (sx, sy), self.radius)
+        draw_glow(screen, color, (sx, sy), self.RADIUS, intensity=100, layers=5)
+        pygame.draw.circle(screen, color, (sx, sy), self.RADIUS)
         # Cross symbol
-        cx_half = self.radius // 2
+        cx_half = self.RADIUS // 2
         bright = tuple(min(255, c + 80) for c in color)
         pygame.draw.line(screen, bright, (sx - cx_half, sy), (sx + cx_half, sy), 2)
         pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
