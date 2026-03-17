@@ -1181,7 +1181,6 @@ def apply_resolution():
 def draw_options_menu():
     """Draw the options menu matching main menu visual style."""
     global _menu_background
-    screen.fill(BG)
 
     # Draw animated fractal city background
     if _menu_background is None:
@@ -1272,7 +1271,6 @@ def draw_menu_separator(surface, x, y, width, ticks):
 
 def draw_menu():
     global _menu_background, menu_fade_alpha, menu_fade_active
-    screen.fill(BG)
 
     # Draw animated fractal city background
     if _menu_background is None:
