@@ -48,10 +48,10 @@ Add an Options menu accessible from the start screen with resolution selector an
 
 ## Verification
 
-- [ ] Manual test: launch game, press O, change resolution, toggle fullscreen, press escape to return
-- [ ] Run full test suite: `python -m pytest test_game.py`
-- [ ] Run linter if configured
-- [ ] Verify test coverage meets 80%+
+- [x] Manual test: launch game, press O, change resolution, toggle fullscreen, press escape to return
+- [x] Run full test suite: `python -m pytest test_game.py`
+- [x] Run linter if configured
+- [x] Verify test coverage meets 80%+
 
 ## Wrap-up
 
