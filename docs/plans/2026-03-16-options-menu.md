@@ -22,18 +22,18 @@ Add an Options menu accessible from the start screen with resolution selector an
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Add STATE_OPTIONS constant alongside existing states
-- [ ] Add supported resolutions list (e.g. 800x600, 1024x768, 1280x720, 1920x1080)
-- [ ] Add settings variables: selected_resolution_index, fullscreen flag
-- [ ] Draw Options menu screen using the upgrade panel UI pattern (centered panel, neon border, glow layers)
-- [ ] Show resolution options with current selection highlighted
-- [ ] Show fullscreen toggle (On/Off) with current state highlighted
-- [ ] Add a "Back" option to return to main menu
-- [ ] Handle keyboard input: up/down to navigate, left/right or enter to change values, escape to go back
-- [ ] Apply resolution change via pygame.display.set_mode when changed
-- [ ] Update WIDTH/HEIGHT globals when resolution changes so game rendering adapts
-- [ ] Write tests for options menu state transitions and setting changes
-- [ ] Run project test suite - must pass before task 2
+- [x] Add STATE_OPTIONS constant alongside existing states
+- [x] Add supported resolutions list (e.g. 800x600, 1024x768, 1280x720, 1920x1080)
+- [x] Add settings variables: selected_resolution_index, fullscreen flag
+- [x] Draw Options menu screen using the upgrade panel UI pattern (centered panel, neon border, glow layers)
+- [x] Show resolution options with current selection highlighted
+- [x] Show fullscreen toggle (On/Off) with current state highlighted
+- [x] Add a "Back" option to return to main menu
+- [x] Handle keyboard input: up/down to navigate, left/right or enter to change values, escape to go back
+- [x] Apply resolution change via pygame.display.set_mode when changed
+- [x] Update WIDTH/HEIGHT globals when resolution changes so game rendering adapts
+- [x] Write tests for options menu state transitions and setting changes
+- [x] Run project test suite - must pass before task 2
 
 ## Task 2: Add Options entry point from start screen
 

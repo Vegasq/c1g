@@ -32,6 +32,18 @@ STATE_MENU = 0
 STATE_PLAYING = 1
 STATE_GAME_OVER = 2
 STATE_LEVEL_UP = 3
+STATE_OPTIONS = 4
+
+SUPPORTED_RESOLUTIONS = [
+    (800, 600),
+    (1024, 768),
+    (1280, 720),
+    (1920, 1080),
+]
+
+options_selected_index = 0  # 0=resolution, 1=fullscreen, 2=back
+options_resolution_index = 1  # default 1024x768
+options_fullscreen = False
 
 # Colors
 BG = (5, 5, 15)
@@ -844,6 +856,78 @@ def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
     return -1
 
 
+def apply_resolution():
+    """Apply the current resolution and fullscreen settings."""
+    global screen, WIDTH, HEIGHT
+    res = SUPPORTED_RESOLUTIONS[options_resolution_index]
+    WIDTH, HEIGHT = res
+    flags = pygame.FULLSCREEN if options_fullscreen else 0
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
+
+
+def draw_options_menu():
+    """Draw an options menu panel with resolution and fullscreen settings."""
+    screen.fill(BG)
+    opt_panel_w, opt_panel_h = 500, 300
+    opt_panel_x = (WIDTH - opt_panel_w) // 2
+    opt_panel_y = (HEIGHT - opt_panel_h) // 2
+
+    # Neon glow border
+    for i in range(PANEL_BORDER_GLOW_LAYERS, 0, -1):
+        alpha = max(15, 80 // i)
+        glow_color = (BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], alpha)
+        expand = i * 3
+        glow_rect = pygame.Rect(-expand, -expand,
+                                opt_panel_w + expand * 2, opt_panel_h + expand * 2)
+        glow_surf = pygame.Surface((glow_rect.width, glow_rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius=8)
+        screen.blit(glow_surf, (opt_panel_x - expand, opt_panel_y - expand))
+
+    panel_surf = pygame.Surface((opt_panel_w, opt_panel_h), pygame.SRCALPHA)
+    panel_surf.fill(PANEL_BG_COLOR)
+    pygame.draw.rect(panel_surf, BORDER_COLOR,
+                     pygame.Rect(0, 0, opt_panel_w, opt_panel_h), 2, border_radius=6)
+
+    # Title
+    title = title_font.render("Options", True, BORDER_COLOR)
+    title_glow = title_font.render("Options", True, (80, 0, 140))
+    tx = opt_panel_w // 2 - title.get_width() // 2
+    panel_surf.blit(title_glow, (tx - 2, 13))
+    panel_surf.blit(title_glow, (tx + 2, 17))
+    panel_surf.blit(title, (tx, 15))
+
+    items = [
+        ("Resolution", f"{SUPPORTED_RESOLUTIONS[options_resolution_index][0]}x{SUPPORTED_RESOLUTIONS[options_resolution_index][1]}"),
+        ("Fullscreen", "On" if options_fullscreen else "Off"),
+        ("Back", ""),
+    ]
+
+    row_h = 55
+    start_y = 90
+    for i, (label, value) in enumerate(items):
+        row_y = start_y + i * row_h
+        row_rect = pygame.Rect(10, row_y, opt_panel_w - 20, row_h - 5)
+        selected = (i == options_selected_index)
+        if selected:
+            row_bg = pygame.Surface((row_rect.width, row_rect.height), pygame.SRCALPHA)
+            row_bg.fill((BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], 40))
+            panel_surf.blit(row_bg, row_rect.topleft)
+            pygame.draw.rect(panel_surf, BORDER_COLOR, row_rect, 1, border_radius=4)
+        else:
+            pygame.draw.rect(panel_surf, (60, 40, 100, 120), row_rect, 1, border_radius=4)
+
+        color = (0, 255, 180) if selected else (0, 180, 220)
+        lbl = font.render(label, True, color)
+        text_y = row_y + (row_h - 5) // 2 - lbl.get_height() // 2
+        panel_surf.blit(lbl, (20, text_y))
+        if value:
+            val_surf = font.render(value, True, color)
+            panel_surf.blit(val_surf, (opt_panel_w - 20 - val_surf.get_width(), text_y))
+
+    screen.blit(panel_surf, (opt_panel_x, opt_panel_y))
+    pygame.display.flip()
+
+
 def draw_menu():
     screen.fill(BG)
     # Neon cyan glow behind title
@@ -877,6 +961,7 @@ def draw_game_over(score, level=1):
 
 
 def run():
+    global options_selected_index, options_resolution_index, options_fullscreen
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -928,7 +1013,9 @@ def run():
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if state == STATE_PLAYING:
+                    if state == STATE_OPTIONS:
+                        state = STATE_MENU
+                    elif state == STATE_PLAYING:
                         state = STATE_MENU
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
@@ -936,6 +1023,34 @@ def run():
                         state = STATE_MENU
                     elif state == STATE_MENU:
                         running = False
+                elif state == STATE_OPTIONS:
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        options_selected_index = (options_selected_index - 1) % 3
+                    elif event.key in (pygame.K_DOWN, pygame.K_s):
+                        options_selected_index = (options_selected_index + 1) % 3
+                    elif event.key in (pygame.K_LEFT, pygame.K_a):
+                        if options_selected_index == 0:
+                            options_resolution_index = (options_resolution_index - 1) % len(SUPPORTED_RESOLUTIONS)
+                            apply_resolution()
+                        elif options_selected_index == 1:
+                            options_fullscreen = not options_fullscreen
+                            apply_resolution()
+                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                        if options_selected_index == 0:
+                            options_resolution_index = (options_resolution_index + 1) % len(SUPPORTED_RESOLUTIONS)
+                            apply_resolution()
+                        elif options_selected_index == 1:
+                            options_fullscreen = not options_fullscreen
+                            apply_resolution()
+                    elif event.key == pygame.K_RETURN:
+                        if options_selected_index == 0:
+                            options_resolution_index = (options_resolution_index + 1) % len(SUPPORTED_RESOLUTIONS)
+                            apply_resolution()
+                        elif options_selected_index == 1:
+                            options_fullscreen = not options_fullscreen
+                            apply_resolution()
+                        elif options_selected_index == 2:
+                            state = STATE_MENU
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
@@ -959,6 +1074,11 @@ def run():
 
         if state == STATE_MENU:
             draw_menu()
+            clock.tick(FPS)
+            continue
+
+        if state == STATE_OPTIONS:
+            draw_options_menu()
             clock.tick(FPS)
             continue
 

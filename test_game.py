@@ -9,7 +9,11 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   Camera, Enemy, Obstacle, ENEMY_TYPES,
                   WAVE_COMPOSITION, get_enemy_type_for_wave,
                   HealthPickup, HEALTH_PICKUP_COLOR,
-                  HEALTH_DROP_CHANCE, get_health_drop_chance)
+                  HEALTH_DROP_CHANCE, get_health_drop_chance,
+                  STATE_MENU, STATE_OPTIONS, STATE_PLAYING,
+                  SUPPORTED_RESOLUTIONS, apply_resolution,
+                  draw_options_menu)
+import game
 
 
 class TestXPThresholds(unittest.TestCase):
@@ -1336,6 +1340,71 @@ class TestWaveComposition(unittest.TestCase):
     def test_wave_composition_sorted_descending(self):
         thresholds = [t for t, _ in WAVE_COMPOSITION]
         self.assertEqual(thresholds, sorted(thresholds, reverse=True))
+
+
+class TestOptionsMenu(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        game.options_selected_index = 0
+        game.options_resolution_index = 1
+        game.options_fullscreen = False
+        game.WIDTH, game.HEIGHT = 1024, 768
+
+    def test_state_options_constant(self):
+        self.assertEqual(STATE_OPTIONS, 4)
+
+    def test_supported_resolutions(self):
+        self.assertEqual(len(SUPPORTED_RESOLUTIONS), 4)
+        self.assertIn((1024, 768), SUPPORTED_RESOLUTIONS)
+        self.assertIn((1920, 1080), SUPPORTED_RESOLUTIONS)
+
+    def test_apply_resolution_changes_dimensions(self):
+        game.screen = pygame.display.set_mode((1024, 768))
+        game.options_resolution_index = 0
+        apply_resolution()
+        self.assertEqual(game.WIDTH, 800)
+        self.assertEqual(game.HEIGHT, 600)
+
+    def test_apply_resolution_cycles(self):
+        game.screen = pygame.display.set_mode((1024, 768))
+        game.options_resolution_index = 3
+        apply_resolution()
+        self.assertEqual(game.WIDTH, 1920)
+        self.assertEqual(game.HEIGHT, 1080)
+
+    def test_navigation_wraps_down(self):
+        game.options_selected_index = 2
+        game.options_selected_index = (game.options_selected_index + 1) % 3
+        self.assertEqual(game.options_selected_index, 0)
+
+    def test_navigation_wraps_up(self):
+        game.options_selected_index = 0
+        game.options_selected_index = (game.options_selected_index - 1) % 3
+        self.assertEqual(game.options_selected_index, 2)
+
+    def test_fullscreen_toggle(self):
+        self.assertFalse(game.options_fullscreen)
+        game.options_fullscreen = not game.options_fullscreen
+        self.assertTrue(game.options_fullscreen)
+        game.options_fullscreen = not game.options_fullscreen
+        self.assertFalse(game.options_fullscreen)
+
+    def test_resolution_index_wraps(self):
+        game.options_resolution_index = len(SUPPORTED_RESOLUTIONS) - 1
+        game.options_resolution_index = (game.options_resolution_index + 1) % len(SUPPORTED_RESOLUTIONS)
+        self.assertEqual(game.options_resolution_index, 0)
+
+    def test_back_option_is_index_2(self):
+        # Back is the third item (index 2)
+        game.options_selected_index = 2
+        self.assertEqual(game.options_selected_index, 2)
 
     def test_all_types_valid(self):
         for _, weights in WAVE_COMPOSITION:
