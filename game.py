@@ -738,13 +738,18 @@ def draw_grid(camera):
 
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_stats, xp, xp_thresholds,
-                    health_pickups=None, heal_effects=None):
+                    health_pickups=None, heal_effects=None,
+                    escape_rooms=None, escape_flash_timer=0):
     """Draw the full game scene (background, entities, HUD, XP bar)."""
     screen.fill(BG)
     draw_grid(camera)
     for obs in obstacles:
         if _is_rect_visible(camera, obs.x, obs.y, obs.w, obs.h):
             obs.draw(camera)
+    if escape_rooms:
+        for er in escape_rooms:
+            if _is_rect_visible(camera, er.x, er.y, er.w, er.h):
+                er.draw(camera)
     for b in bullets:
         if _is_visible(camera, b.x, b.y):
             b.draw(camera)
@@ -767,6 +772,13 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
         if _is_visible(camera, a.x, a.y):
             a.draw(camera)
     player.draw(camera)
+
+    # Escape room flash effect
+    if escape_flash_timer > 0:
+        flash_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        alpha = int(180 * (escape_flash_timer / 15))
+        flash_surface.fill((0, 255, 200, alpha))
+        screen.blit(flash_surface, (0, 0))
 
     # HUD
     wtype = weapon_stats['weapon_type']
@@ -1078,11 +1090,13 @@ def run():
     camera = Camera()
     player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
     obstacles = []
+    escape_rooms = []
     allies = []
     enemies = []
     bullets = []
     health_pickups = []
     heal_effects = []
+    escape_flash_timer = 0
     score = 0
     spawn_timer = 0
     spawn_interval = 90  # frames between spawns
@@ -1095,17 +1109,21 @@ def run():
     upgrade_options = []
 
     def reset_game():
-        nonlocal camera, player, obstacles, allies, enemies, bullets, health_pickups, heal_effects, score
+        nonlocal camera, player, obstacles, escape_rooms, allies, enemies, bullets, health_pickups, heal_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
-        nonlocal xp, level, weapon_stats, upgrade_options
+        nonlocal xp, level, weapon_stats, upgrade_options, escape_flash_timer
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
+        er = EscapeRoom(0, 0)
+        er.relocate(obstacles)
+        escape_rooms = [er]
         allies = []
         enemies = []
         bullets = []
         health_pickups = []
         heal_effects = []
+        escape_flash_timer = 0
         score = 0
         spawn_timer = 0
         spawn_interval = 90
@@ -1226,6 +1244,45 @@ def run():
 
         # Update camera
         camera.update(player)
+
+        # Check escape room entry
+        for er in escape_rooms:
+            if er.collides_circle(player.x, player.y, player.RADIUS):
+                # Eliminate all on-screen enemies
+                er_killed = 0
+                er_xp = 0
+                er_dead = []
+                surviving_enemies = []
+                for e in enemies:
+                    if _is_visible(camera, e.x, e.y):
+                        er_killed += 1
+                        er_xp += e.xp_value
+                        er_dead.append((e.x, e.y, e.enemy_type))
+                    else:
+                        surviving_enemies.append(e)
+                enemies = surviving_enemies
+                score += er_killed
+                xp += er_xp
+                xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
+                if leveled_up:
+                    upgrade_options = generate_upgrade_options(level, weapon_stats)
+                    for opt in upgrade_options:
+                        opt['_icon'] = create_upgrade_icon(opt)
+                    state = STATE_LEVEL_UP
+                # Health pickup drops
+                for dx, dy, etype in er_dead:
+                    if random.random() < get_health_drop_chance(etype):
+                        health_pickups.append(HealthPickup(dx, dy))
+                # Ally spawns
+                for _ in range(er_killed):
+                    if random.random() < 0.1:
+                        color = random.choice(ALLY_COLORS)
+                        a = Unit(player.x + random.uniform(-30, 30),
+                                 player.y + random.uniform(-30, 30), color)
+                        allies.append(a)
+                er.relocate(obstacles, escape_rooms)
+                escape_flash_timer = 15
+                break
 
         # Spawn enemies
         spawn_timer += 1
@@ -1391,6 +1448,8 @@ def run():
             e.update(player)
             for obs in obstacles:
                 e.x, e.y = obs.push_circle_out(e.x, e.y, e.radius)
+            for er in escape_rooms:
+                e.x, e.y = er.push_circle_out(e.x, e.y, e.radius)
 
         # Enemy-player collision (damage player)
         surviving = []
@@ -1416,10 +1475,15 @@ def run():
         if player.hp <= 0:
             state = STATE_GAME_OVER
 
+        # Tick escape flash
+        if escape_flash_timer > 0:
+            escape_flash_timer -= 1
+
         # Draw
         draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                         score, wave, level, weapon_stats, xp, xp_thresholds,
-                        health_pickups, heal_effects)
+                        health_pickups, heal_effects,
+                        escape_rooms, escape_flash_timer)
 
         pygame.display.flip()
         clock.tick(FPS)

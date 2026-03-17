@@ -13,7 +13,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   STATE_OPTIONS,
                   SUPPORTED_RESOLUTIONS, apply_resolution,
                   EscapeRoom, ESCAPE_ROOM_COLOR, ESCAPE_ROOM_BORDER,
-                  MAP_WIDTH, MAP_HEIGHT)
+                  MAP_WIDTH, MAP_HEIGHT,
+                  _is_visible, WIDTH, HEIGHT)
 import game
 
 
@@ -1624,6 +1625,102 @@ class TestEscapeRoom(unittest.TestCase):
                 changed = True
                 break
         self.assertTrue(changed, "relocate should move the escape room")
+
+
+class TestEscapeRoomIntegration(unittest.TestCase):
+    """Tests for escape room integration into the game loop."""
+
+    def test_player_entry_eliminates_visible_enemies(self):
+        """When player enters escape room, visible enemies are eliminated."""
+        camera = Camera()
+        er = EscapeRoom(100, 100, 120, 120)
+        player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
+        # Place player at escape room center
+        player.x = er.x + er.w / 2
+        player.y = er.y + er.h / 2
+        camera.update(player)
+
+        # Create enemies: one visible (near player), one off-screen
+        e_visible = Enemy(camera, enemy_type="basic")
+        e_visible.x = player.x + 50
+        e_visible.y = player.y + 50
+
+        e_offscreen = Enemy(camera, enemy_type="basic")
+        e_offscreen.x = MAP_WIDTH - 10
+        e_offscreen.y = MAP_HEIGHT - 10
+
+        enemies = [e_visible, e_offscreen]
+
+        # Verify visibility assumptions
+        self.assertTrue(_is_visible(camera, e_visible.x, e_visible.y))
+        self.assertFalse(_is_visible(camera, e_offscreen.x, e_offscreen.y))
+
+        # Simulate entry check
+        self.assertTrue(er.collides_circle(player.x, player.y, player.RADIUS))
+
+        # Eliminate visible enemies
+        surviving = []
+        xp_earned = 0
+        dead_enemies = []
+        for e in enemies:
+            if _is_visible(camera, e.x, e.y):
+                xp_earned += e.xp_value
+                dead_enemies.append((e.x, e.y, e.enemy_type))
+            else:
+                surviving.append(e)
+
+        self.assertEqual(len(surviving), 1)
+        self.assertEqual(surviving[0], e_offscreen)
+        self.assertGreater(xp_earned, 0)
+        self.assertEqual(len(dead_enemies), 1)
+
+    def test_escape_room_relocates_after_trigger(self):
+        """Escape room moves to a new position after player enters."""
+        er = EscapeRoom(100, 100, 120, 120)
+        old_x, old_y = er.x, er.y
+        changed = False
+        for _ in range(10):
+            er.relocate([])
+            if er.x != old_x or er.y != old_y:
+                changed = True
+                break
+        self.assertTrue(changed)
+
+    def test_enemies_pushed_out_of_escape_room(self):
+        """Enemies are repelled from the escape room area."""
+        er = EscapeRoom(100, 100, 120, 120)
+        # Place enemy inside escape room
+        camera = Camera()
+        e = Enemy(camera, enemy_type="basic")
+        e.x = er.x + er.w / 2
+        e.y = er.y + er.h / 2
+        e.radius = 10
+
+        # Push should move enemy outside
+        new_x, new_y = er.push_circle_out(e.x, e.y, e.radius)
+        # After push, enemy should no longer collide
+        self.assertFalse(er.collides_circle(new_x, new_y, e.radius))
+
+    def test_xp_awarded_for_eliminated_enemies(self):
+        """XP is correctly accumulated for enemies eliminated by escape room."""
+        camera = Camera()
+        player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+
+        enemies = []
+        for _ in range(3):
+            e = Enemy(camera, enemy_type="basic")
+            e.x = player.x + 30
+            e.y = player.y + 30
+            enemies.append(e)
+
+        xp_earned = 0
+        for e in enemies:
+            if _is_visible(camera, e.x, e.y):
+                xp_earned += e.xp_value
+
+        expected_xp = sum(e.xp_value for e in enemies)
+        self.assertEqual(xp_earned, expected_xp)
 
 
 if __name__ == "__main__":

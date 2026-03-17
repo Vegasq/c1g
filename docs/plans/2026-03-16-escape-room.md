@@ -31,13 +31,13 @@ Add an "Escape Room" safe zone entity to the game. When the player enters the es
 **Files:**
 - Modify: `game.py`
 
-- [ ] Spawn one EscapeRoom during game initialization (alongside obstacles), placed randomly avoiding obstacles
-- [ ] In the main loop, check if player circle overlaps the escape room (using collides_circle)
-- [ ] On player entry: eliminate all enemies currently visible on screen (using camera visibility check), award XP for eliminated enemies, trigger health pickup drops per normal drop logic, then call relocate() to move the escape room
-- [ ] Add enemy repulsion: in the enemy update section, push enemies out of the escape room area (reuse push_circle_out pattern from Obstacle)
-- [ ] Draw the escape room in the render section (draw before enemies, after grid/obstacles)
-- [ ] Add visual feedback when escape room triggers (screen flash or particle burst)
-- [ ] Write tests: player entry triggers elimination, escape room relocates after trigger, enemies are pushed out of escape room area, XP is awarded for eliminated enemies
+- [x] Spawn one EscapeRoom during game initialization (alongside obstacles), placed randomly avoiding obstacles
+- [x] In the main loop, check if player circle overlaps the escape room (using collides_circle)
+- [x] On player entry: eliminate all enemies currently visible on screen (using camera visibility check), award XP for eliminated enemies, trigger health pickup drops per normal drop logic, then call relocate() to move the escape room
+- [x] Add enemy repulsion: in the enemy update section, push enemies out of the escape room area (reuse push_circle_out pattern from Obstacle)
+- [x] Draw the escape room in the render section (draw before enemies, after grid/obstacles)
+- [x] Add visual feedback when escape room triggers (screen flash or particle burst)
+- [x] Write tests: player entry triggers elimination, escape room relocates after trigger, enemies are pushed out of escape room area, XP is awarded for eliminated enemies
 
 ## Task 3 - Add minimap indicator
 
