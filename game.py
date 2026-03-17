@@ -194,10 +194,10 @@ class EscapeRoom:
         sx, sy = camera.apply(self.x, self.y)
         sw = getattr(camera, 'screen_w', 800)
         sh = getattr(camera, 'screen_h', 600)
+        self.pulse_timer += 1
         if (sx + self.w < -CULL_MARGIN or sx > sw + CULL_MARGIN or
                 sy + self.h < -CULL_MARGIN or sy > sh + CULL_MARGIN):
             return
-        self.pulse_timer += 1
         pulse = 0.6 + 0.4 * math.sin(self.pulse_timer * 0.05)
         # Glow layers
         for i in range(4, 0, -1):
@@ -280,6 +280,9 @@ class EscapeRoom:
                 self.x = x
                 self.y = y
                 return
+        # Fallback: place far from current position to avoid re-triggering
+        self.x = random.randint(50, MAP_WIDTH - self.w - 50)
+        self.y = random.randint(50, MAP_HEIGHT - self.h - 50)
 
 
 def generate_obstacles(count=30):
