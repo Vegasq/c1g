@@ -57,4 +57,4 @@ Add an "Escape Room" safe zone entity to the game. When the player enters the es
 
 ## Wrap-up
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
