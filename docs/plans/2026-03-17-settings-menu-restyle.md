@@ -39,9 +39,9 @@ Restyle the settings/options menu in game.py to match the main menu's visual sty
 **Files:**
 - Modify: `game.py` (draw_options_menu method)
 
-- [ ] Display resolution and fullscreen values inline with their labels using consistent styling
-- [ ] Selected values highlighted in cyan/orange, unselected in gray
-- [ ] Ensure "Back" item styled identically to main menu items
+- [x] Display resolution and fullscreen values inline with their labels using consistent styling
+- [x] Selected values highlighted in cyan/orange, unselected in gray
+- [x] Ensure "Back" item styled identically to main menu items
 
 ## Validation
 

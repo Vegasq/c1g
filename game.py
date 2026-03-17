@@ -1226,7 +1226,7 @@ def draw_options_menu():
         screen.blit(text_surf, (x, y))
 
         if value:
-            val_color = (255, 140, 0) if is_selected else (180, 180, 180)
+            val_color = PLAYER_COLOR if is_selected else (180, 180, 180)
             val_surf = menu_font.render(f"  {value}", True, val_color)
             screen.blit(val_surf, (x + text_surf.get_width(), y))
 
