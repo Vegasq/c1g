@@ -45,11 +45,11 @@ Restyle the settings/options menu in game.py to match the main menu's visual sty
 
 ## Validation
 
-- [ ] Manual test: open settings menu, verify fractal background visible, items styled like main menu
-- [ ] Manual test: hover/select items, verify indent animation and color changes match main menu
-- [ ] Manual test: change resolution and fullscreen, verify values display correctly
-- [ ] Manual test: return to main menu, verify transition is smooth
+- [x] Manual test: open settings menu, verify fractal background visible, items styled like main menu
+- [x] Manual test: hover/select items, verify indent animation and color changes match main menu
+- [x] Manual test: change resolution and fullscreen, verify values display correctly
+- [x] Manual test: return to main menu, verify transition is smooth
 
 ## Wrap-up
 
-- [ ] move this plan to `docs/plans/completed/`
+- [x] move this plan to `docs/plans/completed/`
