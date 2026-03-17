@@ -156,9 +156,14 @@ _fade_overlay = None
 def _reset_menu_state():
     """Reset menu selection and fade-in state for transitions back to menu."""
     global menu_selected_index, menu_fade_alpha, menu_fade_active
-    menu_selected_index = 0
     menu_fade_alpha = 0
     menu_fade_active = True
+    try:
+        mx, my = pygame.mouse.get_pos()
+        idx = get_hovered_menu_index(mx, my)
+        menu_selected_index = idx if idx >= 0 else 0
+    except pygame.error:
+        menu_selected_index = 0
 
 
 CULL_MARGIN = 80  # extra pixels beyond screen edge before culling

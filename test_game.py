@@ -3,12 +3,12 @@ import math
 import pygame
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
                   generate_upgrade_options, apply_upgrade, get_scaled_amount, STAT_UPGRADES, WEAPON_TYPES,
-                  draw_glow, draw_game_scene, draw_dim_overlay,
+                  draw_glow,
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
                   OBSTACLE_COLOR, OBSTACLE_BORDER, BULLET_COLOR, HEALTH_FG,
                   Camera, Enemy, Obstacle, ENEMY_TYPES,
                   WAVE_COMPOSITION, get_enemy_type_for_wave,
-                  HealthPickup, HEALTH_PICKUP_COLOR,
+                  HealthPickup,
                   HEALTH_DROP_CHANCE, get_health_drop_chance,
                   STATE_OPTIONS,
                   SUPPORTED_RESOLUTIONS, apply_resolution,
@@ -457,6 +457,7 @@ class TestExplosiveWeapon(unittest.TestCase):
 
     def test_explosive_bullet_created_with_stats(self):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
+
         class Target:
             pass
         t = Target()
@@ -819,13 +820,16 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         from unittest.mock import patch
         import game as g
         from game import draw_menu, get_hovered_menu_index, get_menu_item_rect
-        # Position mouse over first menu item
-        r = get_menu_item_rect(0)
-        g.menu_selected_index = 0
+        # Simulate hovering over the second menu item
+        r = get_menu_item_rect(1)
+        hover_x, hover_y = r.centerx, r.centery
+        idx = get_hovered_menu_index(hover_x, hover_y)
+        self.assertEqual(idx, 1)
+        # Set selection to match hover and verify draw runs without error
+        g.menu_selected_index = idx
         with patch('pygame.display.flip'):
             draw_menu()
-        # Verify the selected item index matches what we set
-        self.assertEqual(g.menu_selected_index, 0)
+        self.assertEqual(g.menu_selected_index, 1)
 
     def test_draw_game_over_runs_without_error(self):
         from unittest.mock import patch
@@ -837,7 +841,6 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         from game import draw_grid
         camera = Camera()
         draw_grid(camera)
-
 
     def test_draw_game_scene_runs_without_error(self):
         from game import draw_game_scene, Camera, default_weapon_stats, generate_xp_thresholds
@@ -879,7 +882,6 @@ class TestMenuAndHUDRendering(unittest.TestCase):
                         0, 1, 1, stats, 0, thresholds)
         draw_dim_overlay()
 
-
     def test_upgrade_panel_dimensions(self):
         """Verify panel constants define a centered ~500x350 panel."""
         from game import PANEL_WIDTH, PANEL_HEIGHT, PANEL_X, PANEL_Y, WIDTH, HEIGHT
@@ -920,7 +922,6 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self.assertEqual(center_x, WIDTH // 2)
         self.assertEqual(center_y, HEIGHT // 2)
 
-
     def test_create_upgrade_icon_returns_surface(self):
         """Verify create_upgrade_icon returns a 32x32 surface for each upgrade type."""
         from game import create_upgrade_icon, ICON_SIZE
@@ -941,7 +942,6 @@ class TestMenuAndHUDRendering(unittest.TestCase):
     def test_create_upgrade_icon_not_blank(self):
         """Verify icons have non-transparent pixels drawn on them."""
         from game import create_upgrade_icon, ICON_SIZE
-        import pygame
         test_options = [
             {"name": "+Damage", "stat": "damage", "amount": 1},
             {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
@@ -969,11 +969,10 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         ]
         draw_upgrade_panel(3, options)
 
-
     def test_get_hovered_upgrade_index_hit(self):
         """Click inside an option row returns correct index."""
         from game import (get_hovered_upgrade_index, PANEL_X, PANEL_Y,
-                          OPTION_START_Y, OPTION_ROW_HEIGHT, OPTION_PADDING, PANEL_WIDTH)
+                          OPTION_START_Y, OPTION_ROW_HEIGHT, PANEL_WIDTH)
         row_h = OPTION_ROW_HEIGHT - 5  # actual row rect height
         mx = PANEL_X + PANEL_WIDTH // 2
         for i in range(3):
@@ -1062,7 +1061,6 @@ class TestEnemyTypes(unittest.TestCase):
             self.assertNotEqual(pixel, (0, 0, 0, 255))
         finally:
             game.screen = orig_screen
-
 
     def test_runner_type_config(self):
         self.assertIn("runner", ENEMY_TYPES)
@@ -1947,16 +1945,26 @@ class TestMenuKeyboardNavigation(unittest.TestCase):
         self.assertIn("QUIT", game.MENU_ITEMS)
 
     def test_menu_selection_wraps_around(self):
-        # Verify modular arithmetic wraps correctly for the menu size
+        # Verify the modulo wrap-around arithmetic used by the menu key handler
         n = len(game.MENU_ITEMS)
-        self.assertEqual((n - 1 + 1) % n, 0)  # last + 1 = first
-        self.assertEqual((0 - 1) % n, n - 1)  # first - 1 = last
+        game.menu_selected_index = 0
+        # UP at index 0 should wrap to last item
+        game.menu_selected_index = (game.menu_selected_index - 1) % len(game.MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, n - 1,
+                         "UP from index 0 should wrap to last item")
+        # DOWN at last index should wrap to first item
+        game.menu_selected_index = (game.menu_selected_index + 1) % len(game.MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, 0,
+                         "DOWN from last index should wrap to first item")
 
     def test_reset_menu_state(self):
+        from unittest.mock import patch
         game.menu_selected_index = 2
         game.menu_fade_alpha = 200
         game.menu_fade_active = False
-        game._reset_menu_state()
+        # Mock mouse position to be outside any menu item so index resets to 0
+        with patch('pygame.mouse.get_pos', return_value=(0, 0)):
+            game._reset_menu_state()
         self.assertEqual(game.menu_selected_index, 0)
         self.assertEqual(game.menu_fade_alpha, 0)
         self.assertTrue(game.menu_fade_active)
