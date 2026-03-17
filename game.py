@@ -192,8 +192,8 @@ class EscapeRoom:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        sw = getattr(camera, 'screen_w', 800)
-        sh = getattr(camera, 'screen_h', 600)
+        sw = WIDTH
+        sh = HEIGHT
         # pulse_timer is incremented in draw_game_scene every frame
         if (sx + self.w < -CULL_MARGIN or sx > sw + CULL_MARGIN or
                 sy + self.h < -CULL_MARGIN or sy > sh + CULL_MARGIN):
@@ -854,9 +854,9 @@ def _draw_escape_room_indicator(camera, er, player):
         return
     ix, iy = result
 
-    # Direction
-    cx, cy = WIDTH / 2, HEIGHT / 2
-    dx, dy = sx - cx, sy - cy
+    # Direction relative to player's screen position
+    px, py = camera.apply(player.x, player.y)
+    dx, dy = sx - px, sy - py
     dist = math.sqrt(dx * dx + dy * dy)
     nx, ny = dx / dist, dy / dist
 
@@ -1375,6 +1375,19 @@ def run():
                 er.relocate(obstacles, escape_rooms)
                 escape_flash_timer = 15
                 break
+
+        # If escape room triggered a level-up, skip rest of frame
+        if state == STATE_LEVEL_UP:
+            draw_game_scene(
+                camera, obstacles, bullets, enemies, allies,
+                player, score, wave, level, weapon_stats,
+                xp, xp_thresholds, health_pickups,
+                heal_effects, escape_rooms)
+            draw_dim_overlay()
+            draw_upgrade_panel(level, upgrade_options)
+            pygame.display.flip()
+            clock.tick(FPS)
+            continue
 
         # Spawn enemies
         spawn_timer += 1
