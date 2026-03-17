@@ -858,11 +858,16 @@ def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
 
 def apply_resolution():
     """Apply the current resolution and fullscreen settings."""
-    global screen, WIDTH, HEIGHT
+    global screen, WIDTH, HEIGHT, options_fullscreen
     res = SUPPORTED_RESOLUTIONS[options_resolution_index]
     WIDTH, HEIGHT = res
     flags = pygame.FULLSCREEN if options_fullscreen else 0
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
+    try:
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
+    except pygame.error:
+        # Fallback to windowed mode if fullscreen fails
+        options_fullscreen = False
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
 
 
 def draw_options_menu():
@@ -1030,28 +1035,15 @@ def run():
                         options_selected_index = (options_selected_index - 1) % 3
                     elif event.key in (pygame.K_DOWN, pygame.K_s):
                         options_selected_index = (options_selected_index + 1) % 3
-                    elif event.key in (pygame.K_LEFT, pygame.K_a):
+                    elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d, pygame.K_RETURN):
+                        direction = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
                         if options_selected_index == 0:
-                            options_resolution_index = (options_resolution_index - 1) % len(SUPPORTED_RESOLUTIONS)
+                            options_resolution_index = (options_resolution_index + direction) % len(SUPPORTED_RESOLUTIONS)
                             apply_resolution()
                         elif options_selected_index == 1:
                             options_fullscreen = not options_fullscreen
                             apply_resolution()
-                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                        if options_selected_index == 0:
-                            options_resolution_index = (options_resolution_index + 1) % len(SUPPORTED_RESOLUTIONS)
-                            apply_resolution()
-                        elif options_selected_index == 1:
-                            options_fullscreen = not options_fullscreen
-                            apply_resolution()
-                    elif event.key == pygame.K_RETURN:
-                        if options_selected_index == 0:
-                            options_resolution_index = (options_resolution_index + 1) % len(SUPPORTED_RESOLUTIONS)
-                            apply_resolution()
-                        elif options_selected_index == 1:
-                            options_fullscreen = not options_fullscreen
-                            apply_resolution()
-                        elif options_selected_index == 2:
+                        elif options_selected_index == 2 and event.key == pygame.K_RETURN:
                             state = STATE_MENU
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1

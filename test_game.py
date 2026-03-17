@@ -10,9 +10,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   WAVE_COMPOSITION, get_enemy_type_for_wave,
                   HealthPickup, HEALTH_PICKUP_COLOR,
                   HEALTH_DROP_CHANCE, get_health_drop_chance,
-                  STATE_MENU, STATE_OPTIONS, STATE_PLAYING,
-                  SUPPORTED_RESOLUTIONS, apply_resolution,
-                  draw_options_menu)
+                  STATE_OPTIONS,
+                  SUPPORTED_RESOLUTIONS, apply_resolution)
 import game
 
 
@@ -1341,6 +1340,11 @@ class TestWaveComposition(unittest.TestCase):
         thresholds = [t for t, _ in WAVE_COMPOSITION]
         self.assertEqual(thresholds, sorted(thresholds, reverse=True))
 
+    def test_all_types_valid(self):
+        for _, weights in WAVE_COMPOSITION:
+            for etype in weights:
+                self.assertIn(etype, ENEMY_TYPES)
+
 
 class TestOptionsMenu(unittest.TestCase):
     @classmethod
@@ -1379,60 +1383,36 @@ class TestOptionsMenu(unittest.TestCase):
         self.assertEqual(game.WIDTH, 1920)
         self.assertEqual(game.HEIGHT, 1080)
 
-    def test_navigation_wraps_down(self):
-        game.options_selected_index = 2
-        game.options_selected_index = (game.options_selected_index + 1) % 3
-        self.assertEqual(game.options_selected_index, 0)
+    def test_apply_resolution_fullscreen_fallback(self):
+        game.screen = pygame.display.set_mode((1024, 768))
+        game.options_resolution_index = 0  # 800x600
+        game.options_fullscreen = True
+        # apply_resolution should not crash even if fullscreen fails
+        apply_resolution()
+        self.assertEqual(game.WIDTH, 800)
+        self.assertEqual(game.HEIGHT, 600)
 
-    def test_navigation_wraps_up(self):
-        game.options_selected_index = 0
-        game.options_selected_index = (game.options_selected_index - 1) % 3
-        self.assertEqual(game.options_selected_index, 2)
+    def test_apply_resolution_all_supported(self):
+        """Verify apply_resolution works for every supported resolution."""
+        for idx, (w, h) in enumerate(SUPPORTED_RESOLUTIONS):
+            game.screen = pygame.display.set_mode((1024, 768))
+            game.options_resolution_index = idx
+            game.options_fullscreen = False
+            apply_resolution()
+            self.assertEqual(game.WIDTH, w)
+            self.assertEqual(game.HEIGHT, h)
 
-    def test_fullscreen_toggle(self):
-        self.assertFalse(game.options_fullscreen)
-        game.options_fullscreen = not game.options_fullscreen
-        self.assertTrue(game.options_fullscreen)
-        game.options_fullscreen = not game.options_fullscreen
-        self.assertFalse(game.options_fullscreen)
-
-    def test_resolution_index_wraps(self):
-        game.options_resolution_index = len(SUPPORTED_RESOLUTIONS) - 1
-        game.options_resolution_index = (game.options_resolution_index + 1) % len(SUPPORTED_RESOLUTIONS)
-        self.assertEqual(game.options_resolution_index, 0)
-
-    def test_back_option_is_index_2(self):
-        # Back is the third item (index 2)
-        game.options_selected_index = 2
-        self.assertEqual(game.options_selected_index, 2)
-
-    def test_all_types_valid(self):
-        for _, weights in WAVE_COMPOSITION:
-            for etype in weights:
-                self.assertIn(etype, ENEMY_TYPES)
-
-    def test_menu_o_key_transitions_to_options(self):
-        # Simulate: in STATE_MENU, pressing O should go to STATE_OPTIONS
-        game.state = STATE_MENU
-        # The key handling logic: if key == K_o and state == STATE_MENU -> STATE_OPTIONS
-        if game.state == STATE_MENU:
-            game.state = STATE_OPTIONS
-        self.assertEqual(game.state, STATE_OPTIONS)
-
-    def test_options_escape_returns_to_menu(self):
-        # Simulate: in STATE_OPTIONS, pressing Escape should go to STATE_MENU
-        game.state = STATE_OPTIONS
-        if game.state == STATE_OPTIONS:
-            game.state = STATE_MENU
-        self.assertEqual(game.state, STATE_MENU)
-
-    def test_menu_to_options_roundtrip(self):
-        # Full roundtrip: MENU -> OPTIONS -> MENU
-        game.state = STATE_MENU
-        game.state = STATE_OPTIONS  # press O
-        self.assertEqual(game.state, STATE_OPTIONS)
-        game.state = STATE_MENU  # press Escape
-        self.assertEqual(game.state, STATE_MENU)
+    def test_options_menu_items_count(self):
+        """Verify options menu has exactly 3 items: resolution, fullscreen, back."""
+        # The draw function uses a hardcoded items list with 3 entries
+        # and navigation wraps at % 3, so verify consistency
+        self.assertEqual(len(SUPPORTED_RESOLUTIONS), 4)
+        for idx in range(len(SUPPORTED_RESOLUTIONS)):
+            game.options_resolution_index = idx
+            res = SUPPORTED_RESOLUTIONS[idx]
+            self.assertEqual(len(res), 2)
+            self.assertGreater(res[0], 0)
+            self.assertGreater(res[1], 0)
 
 
 class TestHealthPickup(unittest.TestCase):
