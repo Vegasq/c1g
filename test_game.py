@@ -1770,5 +1770,34 @@ class TestEscapeRoomIndicator(unittest.TestCase):
         self.assertLessEqual(iy, 738)
 
 
+class TestFractalBackground(unittest.TestCase):
+    def test_init_generates_buildings(self):
+        bg = game.FractalBackground(1024, 768)
+        self.assertIsInstance(bg.buildings, list)
+        self.assertGreater(len(bg.buildings), 0)
+        for b in bg.buildings:
+            self.assertIn("x", b)
+            self.assertIn("w", b)
+            self.assertIn("h", b)
+
+    def test_dimensions_stored(self):
+        bg = game.FractalBackground(800, 600)
+        self.assertEqual(bg.width, 800)
+        self.assertEqual(bg.height, 600)
+
+    def test_draw_callable(self):
+        bg = game.FractalBackground(1024, 768)
+        surface = pygame.Surface((1024, 768))
+        # Should not raise
+        bg.draw(surface)
+
+    def test_deterministic_buildings(self):
+        bg1 = game.FractalBackground(1024, 768)
+        bg2 = game.FractalBackground(1024, 768)
+        self.assertEqual(len(bg1.buildings), len(bg2.buildings))
+        for b1, b2 in zip(bg1.buildings, bg2.buildings):
+            self.assertEqual(b1, b2)
+
+
 if __name__ == "__main__":
     unittest.main()

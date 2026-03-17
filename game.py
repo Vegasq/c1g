@@ -67,6 +67,73 @@ ESCAPE_ROOM_BORDER = (0, 255, 200)
 
 _glow_surface_cache = {}
 
+
+class FractalBackground:
+    """Animated neon cityscape background for the menu screen."""
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.buildings = self._generate_buildings()
+
+    def _generate_buildings(self):
+        buildings = []
+        x = 0
+        rng = random.Random(42)  # deterministic seed for consistent skyline
+        while x < self.width:
+            w = rng.randint(30, 80)
+            h = rng.randint(80, self.height // 2 + 100)
+            buildings.append({"x": x, "w": w, "h": h})
+            x += w + rng.randint(2, 8)
+        return buildings
+
+    def draw(self, surface):
+        ticks = pygame.time.get_ticks()
+        # Slow pulse factor (0.0-1.0)
+        pulse = (math.sin(ticks * 0.002) + 1.0) * 0.5
+        # Color cycling offset
+        cycle = ticks * 0.0005
+
+        for b in self.buildings:
+            bx, bw, bh = b["x"], b["w"], b["h"]
+            by = self.height - bh
+
+            # Dark building body
+            pygame.draw.rect(surface, (8, 8, 20), (bx, by, bw, bh))
+
+            # Neon edge color: cycle between cyan, purple, red
+            r = int(80 + 60 * math.sin(cycle + bx * 0.01))
+            g = int(20 + 30 * math.sin(cycle + bx * 0.01 + 2.0))
+            bl = int(120 + 80 * math.sin(cycle + bx * 0.01 + 4.0))
+            edge_color = (max(0, min(255, r)),
+                          max(0, min(255, g)),
+                          max(0, min(255, bl)))
+
+            # Glowing edges
+            pygame.draw.rect(surface, edge_color, (bx, by, bw, bh), 1)
+
+            # Animated scanline effect (horizontal lines moving down)
+            scanline_offset = (ticks // 30) % bh
+            for sy in range(scanline_offset % 6, bh, 6):
+                alpha = int(30 + 20 * pulse)
+                line_color = (edge_color[0] // 4, edge_color[1] // 4, edge_color[2] // 4)
+                pygame.draw.line(surface, line_color,
+                                 (bx + 1, by + sy), (bx + bw - 2, by + sy))
+
+            # Scattered lit windows
+            rng = random.Random(bx * 1000 + bw)
+            for wy in range(by + 8, self.height - 8, 14):
+                for wx in range(bx + 4, bx + bw - 4, 10):
+                    if rng.random() < 0.3:
+                        brightness = 0.5 + 0.5 * pulse if rng.random() < 0.1 else 0.3
+                        wc = (int(edge_color[0] * brightness),
+                              int(edge_color[1] * brightness),
+                              int(edge_color[2] * brightness))
+                        pygame.draw.rect(surface, wc, (wx, wy, 4, 4))
+
+
+_menu_background = None
+
 CULL_MARGIN = 80  # extra pixels beyond screen edge before culling
 
 
@@ -1143,7 +1210,14 @@ def draw_options_menu():
 
 
 def draw_menu():
+    global _menu_background
     screen.fill(BG)
+
+    # Draw animated fractal city background
+    if _menu_background is None:
+        _menu_background = FractalBackground(WIDTH, HEIGHT)
+    _menu_background.draw(screen)
+
     # Neon cyan glow behind title
     title = title_font.render("Squad Survivors", True, PLAYER_COLOR)
     title_glow = title_font.render("Squad Survivors", True, (0, 100, 140))

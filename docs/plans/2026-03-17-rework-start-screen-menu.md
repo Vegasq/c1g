@@ -20,12 +20,12 @@ Rework the start screen with an animated neon fractal building background and Ha
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create a FractalBackground class that generates and animates a neon cityscape/building skyline using procedural generation (rectangles of varying height with glowing neon edges, animated scanlines or pulse effects)
-- [ ] The background should animate smoothly at 60fps using time-based animation (pygame.time.get_ticks)
-- [ ] Use the existing neon color palette (cyan, purple, red glows) with subtle color cycling
-- [ ] Instantiate the background once and call its draw method in draw_menu()
-- [ ] Write tests for FractalBackground initialization and that draw method is callable
-- [ ] Run project test suite - must pass before task 2
+- [x] Create a FractalBackground class that generates and animates a neon cityscape/building skyline using procedural generation (rectangles of varying height with glowing neon edges, animated scanlines or pulse effects)
+- [x] The background should animate smoothly at 60fps using time-based animation (pygame.time.get_ticks)
+- [x] Use the existing neon color palette (cyan, purple, red glows) with subtle color cycling
+- [x] Instantiate the background once and call its draw method in draw_menu()
+- [x] Write tests for FractalBackground initialization and that draw method is callable
+- [x] Run project test suite - must pass before task 2
 
 ## Task 2: Half-Life style left-aligned clickable menu
 
