@@ -109,6 +109,7 @@ class FractalBackground:
         return buildings
 
     def draw(self, surface):
+        surface.fill((5, 5, 15))
         ticks = pygame.time.get_ticks()
         # Slow pulse factor (0.0-1.0)
         pulse = (math.sin(ticks * 0.002) + 1.0) * 0.5
