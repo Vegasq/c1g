@@ -902,7 +902,9 @@ def draw_options_menu():
     panel_surf.blit(title, (tx, 15))
 
     items = [
-        ("Resolution", f"{SUPPORTED_RESOLUTIONS[options_resolution_index][0]}x{SUPPORTED_RESOLUTIONS[options_resolution_index][1]}"),
+        ("Resolution",
+         f"{SUPPORTED_RESOLUTIONS[options_resolution_index][0]}x"
+         f"{SUPPORTED_RESOLUTIONS[options_resolution_index][1]}"),
         ("Fullscreen", "On" if options_fullscreen else "Off"),
         ("Back", ""),
     ]
@@ -1035,15 +1037,18 @@ def run():
                         options_selected_index = (options_selected_index - 1) % 3
                     elif event.key in (pygame.K_DOWN, pygame.K_s):
                         options_selected_index = (options_selected_index + 1) % 3
-                    elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d, pygame.K_RETURN):
+                    elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                         direction = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
                         if options_selected_index == 0:
-                            options_resolution_index = (options_resolution_index + direction) % len(SUPPORTED_RESOLUTIONS)
+                            options_resolution_index = (
+                                options_resolution_index + direction
+                            ) % len(SUPPORTED_RESOLUTIONS)
                             apply_resolution()
                         elif options_selected_index == 1:
                             options_fullscreen = not options_fullscreen
                             apply_resolution()
-                        elif options_selected_index == 2 and event.key == pygame.K_RETURN:
+                    elif event.key == pygame.K_RETURN:
+                        if options_selected_index == 2:
                             state = STATE_MENU
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
@@ -1053,6 +1058,7 @@ def run():
                         state = STATE_PLAYING
                 elif event.key == pygame.K_o:
                     if state == STATE_MENU:
+                        options_selected_index = 0
                         state = STATE_OPTIONS
                 elif event.key == pygame.K_RETURN:
                     if state == STATE_MENU:
