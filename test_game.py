@@ -294,11 +294,10 @@ class TestApplyUpgrade(unittest.TestCase):
         self.assertEqual(player.max_hp, 6)
         self.assertEqual(player.hp, 4)  # healed 1, not to full
 
-    def test_apply_max_hp_without_player_is_noop(self):
+    def test_apply_max_hp_without_player_raises(self):
         stats = default_weapon_stats()
-        original = dict(stats)
-        apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1})
-        self.assertEqual(stats, original)
+        with self.assertRaises(ValueError):
+            apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1})
 
     def test_max_hp_in_upgrade_options(self):
         """Max HP should be available as a possible upgrade option."""
@@ -589,7 +588,12 @@ class TestFullLevelUpFlow(unittest.TestCase):
             self.assertEqual(level, target_level)
 
             options = generate_upgrade_options(level, stats)
-            apply_upgrade(stats, options[0])
+            # Pick a weapon stat upgrade to avoid max_hp (which doesn't modify weapon_stats)
+            weapon_option = next(
+                (o for o in options if o.get("stat") != "max_hp" and "weapon_type" not in o),
+                options[0],
+            )
+            apply_upgrade(stats, weapon_option)
 
         # After 3 upgrades, stats should differ from defaults
         default = default_weapon_stats()

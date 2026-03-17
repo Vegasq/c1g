@@ -575,10 +575,12 @@ def apply_upgrade(weapon_stats, option, player=None):
     """Apply an upgrade option to weapon stats. Returns updated stats."""
     if "weapon_type" in option:
         weapon_stats["weapon_type"] = option["weapon_type"]
-    elif option.get("stat") == "max_hp" and player is not None:
+    elif option.get("stat") == "max_hp":
+        if player is None:
+            raise ValueError("apply_upgrade: 'max_hp' upgrade requires a player argument")
         player.max_hp += option["amount"]
         player.hp = min(player.hp + option["amount"], player.max_hp)
-    elif option.get("stat") != "max_hp":
+    else:
         weapon_stats[option["stat"]] += option["amount"]
         # Clamp fire_rate to minimum of 3
         if option["stat"] == "fire_rate":
