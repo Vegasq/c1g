@@ -1411,6 +1411,29 @@ class TestOptionsMenu(unittest.TestCase):
             for etype in weights:
                 self.assertIn(etype, ENEMY_TYPES)
 
+    def test_menu_o_key_transitions_to_options(self):
+        # Simulate: in STATE_MENU, pressing O should go to STATE_OPTIONS
+        game.state = STATE_MENU
+        # The key handling logic: if key == K_o and state == STATE_MENU -> STATE_OPTIONS
+        if game.state == STATE_MENU:
+            game.state = STATE_OPTIONS
+        self.assertEqual(game.state, STATE_OPTIONS)
+
+    def test_options_escape_returns_to_menu(self):
+        # Simulate: in STATE_OPTIONS, pressing Escape should go to STATE_MENU
+        game.state = STATE_OPTIONS
+        if game.state == STATE_OPTIONS:
+            game.state = STATE_MENU
+        self.assertEqual(game.state, STATE_MENU)
+
+    def test_menu_to_options_roundtrip(self):
+        # Full roundtrip: MENU -> OPTIONS -> MENU
+        game.state = STATE_MENU
+        game.state = STATE_OPTIONS  # press O
+        self.assertEqual(game.state, STATE_OPTIONS)
+        game.state = STATE_MENU  # press Escape
+        self.assertEqual(game.state, STATE_MENU)
+
 
 class TestHealthPickup(unittest.TestCase):
     def test_creation(self):

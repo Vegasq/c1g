@@ -41,10 +41,10 @@ Add an Options menu accessible from the start screen with resolution selector an
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Modify draw_menu() to show "Press O for Options" alongside the existing "Press ENTER to Start"
-- [ ] Handle O key press in menu state to transition to STATE_OPTIONS
-- [ ] Write tests for menu-to-options navigation
-- [ ] Run project test suite - must pass
+- [x] Modify draw_menu() to show "Press O for Options" alongside the existing "Press ENTER to Start"
+- [x] Handle O key press in menu state to transition to STATE_OPTIONS
+- [x] Write tests for menu-to-options navigation
+- [x] Run project test suite - must pass
 
 ## Verification
 

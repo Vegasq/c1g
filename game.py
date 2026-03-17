@@ -940,6 +940,8 @@ def draw_menu():
     screen.blit(title, (tx, ty))
     prompt = font.render("Press ENTER to Start", True, (0, 180, 220))
     screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 40))
+    options_prompt = font.render("Press O for Options", True, (0, 180, 220))
+    screen.blit(options_prompt, (WIDTH // 2 - options_prompt.get_width() // 2, HEIGHT // 2 + 80))
     pygame.display.flip()
 
 
@@ -1057,6 +1059,9 @@ def run():
                         apply_upgrade(weapon_stats, upgrade_options[idx], player)
                         upgrade_options = []
                         state = STATE_PLAYING
+                elif event.key == pygame.K_o:
+                    if state == STATE_MENU:
+                        state = STATE_OPTIONS
                 elif event.key == pygame.K_RETURN:
                     if state == STATE_MENU:
                         reset_game()
