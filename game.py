@@ -134,9 +134,9 @@ class FractalBackground:
             pygame.draw.rect(surface, edge_color, (bx, by, bw, bh), 1)
 
             # Animated scanline effect (horizontal lines moving down)
-            scanline_offset = (ticks // 30) % bh
+            scanline_offset = (ticks // 30) % 6
             line_color = (edge_color[0] // 4, edge_color[1] // 4, edge_color[2] // 4)
-            for sy in range(scanline_offset % 6, bh, 6):
+            for sy in range(scanline_offset, bh, 6):
                 pygame.draw.line(surface, line_color,
                                  (bx + 1, by + sy), (bx + bw - 2, by + sy))
 
