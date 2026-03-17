@@ -55,4 +55,4 @@ Add an Options menu accessible from the start screen with resolution selector an
 
 ## Wrap-up
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
