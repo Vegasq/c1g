@@ -194,7 +194,7 @@ class EscapeRoom:
         sx, sy = camera.apply(self.x, self.y)
         sw = getattr(camera, 'screen_w', 800)
         sh = getattr(camera, 'screen_h', 600)
-        self.pulse_timer += 1
+        # pulse_timer is incremented in draw_game_scene every frame
         if (sx + self.w < -CULL_MARGIN or sx > sw + CULL_MARGIN or
                 sy + self.h < -CULL_MARGIN or sy > sh + CULL_MARGIN):
             return
@@ -280,7 +280,16 @@ class EscapeRoom:
                 self.x = x
                 self.y = y
                 return
-        # Fallback: place far from current position to avoid re-triggering
+        # Fallback: relaxed placement (skip obstacle check, keep spawn-safe)
+        for _attempt in range(50):
+            x = random.randint(50, MAP_WIDTH - self.w - 50)
+            y = random.randint(50, MAP_HEIGHT - self.h - 50)
+            cx = x + self.w / 2
+            cy = y + self.h / 2
+            if math.hypot(cx - spawn_center_x, cy - spawn_center_y) >= spawn_safe_radius:
+                self.x = x
+                self.y = y
+                return
         self.x = random.randint(50, MAP_WIDTH - self.w - 50)
         self.y = random.randint(50, MAP_HEIGHT - self.h - 50)
 
@@ -751,6 +760,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
             obs.draw(camera)
     if escape_rooms:
         for er in escape_rooms:
+            er.pulse_timer += 1
             if _is_rect_visible(camera, er.x, er.y, er.w, er.h):
                 er.draw(camera)
     for b in bullets:
