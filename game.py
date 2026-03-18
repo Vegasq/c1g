@@ -586,7 +586,7 @@ class Unit:
                 if ws.get("cooldown", 0) > 0:
                     ws["cooldown"] -= 1
                     continue
-                self._fire_weapon(ws, dx, dy, target, bullets)
+                self._fire_weapon(ws, dx, dy, bullets)
             return
         # Legacy single-weapon or ally (None) path
         if self.cooldown > 0:
@@ -603,7 +603,7 @@ class Unit:
             self._fire_single(weapon_type, damage, bullet_speed, bullet_range, dx, dy, bullets)
             self.cooldown = fire_rate
 
-    def _fire_weapon(self, ws, dx, dy, target, bullets):
+    def _fire_weapon(self, ws, dx, dy, bullets):
         """Fire a single weapon from the inventory."""
         fire_rate = ws["fire_rate"]
         bullet_speed = ws["bullet_speed"]
@@ -919,13 +919,14 @@ def apply_upgrade(weapon_stats, option, player=None):
     if "weapon_type" in option:
         if is_inventory:
             # Add new weapon with default stats plus accumulated global bonuses
-            new_weapon = default_weapon_stats()
+            defaults = default_weapon_stats()
+            new_weapon = dict(defaults)
             new_weapon["weapon_type"] = option["weapon_type"]
+            new_weapon["cooldown"] = 0
             # Copy stat bonuses from first weapon (reference weapon)
             ref = weapon_stats[0]
             for stat_key in ("damage", "fire_rate", "bullet_speed", "range"):
-                default_val = default_weapon_stats()[stat_key]
-                bonus = ref[stat_key] - default_val
+                bonus = ref[stat_key] - defaults[stat_key]
                 new_weapon[stat_key] += bonus
             new_weapon["fire_rate"] = max(3, new_weapon["fire_rate"])
             weapon_stats.append(new_weapon)

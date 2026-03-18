@@ -1997,12 +1997,12 @@ class TestStatsCollection(unittest.TestCase):
         run_stats["weapon_damage"] = {"normal": 30, "shotgun": 20}
         run_stats["weapon_kills"] = {"normal": 10, "shotgun": 5}
         run_stats["weapon_picks"] = {"normal": 1, "shotgun": 1}
-        ws = default_weapon_stats()
-        ws["weapon_type"] = "shotgun"
+        inv = default_weapon_inventory()
+        inv[0]["weapon_type"] = "shotgun"
 
         result = collect_run_stats(run_stats, score=15, level=4, wave=3,
                                    xp_earned_total=42, survival_time=120.5,
-                                   weapon_inventory=ws)
+                                   weapon_inventory=inv)
         self.assertEqual(result["kills"], 15)
         self.assertEqual(result["damage_dealt"], 50)
         self.assertEqual(result["damage_taken"], 3)
@@ -2180,19 +2180,24 @@ class TestMultiWeaponInventory(unittest.TestCase):
         inv.append(shotgun)
 
         import random
+        found_weapon = False
         random.seed(42)
         # Force milestone level
         for _ in range(100):
             options = generate_upgrade_options(10, inv)
             for opt in options:
                 if "weapon_type" in opt:
+                    found_weapon = True
                     self.assertNotEqual(opt["weapon_type"], "normal")
                     self.assertNotEqual(opt["weapon_type"], "shotgun")
+        self.assertTrue(found_weapon, "Expected at least one weapon option in 100 iterations")
 
     def test_generate_upgrade_all_weapons_collected(self):
         """When all weapon types collected, milestone offers stat upgrade instead."""
         inv = default_weapon_inventory()
         for wt in WEAPON_TYPES:
+            if wt == "normal":
+                continue
             ws = default_weapon_stats()
             ws["weapon_type"] = wt
             inv.append(ws)
