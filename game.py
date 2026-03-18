@@ -28,12 +28,21 @@ clock = None
 font = None
 title_font = None
 
+# Gamepad support
+JOYSTICK_DEADZONE = 0.3
+active_joystick = None
+
 
 def init_pygame():
-    global screen, clock, font, title_font, menu_font
+    global screen, clock, font, title_font, menu_font, active_joystick
     if screen is not None:
         return
     pygame.init()
+    pygame.joystick.init()
+    # Grab the first connected joystick, if any
+    if pygame.joystick.get_count() > 0:
+        active_joystick = pygame.joystick.Joystick(0)
+        active_joystick.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Squad Survivors")
     clock = pygame.time.Clock()
@@ -1510,7 +1519,7 @@ def draw_game_over(score, level=1):
 
 def run():
     global options_selected_index, options_resolution_index, options_fullscreen
-    global menu_selected_index
+    global menu_selected_index, active_joystick
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1676,6 +1685,18 @@ def run():
                 idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                 if idx >= 0:
                     menu_selected_index = idx
+            if event.type == pygame.JOYDEVICEADDED:
+                if active_joystick is None:
+                    joy_index = event.device_index
+                    active_joystick = pygame.joystick.Joystick(joy_index)
+                    active_joystick.init()
+            if event.type == pygame.JOYDEVICEREMOVED:
+                if active_joystick is not None and event.instance_id == active_joystick.get_instance_id():
+                    active_joystick = None
+                    # If another joystick is still connected, grab it
+                    if pygame.joystick.get_count() > 0:
+                        active_joystick = pygame.joystick.Joystick(0)
+                        active_joystick.init()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if state == STATE_OPTIONS:
                     idx = get_hovered_options_index(event.pos[0], event.pos[1])

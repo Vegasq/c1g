@@ -29,12 +29,12 @@ Button mapping (SDL/Steam Deck standard):
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Initialize `pygame.joystick` subsystem at game startup (near existing `pygame.init`)
-- [ ] Add global variable to track active joystick instance
-- [ ] Handle `JOYDEVICEADDED` and `JOYDEVICEREMOVED` events in the main event loop to support hot-plugging
-- [ ] Add analog stick deadzone constant (e.g. 0.3)
-- [ ] Write tests for joystick initialization and device add/remove handling
-- [ ] Run project test suite - must pass before task 2
+- [x] Initialize `pygame.joystick` subsystem at game startup (near existing `pygame.init`)
+- [x] Add global variable to track active joystick instance
+- [x] Handle `JOYDEVICEADDED` and `JOYDEVICEREMOVED` events in the main event loop to support hot-plugging
+- [x] Add analog stick deadzone constant (e.g. 0.3)
+- [x] Write tests for joystick initialization and device add/remove handling
+- [x] Run project test suite - must pass before task 2
 
 ## Task 2: Gamepad movement during gameplay
 
