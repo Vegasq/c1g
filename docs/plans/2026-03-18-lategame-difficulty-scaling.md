@@ -50,9 +50,9 @@ New values:
 
 This roughly halves late-game damage accumulation.
 
-- [ ] In get_scaled_amount(), change damage scaling: level >= 20 returns base_amount + 1 (was +2), level >= 10 returns base_amount (was +1)
-- [ ] Update test_get_scaled_amount_damage or equivalent tests to expect new values
-- [ ] Run tests - must pass before task 2
+- [x] In get_scaled_amount(), change damage scaling: level >= 20 returns base_amount + 1 (was +2), level >= 10 returns base_amount (was +1)
+- [x] Update test_get_scaled_amount_damage or equivalent tests to expect new values
+- [x] Run tests - must pass before task 2
 
 ## Task 2: Compound enemy HP scaling after wave 20
 

@@ -318,16 +318,16 @@ class TestScaledUpgrades(unittest.TestCase):
         self.assertEqual(get_scaled_amount("damage", 1, 5), 1)
 
     def test_damage_scaling_at_10(self):
-        self.assertEqual(get_scaled_amount("damage", 1, 10), 2)
+        self.assertEqual(get_scaled_amount("damage", 1, 10), 1)
 
     def test_damage_scaling_at_15(self):
-        self.assertEqual(get_scaled_amount("damage", 1, 15), 2)
+        self.assertEqual(get_scaled_amount("damage", 1, 15), 1)
 
     def test_damage_scaling_at_20(self):
-        self.assertEqual(get_scaled_amount("damage", 1, 20), 3)
+        self.assertEqual(get_scaled_amount("damage", 1, 20), 2)
 
     def test_damage_scaling_at_25(self):
-        self.assertEqual(get_scaled_amount("damage", 1, 25), 3)
+        self.assertEqual(get_scaled_amount("damage", 1, 25), 2)
 
     def test_fire_rate_scaling_below_15(self):
         self.assertEqual(get_scaled_amount("fire_rate", -3, 10), -3)
@@ -350,7 +350,7 @@ class TestScaledUpgrades(unittest.TestCase):
             options = generate_upgrade_options(12, stats)
             for opt in options:
                 if opt.get("stat") == "damage":
-                    self.assertEqual(opt["amount"], 2)
+                    self.assertEqual(opt["amount"], 1)
 
     def test_generate_options_scaled_fire_rate_at_level_16(self):
         stats = default_weapon_stats()

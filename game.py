@@ -895,9 +895,9 @@ def get_scaled_amount(stat, base_amount, level):
     """Scale upgrade amounts based on player level."""
     if stat == "damage":
         if level >= 20:
-            return base_amount + 2  # +3 total
+            return base_amount + 1  # +2 total (reduced from +3)
         elif level >= 10:
-            return base_amount + 1  # +2 total
+            return base_amount  # +1 total (reduced from +2)
     elif stat == "fire_rate":
         if level >= 15:
             return base_amount - 2  # -5 total
