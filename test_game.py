@@ -2294,9 +2294,14 @@ class TestEnemyWaveScaling(unittest.TestCase):
         self.assertAlmostEqual(e.speed, 1.652)
 
     def test_speed_capped(self):
-        e = Enemy(self.camera, enemy_type="runner", wave=50)
-        # 2.2 * min(1.6, 1 + 0.02 * 49) = 2.2 * 1.6 = 3.52
-        self.assertAlmostEqual(e.speed, 3.52)
+        e = Enemy(self.camera, enemy_type="runner", wave=60)
+        # 2.2 * min(2.0, 1 + 0.02 * 59) = 2.2 * 2.0 = 4.4
+        self.assertAlmostEqual(e.speed, 4.4)
+
+    def test_speed_at_wave_40(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=40)
+        # 1.4 * min(2.0, 1 + 0.02 * 39) = 1.4 * 1.78 = 2.492
+        self.assertAlmostEqual(e.speed, 2.492)
 
     def test_contact_damage_per_wave(self):
         cases = [(1, 1), (9, 2), (17, 3), (25, 4)]

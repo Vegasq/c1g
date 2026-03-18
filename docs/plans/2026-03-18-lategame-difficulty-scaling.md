@@ -91,10 +91,10 @@ Let enemies actually close distance at high waves. Runner at 2.0x = 4.4 speed. C
 
 Change: `min(1.6, 1 + 0.02 * (wave - 1))` to `min(2.0, 1 + 0.02 * (wave - 1))`
 
-- [ ] In Enemy.__init__, change speed cap from 1.6 to 2.0
-- [ ] Update test_speed_capped to expect 2.0x cap instead of 1.6x (runner at wave 60: 2.2 * 2.0 = 4.4)
-- [ ] Add test_speed_at_wave_40 verifying intermediate speed (basic: 1.4 * 1.78 = 2.492)
-- [ ] Run tests - must pass before task 4
+- [x] In Enemy.__init__, change speed cap from 1.6 to 2.0
+- [x] Update test_speed_capped to expect 2.0x cap instead of 1.6x (runner at wave 60: 2.2 * 2.0 = 4.4)
+- [x] Add test_speed_at_wave_40 verifying intermediate speed (basic: 1.4 * 1.78 = 2.492)
+- [x] Run tests - must pass before task 4
 
 ## Task 4: Increase contact damage frequency
 
