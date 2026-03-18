@@ -17,6 +17,11 @@ def get_max_enemies(wave):
     """Return the enemy cap for a given wave: min(200, 140 + wave * 2)."""
     return min(MAX_ENEMIES_CAP, MAX_ENEMIES_BASE + wave * 2)
 
+
+def get_spawn_count(wave):
+    """Return the number of enemies to spawn per spawn event."""
+    return wave + wave // 4
+
 # Defer pygame display/font init so the module can be imported for testing
 screen = None
 clock = None
@@ -471,20 +476,13 @@ def default_run_stats():
 
 def snapshot_weapon_power(weapon_inventory):
     """Snapshot current weapon stats for logging."""
-    if isinstance(weapon_inventory, list):
-        return [{"type": w["weapon_type"], "dmg": w["damage"], "fire_rate": w["fire_rate"],
-                 "speed": w["bullet_speed"], "range": w["range"]} for w in weapon_inventory]
-    return [{"type": weapon_inventory["weapon_type"], "dmg": weapon_inventory["damage"],
-             "fire_rate": weapon_inventory["fire_rate"], "speed": weapon_inventory["bullet_speed"],
-             "range": weapon_inventory["range"]}]
+    return [{"type": w["weapon_type"], "dmg": w["damage"], "fire_rate": w["fire_rate"],
+             "speed": w["bullet_speed"], "range": w["range"]} for w in weapon_inventory]
 
 
 def collect_run_stats(run_stats, score, level, wave, xp_earned_total, survival_time, weapon_inventory):
     """Gather per-run data into a serializable dict."""
-    if isinstance(weapon_inventory, list):
-        final_weapons = [w["weapon_type"] for w in weapon_inventory]
-    else:
-        final_weapons = [weapon_inventory["weapon_type"]]
+    final_weapons = [w["weapon_type"] for w in weapon_inventory]
     return {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "kills": score,
@@ -603,8 +601,8 @@ class Unit:
             self.x, self.y = obs.push_circle_out(self.x, self.y, self.RADIUS)
 
     def shoot_at(self, target, bullets, weapon_stats=None):
-        """Fire at target. weapon_stats can be a single dict, a list of dicts (inventory), or None."""
-        if isinstance(weapon_stats, list):
+        """Fire at target. weapon_stats is a list of weapon dicts (inventory), or None for allies."""
+        if weapon_stats is not None:
             # Multi-weapon inventory: fire each weapon on its own cooldown
             dx, dy = target.x - self.x, target.y - self.y
             for ws in weapon_stats:
@@ -613,20 +611,15 @@ class Unit:
                     continue
                 self._fire_weapon(ws, dx, dy, bullets)
             return
-        # Legacy single-weapon or ally (None) path
+        # Ally path (no weapon_stats)
         if self.cooldown > 0:
             self.cooldown -= 1
             return
-        fire_rate = weapon_stats["fire_rate"] if weapon_stats else self.SHOOT_COOLDOWN
-        bullet_speed = weapon_stats["bullet_speed"] if weapon_stats else Bullet.SPEED
-        bullet_range = weapon_stats["range"] if weapon_stats else Bullet.LIFETIME
-        damage = weapon_stats["damage"] if weapon_stats else 1
-        weapon_type = weapon_stats["weapon_type"] if weapon_stats else "normal"
         dx, dy = target.x - self.x, target.y - self.y
-        shoot_dist = bullet_range * bullet_speed
+        shoot_dist = Bullet.LIFETIME * Bullet.SPEED
         if math.hypot(dx, dy) < shoot_dist:
-            self._fire_single(weapon_type, damage, bullet_speed, bullet_range, dx, dy, bullets)
-            self.cooldown = fire_rate
+            self._fire_single("normal", 1, Bullet.SPEED, Bullet.LIFETIME, dx, dy, bullets)
+            self.cooldown = self.SHOOT_COOLDOWN
 
     def _fire_weapon(self, ws, dx, dy, bullets):
         """Fire a single weapon from the inventory."""
@@ -915,7 +908,7 @@ def get_scaled_amount(stat, base_amount, level):
 def generate_upgrade_options(level, weapon_stats):
     """Generate 3 upgrade options. At milestone levels, one is a weapon type.
 
-    weapon_stats can be a single dict (legacy) or a list (inventory).
+    weapon_stats is a list of weapon dicts (inventory).
     """
     options = random.sample(STAT_UPGRADES, min(3, len(STAT_UPGRADES)))
     options = [dict(o) for o in options]  # copy
@@ -926,11 +919,8 @@ def generate_upgrade_options(level, weapon_stats):
     milestone_interval = 4 if level > 15 else 5
     is_milestone = level % milestone_interval == 0
     if is_milestone:
-        if isinstance(weapon_stats, list):
-            owned_types = {w["weapon_type"] for w in weapon_stats}
-            available_weapons = [w for w in WEAPON_TYPES if w not in owned_types]
-        else:
-            available_weapons = [w for w in WEAPON_TYPES if w != weapon_stats.get("weapon_type")]
+        owned_types = {w["weapon_type"] for w in weapon_stats}
+        available_weapons = [w for w in WEAPON_TYPES if w not in owned_types]
         if available_weapons:
             weapon = random.choice(available_weapons)
             options[random.randint(0, len(options) - 1)] = {
@@ -943,41 +933,32 @@ def generate_upgrade_options(level, weapon_stats):
 def apply_upgrade(weapon_stats, option, player=None):
     """Apply an upgrade option to weapon stats. Returns updated stats.
 
-    weapon_stats can be a single dict (legacy) or a list (inventory).
-    For inventories: stat upgrades apply to ALL weapons, weapon_type adds a new weapon entry.
+    weapon_stats is a list of weapon dicts (inventory).
+    Stat upgrades apply to ALL weapons, weapon_type adds a new weapon entry.
     """
-    is_inventory = isinstance(weapon_stats, list)
     if "weapon_type" in option:
-        if is_inventory:
-            # Add new weapon with default stats plus accumulated global bonuses
-            defaults = default_weapon_stats()
-            new_weapon = dict(defaults)
-            new_weapon["weapon_type"] = option["weapon_type"]
-            new_weapon["cooldown"] = 0
-            # Copy stat bonuses from first weapon (reference weapon)
-            ref = weapon_stats[0]
-            for stat_key in ("damage", "fire_rate", "bullet_speed", "range"):
-                bonus = ref[stat_key] - defaults[stat_key]
-                new_weapon[stat_key] += bonus
-            new_weapon["fire_rate"] = max(5, new_weapon["fire_rate"])
-            weapon_stats.append(new_weapon)
-        else:
-            weapon_stats["weapon_type"] = option["weapon_type"]
+        # Add new weapon with default stats plus accumulated global bonuses
+        defaults = default_weapon_stats()
+        new_weapon = dict(defaults)
+        new_weapon["weapon_type"] = option["weapon_type"]
+        new_weapon["cooldown"] = 0
+        # Copy stat bonuses from first weapon (reference weapon)
+        ref = weapon_stats[0]
+        for stat_key in ("damage", "fire_rate", "bullet_speed", "range"):
+            bonus = ref[stat_key] - defaults[stat_key]
+            new_weapon[stat_key] += bonus
+        new_weapon["fire_rate"] = max(5, new_weapon["fire_rate"])
+        weapon_stats.append(new_weapon)
     elif option.get("stat") == "max_hp":
         if player is None:
             raise ValueError("apply_upgrade: 'max_hp' upgrade requires a player argument")
         player.max_hp += option["amount"]
         player.hp = min(player.hp + option["amount"], player.max_hp)
     else:
-        if is_inventory:
-            for ws in weapon_stats:
-                ws[option["stat"]] += option["amount"]
-                if option["stat"] == "fire_rate":
-                    ws["fire_rate"] = max(5, ws["fire_rate"])
-        else:
-            weapon_stats[option["stat"]] += option["amount"]
+        for ws in weapon_stats:
+            ws[option["stat"]] += option["amount"]
             if option["stat"] == "fire_rate":
-                weapon_stats["fire_rate"] = max(5, weapon_stats["fire_rate"])
+                ws["fire_rate"] = max(5, ws["fire_rate"])
     return weapon_stats
 
 
@@ -1016,7 +997,7 @@ def draw_grid(camera):
 
 
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
-                    score, wave, level, weapon_stats, xp, xp_thresholds,
+                    score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
                     escape_rooms=None, escape_flash_timer=0):
     """Draw the full game scene (background, entities, HUD, XP bar)."""
@@ -1061,10 +1042,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
         screen.blit(flash_surface, (0, 0))
 
     # HUD
-    if isinstance(weapon_stats, list):
-        wtype = "+".join(w["weapon_type"] for w in weapon_stats)
-    else:
-        wtype = weapon_stats['weapon_type']
+    wtype = "+".join(w["weapon_type"] for w in weapon_inventory)
     hud_text = f"Score: {score}  Squad: {1 + len(allies)}  Wave: {wave}  Lv: {level}  Weapons: {wtype}"
     hud = font.render(hud_text, True, PLAYER_COLOR)
     screen.blit(hud, (10, 10))
@@ -1600,6 +1578,29 @@ def run():
             run_data["quit"] = True
             save_stats(run_data)
 
+    def apply_chosen_upgrade(opt):
+        """Apply the chosen upgrade and log it."""
+        nonlocal upgrade_options, state
+        weapon_snapshot = snapshot_weapon_power(weapon_inventory)
+        apply_upgrade(weapon_inventory, opt, player)
+        if "weapon_type" in opt:
+            wt = opt["weapon_type"]
+            run_stats["weapons_used"].add(wt)
+            run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
+        run_stats["level_logs"].append({
+            "level": level,
+            "wave": wave,
+            "time": round(time.time() - run_start_time, 1),
+            "chosen": opt.get("name", opt.get("weapon_type", "?")),
+            "options": [o.get("name", o.get("weapon_type", "?")) for o in upgrade_options],
+            "weapons": weapon_snapshot,
+            "player_hp": player.hp,
+            "player_max_hp": player.max_hp,
+            "total_damage_taken": run_stats["damage_taken"],
+        })
+        upgrade_options = []
+        state = STATE_PLAYING
+
     running = True
 
     while running:
@@ -1647,25 +1648,7 @@ def run():
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
-                        opt = upgrade_options[idx]
-                        apply_upgrade(weapon_inventory, opt, player)
-                        if "weapon_type" in opt:
-                            wt = opt["weapon_type"]
-                            run_stats["weapons_used"].add(wt)
-                            run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
-                        run_stats["level_logs"].append({
-                            "level": level,
-                            "wave": wave,
-                            "time": round(time.time() - run_start_time, 1),
-                            "chosen": opt.get("name", opt.get("weapon_type", "?")),
-                            "options": [o.get("name", o.get("weapon_type", "?")) for o in upgrade_options],
-                            "weapons": snapshot_weapon_power(weapon_inventory),
-                            "player_hp": player.hp,
-                            "player_max_hp": player.max_hp,
-                            "total_damage_taken": run_stats["damage_taken"],
-                        })
-                        upgrade_options = []
-                        state = STATE_PLAYING
+                        apply_chosen_upgrade(upgrade_options[idx])
                 elif state == STATE_MENU:
                     if event.key in (pygame.K_UP, pygame.K_w):
                         menu_selected_index = (menu_selected_index - 1) % len(MENU_ITEMS)
@@ -1719,25 +1702,7 @@ def run():
                 elif state == STATE_LEVEL_UP and upgrade_options:
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
-                        opt = upgrade_options[idx]
-                        apply_upgrade(weapon_inventory, opt, player)
-                        if "weapon_type" in opt:
-                            wt = opt["weapon_type"]
-                            run_stats["weapons_used"].add(wt)
-                            run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
-                        run_stats["level_logs"].append({
-                            "level": level,
-                            "wave": wave,
-                            "time": round(time.time() - run_start_time, 1),
-                            "chosen": opt.get("name", opt.get("weapon_type", "?")),
-                            "options": [o.get("name", o.get("weapon_type", "?")) for o in upgrade_options],
-                            "weapons": snapshot_weapon_power(weapon_inventory),
-                            "player_hp": player.hp,
-                            "player_max_hp": player.max_hp,
-                            "total_damage_taken": run_stats["damage_taken"],
-                        })
-                        upgrade_options = []
-                        state = STATE_PLAYING
+                        apply_chosen_upgrade(upgrade_options[idx])
 
         if state == STATE_MENU:
             draw_menu()
@@ -1868,7 +1833,7 @@ def run():
             spawn_interval = max(10, spawn_interval - 14)
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
-            for _ in range(wave + wave // 4):
+            for _ in range(get_spawn_count(wave)):
                 if len(enemies) >= get_max_enemies(wave):
                     break
                 etype = get_enemy_type_for_wave(wave)
@@ -2044,7 +2009,7 @@ def run():
         # Enemy-player collision (damage player)
         surviving = []
         for e in enemies:
-            if math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
+            if player.hp > 0 and math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
                 player.hp -= e.contact_damage
                 run_stats["damage_taken"] += e.contact_damage
                 run_stats["wave_damage_taken"] += e.contact_damage

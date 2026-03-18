@@ -68,14 +68,14 @@ compound = 1.06 ** max(0, wave - 20)
 hp = max(base_hp, int(base_hp * linear * compound))
 ```
 
-Expected HP at key waves (basic, base=3):
+Expected HP at key waves (basic, base=3), using `int()` truncation:
 | Wave | Linear only | With compound | Elite (base=15) |
 |------|-------------|---------------|-----------------|
 | 10   | 6           | 6             | 31              |
-| 20   | 10          | 10            | 49              |
-| 30   | 17          | 30            | 152             |
-| 40   | 24          | 77            | 384             |
-| 50   | 20          | 119           | 593             |
+| 20   | 9           | 9             | 49              |
+| 30   | 13          | 24            | 120             |
+| 40   | 17          | 54            | 273             |
+| 50   | 20          | 118           | 592             |
 
 - [x] In Enemy.__init__, multiply HP by `1.06 ** max(0, wave - 20)` after existing linear scaling
 - [x] Update TestEnemyWaveScaling tests: add test_hp_compound_scaling_after_wave_20 verifying wave 30 and wave 50 values
@@ -154,10 +154,10 @@ This means:
 |------|----------|----------|------------|-------------|-------------|
 | 1    | 3        | 15       | 1.0x       | 1           | 142         |
 | 10   | 6        | 31       | 1.18x      | 2           | 160         |
-| 20   | 10       | 49       | 1.38x      | 4           | 180         |
-| 30   | 30       | 152      | 1.58x      | 6           | 200         |
-| 40   | 77       | 384      | 1.78x      | 8           | 200         |
-| 50   | 119      | 593      | 1.98x      | 10          | 200         |
+| 20   | 9        | 49       | 1.38x      | 4           | 180         |
+| 30   | 24       | 120      | 1.58x      | 6           | 200         |
+| 40   | 54       | 273      | 1.78x      | 8           | 200         |
+| 50   | 118      | 592      | 1.98x      | 10          | 200         |
 
 Player damage per weapon at level 50 (estimated, with reduced scaling): ~25-30 instead of ~50.
 Combined with 3-6x enemy HP at wave 30-50, enemies should survive multiple hits and reach the player regularly.

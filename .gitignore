@@ -3,3 +3,5 @@
 __pycache__/
 # ralphex progress logs
 progress*.txt
+# Runtime-generated stats
+stats.json

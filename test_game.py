@@ -15,6 +15,7 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   SUPPORTED_RESOLUTIONS, apply_resolution,
                   EscapeRoom,
                   MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES_BASE, MAX_ENEMIES_CAP, get_max_enemies,
+                  get_spawn_count, snapshot_weapon_power,
                   _is_visible,
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats, STATS_FILE)
 import game
@@ -150,8 +151,8 @@ class TestShootAtWithWeaponStats(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        inv = [default_weapon_stats()]
+        u.shoot_at(target, bullets, weapon_stats=inv)
         self.assertEqual(len(bullets), 1)
         self.assertEqual(bullets[0].damage, 1)
         self.assertAlmostEqual(bullets[0].vx, 8.0)
@@ -161,20 +162,21 @@ class TestShootAtWithWeaponStats(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["damage"] = 5
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["damage"] = 5
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         self.assertEqual(bullets[0].damage, 5)
 
     def test_fire_rate_affects_cooldown(self):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["fire_rate"] = 10
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["fire_rate"] = 10
+        inv = [ws]
+        u.shoot_at(target, bullets, weapon_stats=inv)
         self.assertEqual(len(bullets), 1)
-        self.assertEqual(u.cooldown, 10)
+        self.assertEqual(inv[0]["cooldown"], 10)
 
     def test_shoot_without_weapon_stats_uses_defaults(self):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
@@ -189,41 +191,41 @@ class TestShootAtWithWeaponStats(unittest.TestCase):
         # Target far away - with short range, should not shoot
         target = self._make_target(500, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["range"] = 5  # 5 frames * 8 speed = 40 pixels max
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["range"] = 5  # 5 frames * 8 speed = 40 pixels max
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         self.assertEqual(len(bullets), 0)
 
     def test_range_allows_close_target(self):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(30, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["range"] = 5  # 5 * 8 = 40 pixels
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["range"] = 5  # 5 * 8 = 40 pixels
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         self.assertEqual(len(bullets), 1)
 
 
 class TestGenerateUpgradeOptions(unittest.TestCase):
     def test_returns_3_options(self):
-        stats = default_weapon_stats()
-        options = generate_upgrade_options(3, stats)
+        inv = default_weapon_inventory()
+        options = generate_upgrade_options(3, inv)
         self.assertEqual(len(options), 3)
 
     def test_non_milestone_all_stat_upgrades(self):
-        stats = default_weapon_stats()
-        options = generate_upgrade_options(3, stats)
+        inv = default_weapon_inventory()
+        options = generate_upgrade_options(3, inv)
         for opt in options:
             self.assertIn("stat", opt)
             self.assertIn("name", opt)
 
     def test_milestone_has_weapon_option(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         # Level 5 is a milestone
         found_weapon = False
         # Run multiple times since it's random placement
         for _ in range(50):
-            options = generate_upgrade_options(5, stats)
+            options = generate_upgrade_options(5, inv)
             for opt in options:
                 if "weapon_type" in opt:
                     found_weapon = True
@@ -234,20 +236,20 @@ class TestGenerateUpgradeOptions(unittest.TestCase):
         self.assertTrue(found_weapon)
 
     def test_milestone_10(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         found_weapon = False
         for _ in range(50):
-            options = generate_upgrade_options(10, stats)
+            options = generate_upgrade_options(10, inv)
             if any("weapon_type" in o for o in options):
                 found_weapon = True
                 break
         self.assertTrue(found_weapon)
 
     def test_no_duplicate_weapon_type_offered(self):
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "shotgun"
+        inv = default_weapon_inventory()
+        inv[0]["weapon_type"] = "shotgun"
         for _ in range(50):
-            options = generate_upgrade_options(5, stats)
+            options = generate_upgrade_options(5, inv)
             for opt in options:
                 if "weapon_type" in opt:
                     self.assertNotEqual(opt["weapon_type"], "shotgun")
@@ -255,57 +257,58 @@ class TestGenerateUpgradeOptions(unittest.TestCase):
 
 class TestApplyUpgrade(unittest.TestCase):
     def test_apply_damage_upgrade(self):
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "+Damage", "stat": "damage", "amount": 1})
-        self.assertEqual(stats["damage"], 2)
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "+Damage", "stat": "damage", "amount": 1})
+        self.assertEqual(inv[0]["damage"], 2)
 
     def test_apply_fire_rate_upgrade(self):
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
-        self.assertEqual(stats["fire_rate"], 22)
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
+        self.assertEqual(inv[0]["fire_rate"], 22)
 
     def test_fire_rate_clamped_to_minimum(self):
-        stats = default_weapon_stats()
-        stats["fire_rate"] = 4
-        apply_upgrade(stats, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
-        self.assertEqual(stats["fire_rate"], 5)
+        inv = default_weapon_inventory()
+        inv[0]["fire_rate"] = 4
+        apply_upgrade(inv, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
+        self.assertEqual(inv[0]["fire_rate"], 5)
 
     def test_apply_weapon_type(self):
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
-        self.assertEqual(stats["weapon_type"], "shotgun")
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
+        self.assertEqual(len(inv), 2)
+        self.assertEqual(inv[1]["weapon_type"], "shotgun")
 
     def test_apply_bullet_speed(self):
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2})
-        self.assertEqual(stats["bullet_speed"], 10)
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2})
+        self.assertEqual(inv[0]["bullet_speed"], 10)
 
     def test_apply_range(self):
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "+Range", "stat": "range", "amount": 15})
-        self.assertEqual(stats["range"], 105)
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "+Range", "stat": "range", "amount": 15})
+        self.assertEqual(inv[0]["range"], 105)
 
     def test_apply_max_hp_upgrade(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         player = Unit(100, 100, (255, 255, 255), is_player=True)
         self.assertEqual(player.max_hp, 5)
         self.assertEqual(player.hp, 5)
-        apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1}, player)
+        apply_upgrade(inv, {"name": "+Max HP", "stat": "max_hp", "amount": 1}, player)
         self.assertEqual(player.max_hp, 6)
         self.assertEqual(player.hp, 6)
 
     def test_apply_max_hp_upgrade_heals_one(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         player = Unit(100, 100, (255, 255, 255), is_player=True)
         player.hp = 3  # damaged
-        apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1}, player)
+        apply_upgrade(inv, {"name": "+Max HP", "stat": "max_hp", "amount": 1}, player)
         self.assertEqual(player.max_hp, 6)
         self.assertEqual(player.hp, 4)  # healed 1, not to full
 
     def test_apply_max_hp_without_player_raises(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         with self.assertRaises(ValueError):
-            apply_upgrade(stats, {"name": "+Max HP", "stat": "max_hp", "amount": 1})
+            apply_upgrade(inv, {"name": "+Max HP", "stat": "max_hp", "amount": 1})
 
     def test_max_hp_in_upgrade_options(self):
         """Max HP should be available as a possible upgrade option."""
@@ -345,37 +348,37 @@ class TestScaledUpgrades(unittest.TestCase):
         self.assertEqual(get_scaled_amount("range", 15, 20), 15)
 
     def test_generate_options_scaled_damage_at_level_12(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         for _ in range(50):
-            options = generate_upgrade_options(12, stats)
+            options = generate_upgrade_options(12, inv)
             for opt in options:
                 if opt.get("stat") == "damage":
                     self.assertEqual(opt["amount"], 1)
 
     def test_generate_options_scaled_fire_rate_at_level_16(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         for _ in range(50):
-            options = generate_upgrade_options(16, stats)
+            options = generate_upgrade_options(16, inv)
             for opt in options:
                 if opt.get("stat") == "fire_rate":
                     self.assertEqual(opt["amount"], -5)
 
     def test_milestone_every_4_after_level_15(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         # Level 16 is a milestone (16 % 4 == 0) with new interval
         found_weapon = False
         for _ in range(100):
-            options = generate_upgrade_options(16, stats)
+            options = generate_upgrade_options(16, inv)
             if any("weapon_type" in o for o in options):
                 found_weapon = True
                 break
         self.assertTrue(found_weapon)
 
     def test_level_17_not_milestone(self):
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         # Level 17: 17 % 4 != 0, should not be milestone
         for _ in range(50):
-            options = generate_upgrade_options(17, stats)
+            options = generate_upgrade_options(17, inv)
             for opt in options:
                 self.assertNotIn("weapon_type", opt)
 
@@ -392,19 +395,19 @@ class TestShotgunWeapon(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "shotgun"
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         self.assertEqual(len(bullets), 5)
 
     def test_shotgun_bullets_have_reduced_damage(self):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "shotgun"
-        stats["damage"] = 4
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+        ws["damage"] = 4
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         for b in bullets:
             self.assertEqual(b.damage, 2)  # 4 // 2
 
@@ -412,9 +415,9 @@ class TestShotgunWeapon(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "shotgun"
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         # Bullets should have different directions
         angles = [math.atan2(b.vy, b.vx) for b in bullets]
         self.assertNotAlmostEqual(angles[0], angles[-1], places=2)
@@ -423,10 +426,10 @@ class TestShotgunWeapon(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "shotgun"
-        stats["damage"] = 1
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+        ws["damage"] = 1
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         for b in bullets:
             self.assertEqual(b.damage, 1)
 
@@ -465,10 +468,10 @@ class TestExplosiveWeapon(unittest.TestCase):
         t = Target()
         t.x, t.y = 100.0, 0.0
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "explosive"
-        stats["damage"] = 3
-        u.shoot_at(t, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "explosive"
+        ws["damage"] = 3
+        u.shoot_at(t, bullets, weapon_stats=[ws])
         self.assertEqual(len(bullets), 1)
         self.assertEqual(bullets[0].weapon_type, "explosive")
         self.assertEqual(bullets[0].damage, 3)
@@ -486,8 +489,8 @@ class TestWeaponTypeInShootAt(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        inv = [default_weapon_stats()]
+        u.shoot_at(target, bullets, weapon_stats=inv)
         self.assertEqual(len(bullets), 1)
         self.assertEqual(bullets[0].weapon_type, "normal")
 
@@ -495,9 +498,9 @@ class TestWeaponTypeInShootAt(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "piercing"
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "piercing"
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         self.assertEqual(len(bullets), 1)
         self.assertEqual(bullets[0].weapon_type, "piercing")
 
@@ -505,9 +508,9 @@ class TestWeaponTypeInShootAt(unittest.TestCase):
         u = Unit(0, 0, (255, 255, 255), is_player=True)
         target = self._make_target(100, 0)
         bullets = []
-        stats = default_weapon_stats()
-        stats["weapon_type"] = "explosive"
-        u.shoot_at(target, bullets, weapon_stats=stats)
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "explosive"
+        u.shoot_at(target, bullets, weapon_stats=[ws])
         self.assertEqual(len(bullets), 1)
         self.assertEqual(bullets[0].weapon_type, "explosive")
 
@@ -518,7 +521,7 @@ class TestFullLevelUpFlow(unittest.TestCase):
     def test_full_flow_xp_to_level_up_to_upgrade(self):
         """Simulate: accumulate XP -> level up -> generate options -> apply upgrade."""
         thresholds = generate_xp_thresholds()
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         xp, level = 0, 1
 
         # Accumulate XP from kills
@@ -531,23 +534,24 @@ class TestFullLevelUpFlow(unittest.TestCase):
         self.assertEqual(level, 2)
 
         # Generate upgrade options
-        options = generate_upgrade_options(level, stats)
+        options = generate_upgrade_options(level, inv)
         self.assertEqual(len(options), 3)
 
         # Apply first non-max_hp option (max_hp doesn't change weapon stats)
         option = next(o for o in options if o.get("stat") != "max_hp")
-        apply_upgrade(stats, option)
+        apply_upgrade(inv, option)
         # Stats should have changed from defaults
+        ws = inv[0]
         changed = (
-            stats["damage"] != 1 or stats["fire_rate"] != 25 or
-            stats["bullet_speed"] != 8 or stats["range"] != 90
+            ws["damage"] != 1 or ws["fire_rate"] != 25 or
+            ws["bullet_speed"] != 8 or ws["range"] != 90
         )
         self.assertTrue(changed)
 
     def test_flow_to_milestone_weapon_unlock(self):
         """Simulate reaching level 5 milestone and getting a weapon type."""
         thresholds = generate_xp_thresholds()
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         xp, level = 0, 1
 
         # Level up to level 5 step by step
@@ -561,11 +565,12 @@ class TestFullLevelUpFlow(unittest.TestCase):
         # At milestone, should get weapon option
         found_weapon = False
         for _ in range(50):
-            options = generate_upgrade_options(level, stats)
+            options = generate_upgrade_options(level, inv)
             for opt in options:
                 if "weapon_type" in opt:
-                    apply_upgrade(stats, opt)
-                    self.assertIn(stats["weapon_type"], WEAPON_TYPES)
+                    apply_upgrade(inv, opt)
+                    self.assertEqual(len(inv), 2)
+                    self.assertIn(inv[1]["weapon_type"], WEAPON_TYPES)
                     found_weapon = True
                     break
             if found_weapon:
@@ -574,19 +579,21 @@ class TestFullLevelUpFlow(unittest.TestCase):
 
     def test_weapon_type_persists_through_stat_upgrades(self):
         """After getting a weapon type, stat upgrades should not reset it."""
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
-        self.assertEqual(stats["weapon_type"], "shotgun")
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
+        self.assertEqual(len(inv), 2)
+        self.assertEqual(inv[1]["weapon_type"], "shotgun")
 
-        # Apply a stat upgrade
-        apply_upgrade(stats, {"name": "+Damage", "stat": "damage", "amount": 1})
-        self.assertEqual(stats["weapon_type"], "shotgun")
-        self.assertEqual(stats["damage"], 2)
+        # Apply a stat upgrade - should apply to all weapons
+        apply_upgrade(inv, {"name": "+Damage", "stat": "damage", "amount": 1})
+        self.assertEqual(inv[1]["weapon_type"], "shotgun")
+        self.assertEqual(inv[0]["damage"], 2)
+        self.assertEqual(inv[1]["damage"], 2)
 
     def test_multiple_level_ups_with_upgrades(self):
         """Simulate multiple level-ups each with an upgrade applied."""
         thresholds = generate_xp_thresholds()
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         xp, level = 0, 1
 
         for target_level in range(2, 5):
@@ -596,31 +603,32 @@ class TestFullLevelUpFlow(unittest.TestCase):
             self.assertTrue(leveled)
             self.assertEqual(level, target_level)
 
-            options = generate_upgrade_options(level, stats)
+            options = generate_upgrade_options(level, inv)
             # Pick a weapon stat upgrade to avoid max_hp (which doesn't modify weapon_stats)
             weapon_option = next(
                 (o for o in options if o.get("stat") != "max_hp" and "weapon_type" not in o),
                 options[0],
             )
-            apply_upgrade(stats, weapon_option)
+            apply_upgrade(inv, weapon_option)
 
         # After 3 upgrades, stats should differ from defaults
         default = default_weapon_stats()
+        ws = inv[0]
         any_different = any(
-            stats[k] != default[k] for k in ["damage", "fire_rate", "bullet_speed", "range"]
+            ws[k] != default[k] for k in ["damage", "fire_rate", "bullet_speed", "range"]
         )
         self.assertTrue(any_different)
 
     def test_reset_returns_to_defaults(self):
         """Verify that resetting state returns to default values."""
-        stats = default_weapon_stats()
-        apply_upgrade(stats, {"name": "+Damage", "stat": "damage", "amount": 5})
-        self.assertEqual(stats["damage"], 6)
+        inv = default_weapon_inventory()
+        apply_upgrade(inv, {"name": "+Damage", "stat": "damage", "amount": 5})
+        self.assertEqual(inv[0]["damage"], 6)
 
         # Reset by getting fresh defaults (as reset_game does)
-        stats = default_weapon_stats()
-        self.assertEqual(stats["damage"], 1)
-        self.assertEqual(stats["weapon_type"], "normal")
+        inv = default_weapon_inventory()
+        self.assertEqual(inv[0]["damage"], 1)
+        self.assertEqual(inv[0]["weapon_type"], "normal")
 
 
 class TestTronColorPalette(unittest.TestCase):
@@ -845,14 +853,14 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         draw_grid(camera)
 
     def test_draw_game_scene_runs_without_error(self):
-        from game import draw_game_scene, Camera, default_weapon_stats, generate_xp_thresholds
+        from game import draw_game_scene, Camera, default_weapon_inventory, generate_xp_thresholds
         camera = Camera()
         player = Unit(100, 100, (0, 220, 255), is_player=True)
         camera.update(player)
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         thresholds = generate_xp_thresholds()
         draw_game_scene(camera, [], [], [], [], player,
-                        0, 1, 1, stats, 0, thresholds)
+                        0, 1, 1, inv, 0, thresholds)
 
     def test_draw_dim_overlay_runs_without_error(self):
         from game import draw_dim_overlay
@@ -873,15 +881,15 @@ class TestMenuAndHUDRendering(unittest.TestCase):
     def test_game_scene_renders_during_level_up_state(self):
         """Verify that draw_game_scene + draw_dim_overlay can be called
         in sequence (as happens during STATE_LEVEL_UP)."""
-        from game import draw_game_scene, draw_dim_overlay, Camera, default_weapon_stats, generate_xp_thresholds
+        from game import draw_game_scene, draw_dim_overlay, Camera, default_weapon_inventory, generate_xp_thresholds
         camera = Camera()
         player = Unit(100, 100, (0, 220, 255), is_player=True)
         camera.update(player)
-        stats = default_weapon_stats()
+        inv = default_weapon_inventory()
         thresholds = generate_xp_thresholds()
         # Should not raise
         draw_game_scene(camera, [], [], [], [], player,
-                        0, 1, 1, stats, 0, thresholds)
+                        0, 1, 1, inv, 0, thresholds)
         draw_dim_overlay()
 
     def test_upgrade_panel_dimensions(self):
@@ -2268,12 +2276,12 @@ class TestEnemyRebalance(unittest.TestCase):
         self.assertAlmostEqual(ENEMY_TYPES["basic"]["speed"], 1.4)
         self.assertAlmostEqual(ENEMY_TYPES["brute"]["speed"], 0.9)
 
-    def test_spawn_count_formula_lower(self):
-        """wave + wave // 4 produces fewer enemies than wave + wave // 2."""
-        for wave in range(1, 20):
-            new_count = wave + wave // 4
-            old_count = wave + wave // 2
-            self.assertLessEqual(new_count, old_count)
+    def test_spawn_count_formula(self):
+        """get_spawn_count returns wave + wave // 4."""
+        self.assertEqual(get_spawn_count(1), 1)
+        self.assertEqual(get_spawn_count(4), 5)
+        self.assertEqual(get_spawn_count(10), 12)
+        self.assertEqual(get_spawn_count(20), 25)
 
 
 class TestEnemyWaveScaling(unittest.TestCase):
@@ -2367,6 +2375,58 @@ class TestEnemyWaveScaling(unittest.TestCase):
         self.assertEqual(get_scaled_amount("damage", 1, 10), 1)
         # Level 20: base +1 damage returns +2 (base_amount + 1)
         self.assertEqual(get_scaled_amount("damage", 1, 20), 2)
+
+
+class TestSnapshotWeaponPower(unittest.TestCase):
+    """Tests for snapshot_weapon_power function."""
+
+    def test_single_weapon_snapshot(self):
+        inv = default_weapon_inventory()
+        result = snapshot_weapon_power(inv)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["type"], "normal")
+        self.assertEqual(result[0]["dmg"], 1)
+        self.assertEqual(result[0]["fire_rate"], 25)
+        self.assertEqual(result[0]["speed"], 8)
+        self.assertEqual(result[0]["range"], 90)
+
+    def test_multi_weapon_snapshot(self):
+        inv = default_weapon_inventory()
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+        ws["damage"] = 5
+        inv.append(ws)
+        result = snapshot_weapon_power(inv)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["type"], "normal")
+        self.assertEqual(result[1]["type"], "shotgun")
+        self.assertEqual(result[1]["dmg"], 5)
+
+
+class TestDefaultRunStatsFields(unittest.TestCase):
+    """Verify all fields in default_run_stats."""
+
+    def test_all_fields_present(self):
+        stats = default_run_stats()
+        self.assertEqual(stats["wave_damage_dealt"], 0)
+        self.assertEqual(stats["wave_damage_taken"], 0)
+        self.assertEqual(stats["wave_kills"], 0)
+        self.assertEqual(stats["wave_xp_earned"], 0)
+        self.assertIsInstance(stats["wave_logs"], list)
+        self.assertEqual(len(stats["wave_logs"]), 0)
+        self.assertIsInstance(stats["level_logs"], list)
+        self.assertEqual(len(stats["level_logs"]), 0)
+
+    def test_collect_run_stats_includes_logs(self):
+        run_stats = default_run_stats()
+        run_stats["wave_logs"] = [{"wave": 1, "kills": 5}]
+        run_stats["level_logs"] = [{"level": 2, "chosen": "+Damage"}]
+        inv = default_weapon_inventory()
+        result = collect_run_stats(run_stats, score=5, level=2, wave=1,
+                                   xp_earned_total=10, survival_time=30.0,
+                                   weapon_inventory=inv)
+        self.assertEqual(result["wave_logs"], [{"wave": 1, "kills": 5}])
+        self.assertEqual(result["level_logs"], [{"level": 2, "chosen": "+Damage"}])
 
 
 if __name__ == "__main__":
