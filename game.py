@@ -1086,13 +1086,18 @@ def draw_hud_vitals(player, xp, xp_thresholds, level):
     lv_label = hud_font_small.render(f"Lv {level}", True, BORDER_COLOR)
     screen.blit(lv_label, (bar_x, xp_label_y))
 
-    current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
-    xp_text = f"{xp}/{current_threshold}"
-    xp_num = hud_font_small.render(xp_text, True, BORDER_COLOR)
-    screen.blit(xp_num, (bar_x + bar_w - xp_num.get_width(), xp_label_y))
-
-    xp_frac = min(1.0, xp / max(1, current_threshold))
-    xp_fill = int(bar_w * xp_frac)
+    if level - 1 >= len(xp_thresholds):
+        # Max level reached - show "MAX" instead of XP progress
+        max_label = hud_font_small.render("MAX", True, BORDER_COLOR)
+        screen.blit(max_label, (bar_x + bar_w - max_label.get_width(), xp_label_y))
+        xp_fill = bar_w
+    else:
+        current_threshold = xp_thresholds[level - 1]
+        xp_text = f"{xp}/{current_threshold}"
+        xp_num = hud_font_small.render(xp_text, True, BORDER_COLOR)
+        screen.blit(xp_num, (bar_x + bar_w - xp_num.get_width(), xp_label_y))
+        xp_frac = min(1.0, xp / max(1, current_threshold))
+        xp_fill = int(bar_w * xp_frac)
     pygame.draw.rect(screen, HEALTH_BG, (bar_x, xp_bar_y, bar_w, xp_bar_h), border_radius=3)
     if xp_fill > 0:
         pygame.draw.rect(screen, BORDER_COLOR, (bar_x, xp_bar_y, xp_fill, xp_bar_h), border_radius=3)
@@ -1161,7 +1166,6 @@ def draw_hud_weapons(weapon_inventory):
 
         # Color indicator dot
         pygame.draw.circle(screen, color, (tx + 5, y + 8), 5)
-        pygame.draw.circle(screen, color, (tx + 5, y + 8), 5, 1)
 
         # Weapon name
         label = hud_font_small.render(wtype.capitalize(), True, color)
@@ -1968,7 +1972,15 @@ def run():
                         elif menu_selected_index == 2:  # QUIT
                             running = False
                     elif state == STATE_OPTIONS:
-                        if options_selected_index == 2:  # Back
+                        if options_selected_index == 0:  # Resolution - cycle
+                            options_resolution_index = (
+                                options_resolution_index + 1
+                            ) % len(SUPPORTED_RESOLUTIONS)
+                            apply_resolution()
+                        elif options_selected_index == 1:  # Fullscreen - toggle
+                            options_fullscreen = not options_fullscreen
+                            apply_resolution()
+                        elif options_selected_index == 2:  # Back
                             state = STATE_MENU
                             _reset_menu_state()
                     elif state == STATE_LEVEL_UP and upgrade_options:
