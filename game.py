@@ -1008,11 +1008,84 @@ def draw_grid(camera):
     pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
 
 
+def draw_hud_panel(x, y, w, h, border_color=BORDER_COLOR):
+    """Draw a semi-transparent rounded-rect panel with neon border."""
+    panel = pygame.Surface((w, h), pygame.SRCALPHA)
+    panel.fill(PANEL_BG_COLOR)
+    screen.blit(panel, (x, y))
+    pygame.draw.rect(screen, border_color, (x, y, w, h), 2, border_radius=6)
+
+
+# Small font for HUD labels
+_hud_font = None
+_hud_font_small = None
+
+
+def _get_hud_fonts():
+    global _hud_font, _hud_font_small
+    if _hud_font is None:
+        _hud_font = pygame.font.SysFont(None, 28)
+        _hud_font_small = pygame.font.SysFont(None, 22)
+    return _hud_font, _hud_font_small
+
+
+def draw_hud_vitals(player, xp, xp_thresholds, level):
+    """Draw top-left vitals widget: HP bar with numeric, XP bar with level badge."""
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    panel_x, panel_y = 10, 10
+    panel_w, panel_h = 220, 80
+    draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
+
+    pad = 10
+    bar_x = panel_x + pad
+    bar_w = panel_w - 2 * pad
+
+    # -- HP bar --
+    hp_label_y = panel_y + 8
+    hp_bar_y = panel_y + 26
+    hp_bar_h = 14
+
+    hp_label = hud_font_small.render("HP", True, HEALTH_FG)
+    screen.blit(hp_label, (bar_x, hp_label_y))
+
+    hp_num_text = f"{max(0, player.hp)}/{player.max_hp}"
+    hp_num = hud_font_small.render(hp_num_text, True, HEALTH_FG)
+    screen.blit(hp_num, (bar_x + bar_w - hp_num.get_width(), hp_label_y))
+
+    hp_frac = max(0, player.hp) / max(1, player.max_hp)
+    hp_fill = int(bar_w * hp_frac)
+    pygame.draw.rect(screen, HEALTH_BG, (bar_x, hp_bar_y, bar_w, hp_bar_h), border_radius=3)
+    if hp_fill > 0:
+        pygame.draw.rect(screen, HEALTH_FG, (bar_x, hp_bar_y, hp_fill, hp_bar_h), border_radius=3)
+    pygame.draw.rect(screen, HEALTH_FG, (bar_x, hp_bar_y, bar_w, hp_bar_h), 1, border_radius=3)
+
+    # -- XP bar --
+    xp_label_y = panel_y + 46
+    xp_bar_y = panel_y + 60
+    xp_bar_h = 10
+
+    lv_label = hud_font_small.render(f"Lv {level}", True, BORDER_COLOR)
+    screen.blit(lv_label, (bar_x, xp_label_y))
+
+    current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
+    xp_text = f"{xp}/{current_threshold}"
+    xp_num = hud_font_small.render(xp_text, True, BORDER_COLOR)
+    screen.blit(xp_num, (bar_x + bar_w - xp_num.get_width(), xp_label_y))
+
+    xp_frac = min(1.0, xp / max(1, current_threshold))
+    xp_fill = int(bar_w * xp_frac)
+    pygame.draw.rect(screen, HEALTH_BG, (bar_x, xp_bar_y, bar_w, xp_bar_h), border_radius=3)
+    if xp_fill > 0:
+        pygame.draw.rect(screen, BORDER_COLOR, (bar_x, xp_bar_y, xp_fill, xp_bar_h), border_radius=3)
+    pygame.draw.rect(screen, BORDER_COLOR, (bar_x, xp_bar_y, bar_w, xp_bar_h), 1, border_radius=3)
+
+
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
                     escape_rooms=None, escape_flash_timer=0):
-    """Draw the full game scene (background, entities, HUD, XP bar)."""
+    """Draw the full game scene (background, entities, HUD)."""
     screen.fill(BG)
     draw_grid(camera)
     for obs in obstacles:
@@ -1053,22 +1126,8 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
         flash_surface.fill((0, 255, 200, alpha))
         screen.blit(flash_surface, (0, 0))
 
-    # HUD
-    wtype = "+".join(w["weapon_type"] for w in weapon_inventory)
-    hud_text = f"Score: {score}  Squad: {1 + len(allies)}  Wave: {wave}  Lv: {level}  Weapons: {wtype}"
-    hud = font.render(hud_text, True, PLAYER_COLOR)
-    screen.blit(hud, (10, 10))
-
-    # XP bar with neon glow
-    xp_bar_w = 200
-    xp_bar_h = 8
-    xp_bar_x = 10
-    xp_bar_y = 42
-    current_threshold = xp_thresholds[level - 1] if level - 1 < len(xp_thresholds) else 1
-    xp_fill = min(xp_bar_w, int(xp_bar_w * xp / current_threshold))
-    pygame.draw.rect(screen, HEALTH_BG, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h))
-    pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_fill, xp_bar_h))
-    pygame.draw.rect(screen, BORDER_COLOR, (xp_bar_x, xp_bar_y, xp_bar_w, xp_bar_h), 1)
+    # HUD - Top-left vitals widget
+    draw_hud_vitals(player, xp, xp_thresholds, level)
 
     # Escape room off-screen indicator
     if escape_rooms:
