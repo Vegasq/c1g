@@ -714,17 +714,21 @@ def get_enemy_type_for_wave(wave):
 class Enemy:
     _next_id = 0
 
-    def __init__(self, camera, enemy_type="basic"):
+    def __init__(self, camera, enemy_type="basic", wave=1):
         Enemy._next_id += 1
         self.uid = Enemy._next_id
         self.enemy_type = enemy_type
         type_cfg = ENEMY_TYPES[enemy_type]
-        self.hp = type_cfg["hp"]
-        self.speed = type_cfg["speed"]
+        base_hp = type_cfg["hp"]
+        self.hp = max(base_hp, int(base_hp * (1 + 0.12 * (wave - 1))))
+        base_speed = type_cfg["speed"]
+        self.speed = base_speed * min(1.6, 1 + 0.02 * (wave - 1))
         self.radius = type_cfg["radius"]
         self.color = type_cfg["color"]
-        self.xp_value = type_cfg["xp_value"]
+        base_xp = type_cfg["xp_value"]
+        self.xp_value = base_xp + wave // 5
         self.shield = type_cfg.get("shield", False)
+        self.contact_damage = 1 + (wave - 1) // 8
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
