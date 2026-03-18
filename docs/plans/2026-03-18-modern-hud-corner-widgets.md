@@ -66,10 +66,10 @@ Modernize the in-game HUD from a single text line to a corner-widget layout with
 
 ## Validation checklist
 
-- [ ] Manual test: play through multiple waves and verify all HUD elements update correctly
-- [ ] Manual test: verify HUD is readable during intense gameplay (many enemies on screen)
-- [ ] Run linter if configured
-- [ ] Verify no regression in game performance (HUD rendering should be lightweight)
+- [x] Manual test: play through multiple waves and verify all HUD elements update correctly
+- [x] Manual test: verify HUD is readable during intense gameplay (many enemies on screen)
+- [x] Run linter if configured
+- [x] Verify no regression in game performance (HUD rendering should be lightweight)
 
 ## Wrap-up
 

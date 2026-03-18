@@ -22,6 +22,7 @@ def get_spawn_count(wave):
     """Return the number of enemies to spawn per spawn event."""
     return wave + wave // 4
 
+
 # Defer pygame display/font init so the module can be imported for testing
 screen = None
 clock = None
@@ -514,7 +515,9 @@ def collect_run_stats(run_stats, score, level, wave, xp_earned_total, survival_t
 
 def collect_weapon_stats(run_stats):
     """Gather per-weapon data."""
-    all_weapons = set(run_stats["weapon_damage"].keys()) | set(run_stats["weapon_kills"].keys()) | set(run_stats["weapon_picks"].keys())
+    all_weapons = (set(run_stats["weapon_damage"].keys())
+                   | set(run_stats["weapon_kills"].keys())
+                   | set(run_stats["weapon_picks"].keys()))
     result = {}
     for w in all_weapons:
         result[w] = {
@@ -1805,7 +1808,9 @@ def run():
         """Save stats if a game is in progress (playing or level-up)."""
         if state in (STATE_PLAYING, STATE_LEVEL_UP):
             survival_time = time.time() - run_start_time
-            run_data = collect_run_stats(run_stats, score, level, wave, total_xp_earned, survival_time, weapon_inventory)
+            run_data = collect_run_stats(
+                run_stats, score, level, wave, total_xp_earned,
+                survival_time, weapon_inventory)
             run_data["quit"] = True
             save_stats(run_data)
 
@@ -2059,14 +2064,19 @@ def run():
                     elif nav_x:
                         direction = 1 if nav_x > 0 else -1
                         if current_options_idx == 0:
-                            options_resolution_index = (options_resolution_index + direction) % len(SUPPORTED_RESOLUTIONS)
+                            options_resolution_index = (
+                                (options_resolution_index + direction)
+                                % len(SUPPORTED_RESOLUTIONS))
                             apply_resolution()
                         elif current_options_idx == 1:
                             options_fullscreen = not options_fullscreen
                             apply_resolution()
                 elif state == STATE_LEVEL_UP and upgrade_options:
                     if nav_y:
-                        level_up_selected_index = (level_up_selected_index + (1 if nav_y > 0 else -1)) % len(upgrade_options)
+                        delta = 1 if nav_y > 0 else -1
+                        level_up_selected_index = (
+                            (level_up_selected_index + delta)
+                            % len(upgrade_options))
 
         if state == STATE_MENU:
             draw_menu()
@@ -2332,7 +2342,9 @@ def run():
                         e.hp -= edmg
                         run_stats["damage_dealt"] += actual_edmg
                         run_stats["wave_damage_dealt"] += actual_edmg
-                        run_stats["weapon_damage"]["explosive"] = run_stats["weapon_damage"].get("explosive", 0) + actual_edmg
+                        run_stats["weapon_damage"]["explosive"] = (
+                            run_stats["weapon_damage"].get("explosive", 0)
+                            + actual_edmg)
                         if e.hp <= 0:
                             killed += 1
                             xp_earned += e.xp_value
@@ -2424,7 +2436,9 @@ def run():
 
         if player.hp <= 0:
             survival_time = time.time() - run_start_time
-            run_data = collect_run_stats(run_stats, score, level, wave, total_xp_earned, survival_time, weapon_inventory)
+            run_data = collect_run_stats(
+                run_stats, score, level, wave, total_xp_earned,
+                survival_time, weapon_inventory)
             save_stats(run_data)
             state = STATE_GAME_OVER
 

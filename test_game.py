@@ -1012,6 +1012,286 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self.assertEqual(get_hovered_upgrade_index(panel_x + 100, panel_y + 100, 0), -1)
 
 
+class TestHUDWidgets(unittest.TestCase):
+    """Validation tests for all four HUD corner widgets."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def _make_mock_font(self):
+        mock_font = MagicMock()
+        surf = pygame.Surface((100, 30))
+        mock_font.render.return_value = surf
+        return mock_font
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        self._orig_hud_font = game._hud_font
+        self._orig_hud_font_small = game._hud_font_small
+        game.screen = pygame.Surface((1024, 768))
+        game.font = self._make_mock_font()
+        game.title_font = self._make_mock_font()
+        # Reset cached HUD fonts so they get re-created with current pygame
+        game._hud_font = None
+        game._hud_font_small = None
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+        game._hud_font = self._orig_hud_font
+        game._hud_font_small = self._orig_hud_font_small
+
+    # -- draw_hud_panel --
+
+    def test_hud_panel_draws_pixels(self):
+        """Panel helper should draw non-black pixels in the panel region."""
+        from game import draw_hud_panel
+        game.screen.fill((0, 0, 0))
+        draw_hud_panel(50, 50, 200, 100)
+        pixel = game.screen.get_at((150, 100))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
+
+    def test_hud_panel_custom_border_color(self):
+        from game import draw_hud_panel
+        game.screen.fill((0, 0, 0))
+        draw_hud_panel(50, 50, 200, 100, border_color=(255, 0, 0))
+        # Should not raise and should draw something
+        pixel = game.screen.get_at((150, 100))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
+
+    # -- draw_hud_vitals --
+
+    def test_hud_vitals_renders_without_error(self):
+        from game import draw_hud_vitals, generate_xp_thresholds
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        thresholds = generate_xp_thresholds()
+        draw_hud_vitals(player, 0, thresholds, 1)
+
+    def test_hud_vitals_various_hp_levels(self):
+        """Vitals should render correctly at full, partial, and zero HP."""
+        from game import draw_hud_vitals, generate_xp_thresholds
+        thresholds = generate_xp_thresholds()
+        for hp_val in [5, 3, 1, 0]:
+            player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+            player.hp = hp_val
+            player.max_hp = 5
+            game.screen.fill((0, 0, 0))
+            draw_hud_vitals(player, 0, thresholds, 1)
+
+    def test_hud_vitals_high_level(self):
+        """Vitals widget should handle high levels and XP values."""
+        from game import draw_hud_vitals, generate_xp_thresholds
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        thresholds = generate_xp_thresholds()
+        draw_hud_vitals(player, 500, thresholds, 10)
+
+    def test_hud_vitals_draws_in_top_left(self):
+        """Vitals widget should draw pixels in the top-left corner area."""
+        from game import draw_hud_vitals, generate_xp_thresholds, HUD_MARGIN
+        game.screen.fill((0, 0, 0))
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        thresholds = generate_xp_thresholds()
+        draw_hud_vitals(player, 10, thresholds, 2)
+        # Check that something was drawn near top-left
+        pixel = game.screen.get_at((HUD_MARGIN + 110, HUD_MARGIN + 40))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
+
+    # -- draw_hud_stats --
+
+    def test_hud_stats_renders_without_error(self):
+        from game import draw_hud_stats
+        draw_hud_stats(0, 1, [])
+
+    def test_hud_stats_high_values(self):
+        """Stats widget should handle large score and wave numbers."""
+        from game import draw_hud_stats
+        allies = [Unit(200, 200, (0, 0, 255)) for _ in range(10)]
+        draw_hud_stats(99999, 50, allies)
+
+    def test_hud_stats_draws_in_top_right(self):
+        """Stats widget should draw pixels in the top-right corner area."""
+        from game import draw_hud_stats, WIDTH, HUD_MARGIN
+        game.screen.fill((0, 0, 0))
+        draw_hud_stats(100, 5, [])
+        pixel = game.screen.get_at((WIDTH - HUD_MARGIN - 90, HUD_MARGIN + 40))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
+
+    # -- draw_hud_weapons --
+
+    def test_hud_weapons_renders_without_error(self):
+        from game import draw_hud_weapons, default_weapon_inventory
+        inv = default_weapon_inventory()
+        draw_hud_weapons(inv)
+
+    def test_hud_weapons_multiple_types(self):
+        """Weapons widget should render all weapon types."""
+        from game import draw_hud_weapons
+        inv = [
+            {"weapon_type": "normal", "damage": 1},
+            {"weapon_type": "shotgun", "damage": 2},
+            {"weapon_type": "piercing", "damage": 3},
+            {"weapon_type": "explosive", "damage": 5},
+        ]
+        draw_hud_weapons(inv)
+
+    def test_hud_weapons_single_weapon(self):
+        from game import draw_hud_weapons
+        draw_hud_weapons([{"weapon_type": "normal", "damage": 1}])
+
+    def test_hud_weapons_draws_in_bottom_left(self):
+        """Weapons widget should draw pixels in the bottom-left area."""
+        from game import draw_hud_weapons, HUD_MARGIN, HEIGHT
+        game.screen.fill((0, 0, 0))
+        inv = [{"weapon_type": "normal", "damage": 1}]
+        draw_hud_weapons(inv)
+        pixel = game.screen.get_at((HUD_MARGIN + 90, HEIGHT - HUD_MARGIN - 20))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
+
+    # -- draw_hud_minimap --
+
+    def test_hud_minimap_renders_without_error(self):
+        from game import draw_hud_minimap
+        camera = Camera()
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        draw_hud_minimap(camera, player, [], [], [])
+
+    def test_hud_minimap_with_entities(self):
+        """Minimap should handle many enemies, allies, and obstacles."""
+        from game import draw_hud_minimap
+        camera = Camera()
+        player = Unit(500, 500, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        allies = [Unit(600 + i * 50, 500, (0, 0, 255)) for i in range(5)]
+        enemies = [Enemy(camera) for _ in range(20)]
+        obstacles = [Obstacle(200 + i * 100, 200, 50, 50) for i in range(10)]
+        draw_hud_minimap(camera, player, allies, enemies, obstacles)
+
+    def test_hud_minimap_with_escape_rooms(self):
+        from game import draw_hud_minimap, EscapeRoom
+        camera = Camera()
+        player = Unit(500, 500, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        escape_rooms = [EscapeRoom(1000, 1000)]
+        draw_hud_minimap(camera, player, [], [], [], escape_rooms=escape_rooms)
+
+    def test_hud_minimap_draws_in_bottom_right(self):
+        """Minimap should draw pixels in the bottom-right area."""
+        from game import draw_hud_minimap, WIDTH, HEIGHT, HUD_MARGIN
+        game.screen.fill((0, 0, 0))
+        camera = Camera()
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        draw_hud_minimap(camera, player, [], [], [])
+        pixel = game.screen.get_at((WIDTH - HUD_MARGIN - 75, HEIGHT - HUD_MARGIN - 56))
+        self.assertNotEqual(pixel[:3], (0, 0, 0))
+
+    # -- Full scene integration tests --
+
+    def test_game_scene_with_populated_battlefield(self):
+        """Simulate an intense battle scene with many entities to verify
+        no errors occur and all HUD widgets render together."""
+        from game import draw_game_scene, default_weapon_inventory, generate_xp_thresholds
+        camera = Camera()
+        player = Unit(500, 500, PLAYER_COLOR, is_player=True)
+        player.hp = 2
+        player.max_hp = 5
+        camera.update(player)
+        allies = [Unit(550 + i * 30, 500, (0, 0, 255)) for i in range(5)]
+        enemies = [Enemy(camera) for _ in range(30)]
+        obstacles = [Obstacle(100 + i * 100, 100, 50, 50) for i in range(8)]
+        inv = default_weapon_inventory()
+        inv.append({"weapon_type": "shotgun", "damage": 2,
+                    "fire_rate": 20, "bullet_speed": 8, "range": 250})
+        thresholds = generate_xp_thresholds()
+        draw_game_scene(camera, obstacles, [], enemies, allies, player,
+                        5000, 10, 5, inv, 75, thresholds)
+
+    def test_game_scene_with_escape_rooms_and_health_pickups(self):
+        """Full scene with escape rooms and health pickups."""
+        from game import (draw_game_scene, default_weapon_inventory,
+                          generate_xp_thresholds, EscapeRoom, HealthPickup)
+        camera = Camera()
+        player = Unit(500, 500, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        inv = default_weapon_inventory()
+        thresholds = generate_xp_thresholds()
+        escape_rooms = [EscapeRoom(1000, 1000)]
+        health_pickups = [HealthPickup(450, 450)]
+        draw_game_scene(camera, [], [], [], [], player,
+                        100, 3, 2, inv, 20, thresholds,
+                        health_pickups=health_pickups,
+                        escape_rooms=escape_rooms)
+
+    def test_hud_widgets_no_overlap(self):
+        """Verify the four HUD panels don't overlap each other."""
+        from game import HUD_MARGIN, WIDTH, HEIGHT
+        # Top-left vitals: (10, 10, 220, 80)
+        tl = pygame.Rect(HUD_MARGIN, HUD_MARGIN, 220, 80)
+        # Top-right stats: (WIDTH-180-10, 10, 180, 80)
+        tr = pygame.Rect(WIDTH - 180 - HUD_MARGIN, HUD_MARGIN, 180, 80)
+        # Bottom-left weapons: (10, HEIGHT-h-10, 180, h) where h>=32
+        bl = pygame.Rect(HUD_MARGIN, HEIGHT - 80 - HUD_MARGIN, 180, 80)
+        # Bottom-right minimap: (WIDTH-158-10, HEIGHT-120-10, 158, 120)
+        br = pygame.Rect(WIDTH - 158 - HUD_MARGIN, HEIGHT - 120 - HUD_MARGIN,
+                         158, 120)
+        self.assertFalse(tl.colliderect(tr))
+        self.assertFalse(tl.colliderect(bl))
+        self.assertFalse(tl.colliderect(br))
+        self.assertFalse(tr.colliderect(bl))
+        self.assertFalse(tr.colliderect(br))
+        self.assertFalse(bl.colliderect(br))
+
+    def test_game_scene_multiple_waves_simulation(self):
+        """Simulate rendering across multiple wave states to verify
+        HUD updates correctly as game state changes."""
+        from game import draw_game_scene, default_weapon_inventory, generate_xp_thresholds
+        camera = Camera()
+        player = Unit(500, 500, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        inv = default_weapon_inventory()
+        thresholds = generate_xp_thresholds()
+        for wave_num in range(1, 6):
+            score = wave_num * 100
+            level = min(wave_num, 10)
+            xp = wave_num * 15
+            enemies = [Enemy(camera) for _ in range(wave_num * 3)]
+            draw_game_scene(camera, [], [], enemies, [], player,
+                            score, wave_num, level, inv, xp, thresholds)
+
+    def test_hud_rendering_performance(self):
+        """Verify HUD renders quickly enough (< 50ms per frame) even with
+        many entities on the minimap."""
+        import time
+        from game import draw_game_scene, default_weapon_inventory, generate_xp_thresholds
+        camera = Camera()
+        player = Unit(500, 500, PLAYER_COLOR, is_player=True)
+        camera.update(player)
+        enemies = [Enemy(camera) for _ in range(50)]
+        allies = [Unit(600 + i * 30, 500, (0, 0, 255)) for i in range(8)]
+        obstacles = [Obstacle(200 + i * 80, 200, 40, 40) for i in range(15)]
+        inv = default_weapon_inventory()
+        inv.append({"weapon_type": "shotgun", "damage": 2,
+                    "fire_rate": 20, "bullet_speed": 8, "range": 250})
+        thresholds = generate_xp_thresholds()
+        start = time.time()
+        for _ in range(10):
+            draw_game_scene(camera, obstacles, [], enemies, allies, player,
+                            9999, 20, 8, inv, 100, thresholds)
+        elapsed = time.time() - start
+        avg_ms = (elapsed / 10) * 1000
+        self.assertLess(avg_ms, 50,
+                        f"HUD render avg {avg_ms:.1f}ms exceeds 50ms budget")
+
+
 class TestEnemyTypes(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
