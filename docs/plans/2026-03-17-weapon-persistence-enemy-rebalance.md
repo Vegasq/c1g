@@ -46,12 +46,12 @@ Two main changes: (1) Weapons accumulate during a run instead of replacing - pla
 **Files:**
 - Modify: `game.py` (if adjustments needed)
 
-- [ ] Manual test: start game, verify normal weapon fires, reach first milestone, pick shotgun, verify BOTH normal and shotgun fire simultaneously.
-- [ ] Manual test: continue playing, pick third weapon type, verify all three fire.
-- [ ] Manual test: verify enemy count feels noticeably lower but enemies are tougher.
-- [ ] Manual test: verify stat upgrades apply to all weapons in inventory.
-- [ ] Run full test suite.
-- [ ] Run linter.
+- [x] Manual test: start game, verify normal weapon fires, reach first milestone, pick shotgun, verify BOTH normal and shotgun fire simultaneously.
+- [x] Manual test: continue playing, pick third weapon type, verify all three fire.
+- [x] Manual test: verify enemy count feels noticeably lower but enemies are tougher.
+- [x] Manual test: verify stat upgrades apply to all weapons in inventory.
+- [x] Run full test suite.
+- [x] Run linter.
 
 ## Cleanup
 
