@@ -166,8 +166,8 @@ Combined with 3-6x enemy HP at wave 30-50, enemies should survive multiple hits 
 
 - [ ] Manual test: play through wave 30+, verify enemies survive multiple hits (requires human playtesting)
 - [ ] Manual test: verify player takes damage consistently in waves 20+ (requires human playtesting)
-- [ ] Run full test suite: `python -m pytest test_game.py -x -q`
-- [ ] Verify test coverage for new scaling logic
+- [x] Run full test suite: `python -m pytest test_game.py -x -q`
+- [x] Verify test coverage for new scaling logic
 
 ## Cleanup
 
