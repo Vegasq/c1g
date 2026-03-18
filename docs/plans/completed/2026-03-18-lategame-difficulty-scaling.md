@@ -171,4 +171,4 @@ Combined with 3-6x enemy HP at wave 30-50, enemies should survive multiple hits 
 
 ## Cleanup
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
