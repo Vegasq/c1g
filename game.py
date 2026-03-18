@@ -41,7 +41,6 @@ def init_pygame():
     if screen is not None:
         return
     pygame.init()
-    pygame.joystick.init()
     # Grab the first connected joystick, if any
     if pygame.joystick.get_count() > 0:
         active_joystick = pygame.joystick.Joystick(0)
@@ -1707,7 +1706,7 @@ def run():
                     if pygame.joystick.get_count() > 0:
                         active_joystick = pygame.joystick.Joystick(0)
                         active_joystick.init()
-            if event.type == pygame.JOYBUTTONDOWN:
+            if event.type == pygame.JOYBUTTONDOWN and active_joystick is not None and event.instance_id == active_joystick.get_instance_id():
                 if event.button == 0:  # A button - confirm/select
                     if state == STATE_MENU:
                         if menu_selected_index == 0:  # NEW GAME
@@ -1730,6 +1729,10 @@ def run():
                         state = STATE_PLAYING
                 elif event.button == 1:  # B button - back/escape
                     if state == STATE_OPTIONS:
+                        state = STATE_MENU
+                        _reset_menu_state()
+                    elif state == STATE_LEVEL_UP:
+                        save_if_playing()
                         state = STATE_MENU
                         _reset_menu_state()
                     elif state == STATE_PLAYING:
@@ -1775,12 +1778,13 @@ def run():
             now = time.time()
             nav_x, nav_y = 0, 0
             # Analog stick
-            axis_x = active_joystick.get_axis(0)
-            axis_y = active_joystick.get_axis(1)
-            if abs(axis_x) > JOYSTICK_DEADZONE:
-                nav_x = 1 if axis_x > 0 else -1
-            if abs(axis_y) > JOYSTICK_DEADZONE:
-                nav_y = 1 if axis_y > 0 else -1
+            if active_joystick.get_numaxes() >= 2:
+                axis_x = active_joystick.get_axis(0)
+                axis_y = active_joystick.get_axis(1)
+                if abs(axis_x) > JOYSTICK_DEADZONE:
+                    nav_x = 1 if axis_x > 0 else -1
+                if abs(axis_y) > JOYSTICK_DEADZONE:
+                    nav_y = 1 if axis_y > 0 else -1
             # D-pad
             if active_joystick.get_numhats() > 0:
                 hat_x, hat_y = active_joystick.get_hat(0)
@@ -1794,14 +1798,15 @@ def run():
                     if nav_y:
                         menu_selected_index = (menu_selected_index + (1 if nav_y > 0 else -1)) % len(MENU_ITEMS)
                 elif state == STATE_OPTIONS:
+                    current_options_idx = options_selected_index
                     if nav_y:
                         options_selected_index = (options_selected_index + (1 if nav_y > 0 else -1)) % 3
                     if nav_x:
                         direction = 1 if nav_x > 0 else -1
-                        if options_selected_index == 0:
+                        if current_options_idx == 0:
                             options_resolution_index = (options_resolution_index + direction) % len(SUPPORTED_RESOLUTIONS)
                             apply_resolution()
-                        elif options_selected_index == 1:
+                        elif current_options_idx == 1:
                             options_fullscreen = not options_fullscreen
                             apply_resolution()
                 elif state == STATE_LEVEL_UP and upgrade_options:
@@ -1848,12 +1853,13 @@ def run():
         # Gamepad input
         if active_joystick is not None:
             # Left analog stick
-            axis_x = active_joystick.get_axis(0)
-            axis_y = active_joystick.get_axis(1)
-            if abs(axis_x) > JOYSTICK_DEADZONE:
-                mx += axis_x
-            if abs(axis_y) > JOYSTICK_DEADZONE:
-                my += axis_y
+            if active_joystick.get_numaxes() >= 2:
+                axis_x = active_joystick.get_axis(0)
+                axis_y = active_joystick.get_axis(1)
+                if abs(axis_x) > JOYSTICK_DEADZONE:
+                    mx += axis_x
+                if abs(axis_y) > JOYSTICK_DEADZONE:
+                    my += axis_y
             # D-pad (hat 0)
             if active_joystick.get_numhats() > 0:
                 hat_x, hat_y = active_joystick.get_hat(0)
