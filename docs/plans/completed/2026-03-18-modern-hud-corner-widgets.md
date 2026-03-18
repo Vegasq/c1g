@@ -73,6 +73,6 @@ Modernize the in-game HUD from a single text line to a corner-widget layout with
 
 ## Wrap-up
 
-- [ ] Update README.md if user-facing changes
-- [ ] Update CLAUDE.md if internal patterns changed
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Update README.md if user-facing changes
+- [x] Update CLAUDE.md if internal patterns changed
+- [x] Move this plan to `docs/plans/completed/`
