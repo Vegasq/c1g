@@ -38,10 +38,10 @@ Modernize the in-game HUD from a single text line to a corner-widget layout with
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add `draw_hud_stats()` function: Score with neon text, Wave counter, Squad size - positioned top-right
-- [ ] Add `draw_hud_weapons()` function: List active weapons with colored type indicators - positioned bottom-left
-- [ ] Call both from `draw_game_scene()`
-- [ ] Manual test: verify both widgets render correctly and don't overlap with gameplay
+- [x] Add `draw_hud_stats()` function: Score with neon text, Wave counter, Squad size - positioned top-right
+- [x] Add `draw_hud_weapons()` function: List active weapons with colored type indicators - positioned bottom-left
+- [x] Call both from `draw_game_scene()`
+- [x] Manual test: verify both widgets render correctly and don't overlap with gameplay
 
 ## Task 3: Create bottom-right minimap widget
 

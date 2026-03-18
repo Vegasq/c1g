@@ -1081,6 +1081,79 @@ def draw_hud_vitals(player, xp, xp_thresholds, level):
     pygame.draw.rect(screen, BORDER_COLOR, (bar_x, xp_bar_y, bar_w, xp_bar_h), 1, border_radius=3)
 
 
+# Weapon type -> display color mapping for HUD
+_WEAPON_TYPE_COLORS = {
+    "normal": BULLET_COLOR,
+    "shotgun": (255, 180, 0),
+    "piercing": (0, 255, 255),
+    "explosive": (255, 80, 60),
+}
+
+
+def draw_hud_stats(score, wave, allies):
+    """Draw top-right stats widget: score, wave counter, squad size."""
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    panel_w, panel_h = 180, 80
+    panel_x = WIDTH - panel_w - 10
+    panel_y = 10
+    draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
+
+    pad = 10
+    tx = panel_x + pad
+    right_x = panel_x + panel_w - pad
+
+    # Score
+    score_label = hud_font_small.render("Score", True, BORDER_COLOR)
+    screen.blit(score_label, (tx, panel_y + 8))
+    score_val = hud_font.render(str(score), True, PLAYER_COLOR)
+    screen.blit(score_val, (right_x - score_val.get_width(), panel_y + 6))
+
+    # Wave
+    wave_label = hud_font_small.render("Wave", True, BORDER_COLOR)
+    screen.blit(wave_label, (tx, panel_y + 30))
+    wave_val = hud_font.render(str(wave), True, PLAYER_COLOR)
+    screen.blit(wave_val, (right_x - wave_val.get_width(), panel_y + 28))
+
+    # Squad size
+    squad_label = hud_font_small.render("Squad", True, BORDER_COLOR)
+    screen.blit(squad_label, (tx, panel_y + 52))
+    squad_count = 1 + len(allies)  # player + allies
+    squad_val = hud_font.render(str(squad_count), True, PLAYER_COLOR)
+    screen.blit(squad_val, (right_x - squad_val.get_width(), panel_y + 50))
+
+
+def draw_hud_weapons(weapon_inventory):
+    """Draw bottom-left weapon widget: list active weapons with colored type indicators."""
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    line_h = 22
+    pad = 10
+    panel_w = 180
+    panel_h = pad * 2 + max(1, len(weapon_inventory)) * line_h
+    panel_x = 10
+    panel_y = HEIGHT - panel_h - 10
+    draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
+
+    tx = panel_x + pad
+    for i, w in enumerate(weapon_inventory):
+        wtype = w.get("weapon_type", "normal")
+        color = _WEAPON_TYPE_COLORS.get(wtype, BULLET_COLOR)
+        y = panel_y + pad + i * line_h
+
+        # Color indicator dot
+        pygame.draw.circle(screen, color, (tx + 5, y + 8), 5)
+        pygame.draw.circle(screen, color, (tx + 5, y + 8), 5, 1)
+
+        # Weapon name
+        label = hud_font_small.render(wtype.capitalize(), True, color)
+        screen.blit(label, (tx + 16, y))
+
+        # Damage value on the right
+        dmg_text = hud_font_small.render(f"dmg {w.get('damage', 1)}", True, HEALTH_BG)
+        screen.blit(dmg_text, (panel_x + panel_w - pad - dmg_text.get_width(), y))
+
+
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
@@ -1128,6 +1201,12 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
 
     # HUD - Top-left vitals widget
     draw_hud_vitals(player, xp, xp_thresholds, level)
+
+    # HUD - Top-right stats widget
+    draw_hud_stats(score, wave, allies)
+
+    # HUD - Bottom-left weapon widget
+    draw_hud_weapons(weapon_inventory)
 
     # Escape room off-screen indicator
     if escape_rooms:
