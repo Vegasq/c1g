@@ -1172,7 +1172,7 @@ def draw_hud_weapons(weapon_inventory):
         screen.blit(label, (tx + 16, y))
 
         # Damage value on the right
-        dmg_text = hud_font_small.render(f"dmg {w.get('damage', 1)}", True, HEALTH_BG)
+        dmg_text = hud_font_small.render(f"dmg {w.get('damage', 1)}", True, (150, 150, 160))
         screen.blit(dmg_text, (panel_x + panel_w - pad - dmg_text.get_width(), y))
 
 
