@@ -453,7 +453,24 @@ def default_run_stats():
         "weapon_damage": {},
         "weapon_kills": {},
         "weapon_picks": {},
+        # Per-wave/level granular tracking for balance analysis
+        "wave_logs": [],
+        "level_logs": [],
+        "wave_damage_dealt": 0,
+        "wave_damage_taken": 0,
+        "wave_kills": 0,
+        "wave_xp_earned": 0,
     }
+
+
+def snapshot_weapon_power(weapon_inventory):
+    """Snapshot current weapon stats for logging."""
+    if isinstance(weapon_inventory, list):
+        return [{"type": w["weapon_type"], "dmg": w["damage"], "fire_rate": w["fire_rate"],
+                 "speed": w["bullet_speed"], "range": w["range"]} for w in weapon_inventory]
+    return [{"type": weapon_inventory["weapon_type"], "dmg": weapon_inventory["damage"],
+             "fire_rate": weapon_inventory["fire_rate"], "speed": weapon_inventory["bullet_speed"],
+             "range": weapon_inventory["range"]}]
 
 
 def collect_run_stats(run_stats, score, level, wave, xp_earned_total, survival_time, weapon_inventory):
@@ -474,6 +491,8 @@ def collect_run_stats(run_stats, score, level, wave, xp_earned_total, survival_t
         "xp_earned": xp_earned_total,
         "final_weapons": final_weapons,
         "weapon_stats": collect_weapon_stats(run_stats),
+        "wave_logs": run_stats["wave_logs"],
+        "level_logs": run_stats["level_logs"],
     }
 
 
@@ -1561,11 +1580,20 @@ def run():
         run_start_time = time.time()
         total_xp_earned = 0
 
+    def save_if_playing():
+        """Save stats if a game is in progress (playing or level-up)."""
+        if state in (STATE_PLAYING, STATE_LEVEL_UP):
+            survival_time = time.time() - run_start_time
+            run_data = collect_run_stats(run_stats, score, level, wave, total_xp_earned, survival_time, weapon_inventory)
+            run_data["quit"] = True
+            save_stats(run_data)
+
     running = True
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                save_if_playing()
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -1573,12 +1601,14 @@ def run():
                         state = STATE_MENU
                         _reset_menu_state()
                     elif state == STATE_PLAYING:
+                        save_if_playing()
                         state = STATE_MENU
                         _reset_menu_state()
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
                         _reset_menu_state()
                     elif state == STATE_LEVEL_UP:
+                        save_if_playing()
                         state = STATE_MENU
                         _reset_menu_state()
                     elif state == STATE_MENU:
@@ -1611,6 +1641,17 @@ def run():
                             wt = opt["weapon_type"]
                             run_stats["weapons_used"].add(wt)
                             run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
+                        run_stats["level_logs"].append({
+                            "level": level,
+                            "wave": wave,
+                            "time": round(time.time() - run_start_time, 1),
+                            "chosen": opt.get("name", opt.get("weapon_type", "?")),
+                            "options": [o.get("name", o.get("weapon_type", "?")) for o in upgrade_options],
+                            "weapons": snapshot_weapon_power(weapon_inventory),
+                            "player_hp": player.hp,
+                            "player_max_hp": player.max_hp,
+                            "total_damage_taken": run_stats["damage_taken"],
+                        })
                         upgrade_options = []
                         state = STATE_PLAYING
                 elif state == STATE_MENU:
@@ -1672,6 +1713,17 @@ def run():
                             wt = opt["weapon_type"]
                             run_stats["weapons_used"].add(wt)
                             run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
+                        run_stats["level_logs"].append({
+                            "level": level,
+                            "wave": wave,
+                            "time": round(time.time() - run_start_time, 1),
+                            "chosen": opt.get("name", opt.get("weapon_type", "?")),
+                            "options": [o.get("name", o.get("weapon_type", "?")) for o in upgrade_options],
+                            "weapons": snapshot_weapon_power(weapon_inventory),
+                            "player_hp": player.hp,
+                            "player_max_hp": player.max_hp,
+                            "total_damage_taken": run_stats["damage_taken"],
+                        })
                         upgrade_options = []
                         state = STATE_PLAYING
 
@@ -1782,6 +1834,23 @@ def run():
         spawn_timer += 1
         wave_timer += 1
         if wave_timer > 480:
+            # Log completed wave stats before advancing
+            run_stats["wave_logs"].append({
+                "wave": wave,
+                "kills": run_stats["wave_kills"],
+                "damage_dealt": run_stats["wave_damage_dealt"],
+                "damage_taken": run_stats["wave_damage_taken"],
+                "xp_earned": run_stats["wave_xp_earned"],
+                "player_hp": player.hp,
+                "player_max_hp": player.max_hp,
+                "enemy_count": len(enemies),
+                "level": level,
+                "time": round(time.time() - run_start_time, 1),
+            })
+            run_stats["wave_damage_dealt"] = 0
+            run_stats["wave_damage_taken"] = 0
+            run_stats["wave_kills"] = 0
+            run_stats["wave_xp_earned"] = 0
             wave += 1
             wave_timer = 0
             spawn_interval = max(10, spawn_interval - 14)
@@ -1857,6 +1926,7 @@ def run():
                     actual_dmg = min(b.damage, max(e.hp, 0))
                     e.hp -= b.damage
                     run_stats["damage_dealt"] += actual_dmg
+                    run_stats["wave_damage_dealt"] += actual_dmg
                     wt = b.weapon_type or "normal"
                     run_stats["weapon_damage"][wt] = run_stats["weapon_damage"].get(wt, 0) + actual_dmg
                     if b.weapon_type == "piercing":
@@ -1872,6 +1942,7 @@ def run():
                         xp_earned += e.xp_value
                         dead_enemies.append((e.x, e.y, e.enemy_type))
                         run_stats["weapon_kills"][wt] = run_stats["weapon_kills"].get(wt, 0) + 1
+                        run_stats["wave_kills"] += 1
                         if e.enemy_type == "splitter":
                             split_spawns.append((e.x, e.y))
                     break
@@ -1891,12 +1962,14 @@ def run():
                         actual_edmg = min(edmg, max(e.hp, 0))
                         e.hp -= edmg
                         run_stats["damage_dealt"] += actual_edmg
+                        run_stats["wave_damage_dealt"] += actual_edmg
                         run_stats["weapon_damage"]["explosive"] = run_stats["weapon_damage"].get("explosive", 0) + actual_edmg
                         if e.hp <= 0:
                             killed += 1
                             xp_earned += e.xp_value
                             dead_enemies.append((e.x, e.y, e.enemy_type))
                             run_stats["weapon_kills"]["explosive"] = run_stats["weapon_kills"].get("explosive", 0) + 1
+                            run_stats["wave_kills"] += 1
                             if e.enemy_type == "splitter":
                                 split_spawns.append((e.x, e.y))
                             continue
@@ -1921,6 +1994,7 @@ def run():
 
         # Award XP and check level-up
         total_xp_earned += xp_earned
+        run_stats["wave_xp_earned"] += xp_earned
         xp += xp_earned
         xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
         if leveled_up:
@@ -1961,6 +2035,7 @@ def run():
             if math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
                 player.hp -= 1
                 run_stats["damage_taken"] += 1
+                run_stats["wave_damage_taken"] += 1
             else:
                 surviving.append(e)
         enemies = surviving
