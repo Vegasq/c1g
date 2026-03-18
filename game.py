@@ -1154,6 +1154,68 @@ def draw_hud_weapons(weapon_inventory):
         screen.blit(dmg_text, (panel_x + panel_w - pad - dmg_text.get_width(), y))
 
 
+def draw_hud_minimap(camera, player, allies, enemies, obstacles, escape_rooms=None):
+    """Draw bottom-right minimap widget showing scaled-down world overview."""
+    mm_w, mm_h = 150, 112
+    pad = 4
+    panel_w = mm_w + pad * 2
+    panel_h = mm_h + pad * 2
+    panel_x = WIDTH - panel_w - 10
+    panel_y = HEIGHT - panel_h - 10
+
+    draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
+
+    # Create minimap surface
+    mm_surf = pygame.Surface((mm_w, mm_h), pygame.SRCALPHA)
+    mm_surf.fill((5, 5, 15, 160))
+
+    scale_x = mm_w / MAP_WIDTH
+    scale_y = mm_h / MAP_HEIGHT
+
+    # Draw obstacles
+    for obs in obstacles:
+        rx = int(obs.x * scale_x)
+        ry = int(obs.y * scale_y)
+        rw = max(1, int(obs.w * scale_x))
+        rh = max(1, int(obs.h * scale_y))
+        pygame.draw.rect(mm_surf, (80, 0, 140, 180), (rx, ry, rw, rh))
+
+    # Draw escape rooms
+    if escape_rooms:
+        for er in escape_rooms:
+            rx = int(er.x * scale_x)
+            ry = int(er.y * scale_y)
+            rw = max(2, int(er.w * scale_x))
+            rh = max(2, int(er.h * scale_y))
+            pygame.draw.rect(mm_surf, ESCAPE_ROOM_BORDER, (rx, ry, rw, rh), 1)
+
+    # Draw enemies as red dots
+    for e in enemies:
+        ex = int(e.x * scale_x)
+        ey = int(e.y * scale_y)
+        pygame.draw.circle(mm_surf, ENEMY_COLOR, (ex, ey), 1)
+
+    # Draw allies as blue dots
+    for a in allies:
+        ax = int(a.x * scale_x)
+        ay = int(a.y * scale_y)
+        pygame.draw.circle(mm_surf, (0, 150, 255), (ax, ay), 2)
+
+    # Draw player as cyan dot (larger)
+    px = int(player.x * scale_x)
+    py = int(player.y * scale_y)
+    pygame.draw.circle(mm_surf, PLAYER_COLOR, (px, py), 3)
+
+    # Draw camera viewport rectangle
+    vx = int(camera.x * scale_x)
+    vy = int(camera.y * scale_y)
+    vw = max(1, int(WIDTH * scale_x))
+    vh = max(1, int(HEIGHT * scale_y))
+    pygame.draw.rect(mm_surf, (150, 0, 255, 100), (vx, vy, vw, vh), 1)
+
+    screen.blit(mm_surf, (panel_x + pad, panel_y + pad))
+
+
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
@@ -1207,6 +1269,9 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
 
     # HUD - Bottom-left weapon widget
     draw_hud_weapons(weapon_inventory)
+
+    # HUD - Bottom-right minimap widget
+    draw_hud_minimap(camera, player, allies, enemies, obstacles, escape_rooms)
 
     # Escape room off-screen indicator
     if escape_rooms:

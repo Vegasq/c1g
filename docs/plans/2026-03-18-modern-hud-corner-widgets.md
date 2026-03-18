@@ -48,11 +48,11 @@ Modernize the in-game HUD from a single text line to a corner-widget layout with
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add `draw_hud_minimap()` function: Small panel showing scaled-down map with dots for player (cyan), allies (blue), enemies (red), and obstacle outlines
-- [ ] Scale world coords (`MAP_WIDTH` x `MAP_HEIGHT`) down to minimap size (~150x112px)
-- [ ] Draw semi-transparent background with neon border
-- [ ] Call from `draw_game_scene()`, passing camera, player, allies, enemies, obstacles
-- [ ] Manual test: verify minimap shows correct positions and updates in real-time
+- [x] Add `draw_hud_minimap()` function: Small panel showing scaled-down map with dots for player (cyan), allies (blue), enemies (red), and obstacle outlines
+- [x] Scale world coords (`MAP_WIDTH` x `MAP_HEIGHT`) down to minimap size (~150x112px)
+- [x] Draw semi-transparent background with neon border
+- [x] Call from `draw_game_scene()`, passing camera, player, allies, enemies, obstacles
+- [x] Manual test: verify minimap shows correct positions and updates in real-time
 
 ## Task 4: Resolution-aware positioning and visual polish
 
