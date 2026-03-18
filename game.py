@@ -1864,7 +1864,7 @@ def run():
                 if len(enemies) >= MAX_ENEMIES:
                     break
                 etype = get_enemy_type_for_wave(wave)
-                enemies.append(Enemy(camera, enemy_type=etype))
+                enemies.append(Enemy(camera, enemy_type=etype, wave=wave))
 
         # Tick ally lifetimes and remove expired allies
         for a in allies:
@@ -1984,7 +1984,7 @@ def run():
             for offset in (-12, 12):
                 if len(enemies) >= MAX_ENEMIES:
                     break
-                mini = Enemy(camera, enemy_type="mini")
+                mini = Enemy(camera, enemy_type="mini", wave=wave)
                 mini.x = sx + offset
                 mini.y = sy
                 enemies.append(mini)

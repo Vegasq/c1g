@@ -32,9 +32,9 @@ Add wave-based scaling to enemies so the game stays challenging in mid-to-late w
 **Files:**
 - Modify: `game.py`
 
-- [ ] Main spawn loop (line ~1863): `Enemy(camera, enemy_type=etype, wave=wave)`
-- [ ] Mini spawns from splitters (line ~1983): `Enemy(camera, enemy_type="mini", wave=wave)`
-- [ ] Run tests - must pass before task 3
+- [x] Main spawn loop (line ~1863): `Enemy(camera, enemy_type=etype, wave=wave)`
+- [x] Mini spawns from splitters (line ~1983): `Enemy(camera, enemy_type="mini", wave=wave)`
+- [x] Run tests - must pass before task 3
 
 ## Task 3: Use e.contact_damage in player collision
 
