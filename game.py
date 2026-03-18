@@ -34,6 +34,7 @@ GAMEPAD_NAV_REPEAT_DELAY = 0.2  # seconds between repeated D-pad/stick menu navi
 active_joystick = None
 _gamepad_nav_last_time = 0  # timestamp of last gamepad menu navigation
 level_up_selected_index = 0  # keyboard/gamepad selection index for upgrade panel
+_last_levelup_mouse_pos = (-1, -1)  # track mouse to avoid overriding gamepad selection
 
 
 def init_pygame():
@@ -1279,11 +1280,8 @@ def draw_upgrade_panel(level, upgrade_options):
     subtitle = font.render("Choose an upgrade:", True, (0, 180, 220))
     panel_surf.blit(subtitle, (PANEL_WIDTH // 2 - subtitle.get_width() // 2, 60))
 
-    # Upgrade option rows
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-    hovered_idx = get_hovered_upgrade_index(mouse_x, mouse_y, len(upgrade_options))
-    # Use mouse hover if hovering, otherwise fall back to keyboard/gamepad selection
-    selected_idx = hovered_idx if hovered_idx >= 0 else level_up_selected_index
+    # Upgrade option rows (level_up_selected_index is synced from mouse hover each frame)
+    selected_idx = level_up_selected_index
     for i, opt in enumerate(upgrade_options):
         row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
         row_rect = pygame.Rect(OPTION_PADDING, row_y,
@@ -1524,7 +1522,7 @@ def draw_game_over(score, level=1):
 def run():
     global options_selected_index, options_resolution_index, options_fullscreen
     global menu_selected_index, active_joystick
-    global level_up_selected_index, _gamepad_nav_last_time
+    global level_up_selected_index, _gamepad_nav_last_time, _last_levelup_mouse_pos
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1619,6 +1617,16 @@ def run():
     running = True
 
     while running:
+        # Sync level_up_selected_index with mouse hover only when the mouse
+        # has actually moved, so a stationary cursor doesn't override gamepad.
+        if state == STATE_LEVEL_UP and upgrade_options:
+            _mx, _my = pygame.mouse.get_pos()
+            if (_mx, _my) != _last_levelup_mouse_pos:
+                _last_levelup_mouse_pos = (_mx, _my)
+                _hover = get_hovered_upgrade_index(_mx, _my, len(upgrade_options))
+                if _hover >= 0:
+                    level_up_selected_index = _hover
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 save_if_playing()
@@ -1700,13 +1708,29 @@ def run():
                     active_joystick = pygame.joystick.Joystick(joy_index)
                     active_joystick.init()
             if event.type == pygame.JOYDEVICEREMOVED:
-                if active_joystick is not None and event.instance_id == active_joystick.get_instance_id():
+                try:
+                    is_active = active_joystick is not None and event.instance_id == active_joystick.get_instance_id()
+                except pygame.error:
+                    is_active = True  # Stale joystick; treat as removed
+                if is_active:
                     active_joystick = None
                     # If another joystick is still connected, grab it
                     if pygame.joystick.get_count() > 0:
                         active_joystick = pygame.joystick.Joystick(0)
                         active_joystick.init()
-            if event.type == pygame.JOYBUTTONDOWN and active_joystick is not None and event.instance_id == active_joystick.get_instance_id():
+            _joy_btn_match = False
+            if event.type == pygame.JOYBUTTONDOWN and active_joystick is not None:
+                try:
+                    _joy_btn_match = event.instance_id == active_joystick.get_instance_id()
+                except pygame.error:
+                    active_joystick = None
+                    try:
+                        if pygame.joystick.get_count() > 0:
+                            active_joystick = pygame.joystick.Joystick(0)
+                            active_joystick.init()
+                    except pygame.error:
+                        pass
+            if event.type == pygame.JOYBUTTONDOWN and _joy_btn_match:
                 if event.button == 0:  # A button - confirm/select
                     if state == STATE_MENU:
                         if menu_selected_index == 0:  # NEW GAME
@@ -1777,21 +1801,31 @@ def run():
         if active_joystick is not None and state != STATE_PLAYING:
             now = time.monotonic()
             nav_x, nav_y = 0, 0
-            # Analog stick
-            if active_joystick.get_numaxes() >= 2:
-                axis_x = active_joystick.get_axis(0)
-                axis_y = active_joystick.get_axis(1)
-                if abs(axis_x) > JOYSTICK_DEADZONE:
-                    nav_x = 1 if axis_x > 0 else -1
-                if abs(axis_y) > JOYSTICK_DEADZONE:
-                    nav_y = 1 if axis_y > 0 else -1
-            # D-pad
-            if active_joystick.get_numhats() > 0:
-                hat_x, hat_y = active_joystick.get_hat(0)
-                if hat_x:
-                    nav_x = hat_x
-                if hat_y:
-                    nav_y = -hat_y  # SDL hat y is inverted
+            try:
+                # Analog stick
+                if active_joystick.get_numaxes() >= 2:
+                    axis_x = active_joystick.get_axis(0)
+                    axis_y = active_joystick.get_axis(1)
+                    if abs(axis_x) > JOYSTICK_DEADZONE:
+                        nav_x = 1 if axis_x > 0 else -1
+                    if abs(axis_y) > JOYSTICK_DEADZONE:
+                        nav_y = 1 if axis_y > 0 else -1
+                # D-pad
+                if active_joystick.get_numhats() > 0:
+                    hat_x, hat_y = active_joystick.get_hat(0)
+                    if hat_x:
+                        nav_x = hat_x
+                    if hat_y:
+                        nav_y = -hat_y  # SDL hat y is inverted
+            except pygame.error:
+                active_joystick = None
+                nav_x, nav_y = 0, 0
+                try:
+                    if pygame.joystick.get_count() > 0:
+                        active_joystick = pygame.joystick.Joystick(0)
+                        active_joystick.init()
+                except pygame.error:
+                    pass
             if (nav_x or nav_y) and (now - _gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY):
                 _gamepad_nav_last_time = now
                 if state == STATE_MENU:
@@ -1852,19 +1886,28 @@ def run():
 
         # Gamepad input
         if active_joystick is not None:
-            # Left analog stick
-            if active_joystick.get_numaxes() >= 2:
-                axis_x = active_joystick.get_axis(0)
-                axis_y = active_joystick.get_axis(1)
-                if abs(axis_x) > JOYSTICK_DEADZONE:
-                    mx += axis_x
-                if abs(axis_y) > JOYSTICK_DEADZONE:
-                    my += axis_y
-            # D-pad (hat 0)
-            if active_joystick.get_numhats() > 0:
-                hat_x, hat_y = active_joystick.get_hat(0)
-                mx += hat_x
-                my -= hat_y  # SDL hat y is inverted (up=1, down=-1)
+            try:
+                # Left analog stick
+                if active_joystick.get_numaxes() >= 2:
+                    axis_x = active_joystick.get_axis(0)
+                    axis_y = active_joystick.get_axis(1)
+                    if abs(axis_x) > JOYSTICK_DEADZONE:
+                        mx += axis_x
+                    if abs(axis_y) > JOYSTICK_DEADZONE:
+                        my += axis_y
+                # D-pad (hat 0)
+                if active_joystick.get_numhats() > 0:
+                    hat_x, hat_y = active_joystick.get_hat(0)
+                    mx += hat_x
+                    my -= hat_y  # SDL hat y is inverted (up=1, down=-1)
+            except pygame.error:
+                active_joystick = None
+                try:
+                    if pygame.joystick.get_count() > 0:
+                        active_joystick = pygame.joystick.Joystick(0)
+                        active_joystick.init()
+                except pygame.error:
+                    pass
         if mx or my:
             length = math.hypot(mx, my)
             player.x += mx / length * 3.5
