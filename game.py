@@ -1056,14 +1056,16 @@ def draw_hud_panel(x, y, w, h, border_color=BORDER_COLOR):
         expand = i * 2
         alpha = max(8, 40 // i)
         glow_color = (border_color[0], border_color[1], border_color[2], alpha)
-        glow_surf = pygame.Surface((w + expand * 2, h + expand * 2), pygame.SRCALPHA)
+        glow_surf = _get_glow_surface((w + expand * 2, h + expand * 2))
+        glow_surf.fill((0, 0, 0, 0))
         pygame.draw.rect(glow_surf, glow_color,
                          (0, 0, w + expand * 2, h + expand * 2),
                          border_radius=6 + expand)
         screen.blit(glow_surf, (x - expand, y - expand))
     # Panel background
-    panel = pygame.Surface((w, h), pygame.SRCALPHA)
-    panel.fill(PANEL_BG_COLOR)
+    panel = _get_glow_surface((w, h))
+    panel.fill((0, 0, 0, 0))
+    pygame.draw.rect(panel, PANEL_BG_COLOR, (0, 0, w, h), border_radius=6)
     screen.blit(panel, (x, y))
     pygame.draw.rect(screen, border_color, (x, y, w, h), 2, border_radius=6)
 
@@ -1221,8 +1223,9 @@ def draw_hud_minimap(camera, player, allies, enemies, obstacles, escape_rooms=No
 
     draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
 
-    # Create minimap surface
-    mm_surf = pygame.Surface((mm_w, mm_h), pygame.SRCALPHA)
+    # Create minimap surface (reuse cached surface)
+    mm_surf = _get_glow_surface((mm_w, mm_h))
+    mm_surf.fill((0, 0, 0, 0))
     mm_surf.fill((5, 5, 15, 160))
 
     scale_x = mm_w / MAP_WIDTH
