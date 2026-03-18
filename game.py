@@ -2037,9 +2037,9 @@ def run():
         surviving = []
         for e in enemies:
             if math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
-                player.hp -= 1
-                run_stats["damage_taken"] += 1
-                run_stats["wave_damage_taken"] += 1
+                player.hp -= e.contact_damage
+                run_stats["damage_taken"] += e.contact_damage
+                run_stats["wave_damage_taken"] += e.contact_damage
             else:
                 surviving.append(e)
         enemies = surviving

@@ -41,9 +41,9 @@ Add wave-based scaling to enemies so the game stays challenging in mid-to-late w
 **Files:**
 - Modify: `game.py`
 
-- [ ] Change `player.hp -= 1` to `player.hp -= e.contact_damage` (line ~2036)
-- [ ] Update `run_stats["damage_taken"]` and `run_stats["wave_damage_taken"]` to add `e.contact_damage` instead of 1
-- [ ] Run tests - must pass before task 4
+- [x] Change `player.hp -= 1` to `player.hp -= e.contact_damage` (line ~2036)
+- [x] Update `run_stats["damage_taken"]` and `run_stats["wave_damage_taken"]` to add `e.contact_damage` instead of 1
+- [x] Run tests - must pass before task 4
 
 ## Task 4: Raise fire_rate floor from 3 to 5
 
