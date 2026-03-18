@@ -91,4 +91,4 @@ Add wave-based scaling to enemies so the game stays challenging in mid-to-late w
 
 ## Cleanup
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
