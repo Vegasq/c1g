@@ -1008,8 +1008,23 @@ def draw_grid(camera):
     pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
 
 
+HUD_MARGIN = 10  # Spacing from screen edges for all HUD widgets
+
+
 def draw_hud_panel(x, y, w, h, border_color=BORDER_COLOR):
-    """Draw a semi-transparent rounded-rect panel with neon border."""
+    """Draw a semi-transparent rounded-rect panel with neon border and subtle glow."""
+    # Subtle glow behind the border
+    glow_layers = 3
+    for i in range(glow_layers, 0, -1):
+        expand = i * 2
+        alpha = max(8, 40 // i)
+        glow_color = (border_color[0], border_color[1], border_color[2], alpha)
+        glow_surf = pygame.Surface((w + expand * 2, h + expand * 2), pygame.SRCALPHA)
+        pygame.draw.rect(glow_surf, glow_color,
+                         (0, 0, w + expand * 2, h + expand * 2),
+                         border_radius=6 + expand)
+        screen.blit(glow_surf, (x - expand, y - expand))
+    # Panel background
     panel = pygame.Surface((w, h), pygame.SRCALPHA)
     panel.fill(PANEL_BG_COLOR)
     screen.blit(panel, (x, y))
@@ -1033,7 +1048,7 @@ def draw_hud_vitals(player, xp, xp_thresholds, level):
     """Draw top-left vitals widget: HP bar with numeric, XP bar with level badge."""
     hud_font, hud_font_small = _get_hud_fonts()
 
-    panel_x, panel_y = 10, 10
+    panel_x, panel_y = HUD_MARGIN, HUD_MARGIN
     panel_w, panel_h = 220, 80
     draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
 
@@ -1095,8 +1110,8 @@ def draw_hud_stats(score, wave, allies):
     hud_font, hud_font_small = _get_hud_fonts()
 
     panel_w, panel_h = 180, 80
-    panel_x = WIDTH - panel_w - 10
-    panel_y = 10
+    panel_x = WIDTH - panel_w - HUD_MARGIN
+    panel_y = HUD_MARGIN
     draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
 
     pad = 10
@@ -1131,8 +1146,8 @@ def draw_hud_weapons(weapon_inventory):
     pad = 10
     panel_w = 180
     panel_h = pad * 2 + max(1, len(weapon_inventory)) * line_h
-    panel_x = 10
-    panel_y = HEIGHT - panel_h - 10
+    panel_x = HUD_MARGIN
+    panel_y = HEIGHT - panel_h - HUD_MARGIN
     draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
 
     tx = panel_x + pad
@@ -1160,8 +1175,8 @@ def draw_hud_minimap(camera, player, allies, enemies, obstacles, escape_rooms=No
     pad = 4
     panel_w = mm_w + pad * 2
     panel_h = mm_h + pad * 2
-    panel_x = WIDTH - panel_w - 10
-    panel_y = HEIGHT - panel_h - 10
+    panel_x = WIDTH - panel_w - HUD_MARGIN
+    panel_y = HEIGHT - panel_h - HUD_MARGIN
 
     draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
 

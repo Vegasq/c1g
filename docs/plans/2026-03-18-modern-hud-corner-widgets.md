@@ -59,10 +59,10 @@ Modernize the in-game HUD from a single text line to a corner-widget layout with
 **Files:**
 - Modify: `game.py`
 
-- [ ] Ensure all widget positions use `WIDTH`/`HEIGHT` constants for proper placement at all supported resolutions
-- [ ] Add subtle glow effects to panel borders using existing `draw_glow` pattern
-- [ ] Verify all four widgets render correctly at 800x600, 1024x768, 1280x720, and 1920x1080
-- [ ] Manual test: play a few waves and confirm readability and no overlap with gameplay
+- [x] Ensure all widget positions use `WIDTH`/`HEIGHT` constants for proper placement at all supported resolutions
+- [x] Add subtle glow effects to panel borders using existing `draw_glow` pattern
+- [x] Verify all four widgets render correctly at 800x600, 1024x768, 1280x720, and 1920x1080
+- [x] Manual test: play a few waves and confirm readability and no overlap with gameplay
 
 ## Validation checklist
 
