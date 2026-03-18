@@ -55,4 +55,4 @@ Two main changes: (1) Weapons accumulate during a run instead of replacing - pla
 
 ## Cleanup
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
