@@ -487,6 +487,8 @@ def save_stats(run_data):
         try:
             with open(STATS_FILE, "r") as f:
                 stats = json.load(f)
+            if not isinstance(stats, list):
+                stats = []
         except (json.JSONDecodeError, IOError):
             stats = []
     stats.append(run_data)
@@ -1782,10 +1784,11 @@ def run():
                         else:
                             b.life = 0
                         break
+                    actual_dmg = min(b.damage, max(e.hp, 0))
                     e.hp -= b.damage
-                    run_stats["damage_dealt"] += b.damage
+                    run_stats["damage_dealt"] += actual_dmg
                     wt = b.weapon_type or "normal"
-                    run_stats["weapon_damage"][wt] = run_stats["weapon_damage"].get(wt, 0) + b.damage
+                    run_stats["weapon_damage"][wt] = run_stats["weapon_damage"].get(wt, 0) + actual_dmg
                     if b.weapon_type == "piercing":
                         b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
@@ -1815,9 +1818,10 @@ def run():
                     if e.shield:
                         e.shield = False
                     else:
+                        actual_edmg = min(edmg, max(e.hp, 0))
                         e.hp -= edmg
-                        run_stats["damage_dealt"] += edmg
-                        run_stats["weapon_damage"]["explosive"] = run_stats["weapon_damage"].get("explosive", 0) + edmg
+                        run_stats["damage_dealt"] += actual_edmg
+                        run_stats["weapon_damage"]["explosive"] = run_stats["weapon_damage"].get("explosive", 0) + actual_edmg
                         if e.hp <= 0:
                             killed += 1
                             xp_earned += e.xp_value
