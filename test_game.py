@@ -2304,7 +2304,7 @@ class TestEnemyWaveScaling(unittest.TestCase):
         self.assertAlmostEqual(e.speed, 2.492)
 
     def test_contact_damage_per_wave(self):
-        cases = [(1, 1), (9, 2), (17, 3), (25, 4)]
+        cases = [(1, 1), (6, 2), (16, 4), (25, 5)]
         for wave, expected_dmg in cases:
             e = Enemy(self.camera, enemy_type="basic", wave=wave)
             self.assertEqual(e.contact_damage, expected_dmg,

@@ -730,7 +730,7 @@ class Enemy:
         base_xp = type_cfg["xp_value"]
         self.xp_value = base_xp + wave // 5
         self.shield = type_cfg.get("shield", False)
-        self.contact_damage = 1 + (wave - 1) // 8
+        self.contact_damage = 1 + (wave - 1) // 5
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y

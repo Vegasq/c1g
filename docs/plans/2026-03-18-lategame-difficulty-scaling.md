@@ -116,9 +116,9 @@ Change: `1 + (wave - 1) // 8` to `1 + (wave - 1) // 5`
 | 30   | 4         | 6          |
 | 50   | 7         | 10         |
 
-- [ ] In Enemy.__init__, change contact_damage divisor from 8 to 5
-- [ ] Update test_contact_damage_per_wave to expect new values: 1/2/4/5 at waves 1/6/16/25
-- [ ] Run tests - must pass before task 5
+- [x] In Enemy.__init__, change contact_damage divisor from 8 to 5
+- [x] Update test_contact_damage_per_wave to expect new values: 1/2/4/5 at waves 1/6/16/25
+- [x] Run tests - must pass before task 5
 
 ## Task 5: Scale MAX_ENEMIES with wave number
 
