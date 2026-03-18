@@ -1318,7 +1318,7 @@ def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
 
 def apply_resolution():
     """Apply the current resolution and fullscreen settings."""
-    global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background, _fade_overlay
+    global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background, _fade_overlay, _dim_overlay
     res = SUPPORTED_RESOLUTIONS[options_resolution_index]
     WIDTH, HEIGHT = res
     flags = pygame.FULLSCREEN if options_fullscreen else 0
@@ -1330,6 +1330,7 @@ def apply_resolution():
         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
     _menu_background = None  # Reset so it regenerates at new size
     _fade_overlay = None
+    _dim_overlay = None
 
 
 def draw_options_menu():
