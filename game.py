@@ -497,8 +497,8 @@ def save_stats(run_data):
         with open(tmp_path, "w") as f:
             json.dump(stats, f, indent=2)
         os.replace(tmp_path, STATS_FILE)
-    except OSError:
-        pass
+    except OSError as e:
+        print(f"Warning: could not save stats: {e}")
 
 
 class Bullet:
