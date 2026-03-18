@@ -9,7 +9,13 @@ import time
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60
-MAX_ENEMIES = 140
+MAX_ENEMIES_BASE = 140
+MAX_ENEMIES_CAP = 200
+
+
+def get_max_enemies(wave):
+    """Return the enemy cap for a given wave: min(200, 140 + wave * 2)."""
+    return min(MAX_ENEMIES_CAP, MAX_ENEMIES_BASE + wave * 2)
 
 # Defer pygame display/font init so the module can be imported for testing
 screen = None
@@ -1863,7 +1869,7 @@ def run():
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
             for _ in range(wave + wave // 4):
-                if len(enemies) >= MAX_ENEMIES:
+                if len(enemies) >= get_max_enemies(wave):
                     break
                 etype = get_enemy_type_for_wave(wave)
                 enemies.append(Enemy(camera, enemy_type=etype, wave=wave))
@@ -1984,7 +1990,7 @@ def run():
         # Spawn mini enemies from dead splitters
         for sx, sy in split_spawns:
             for offset in (-12, 12):
-                if len(enemies) >= MAX_ENEMIES:
+                if len(enemies) >= get_max_enemies(wave):
                     break
                 mini = Enemy(camera, enemy_type="mini", wave=wave)
                 mini.x = sx + offset

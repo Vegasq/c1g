@@ -14,7 +14,7 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   STATE_OPTIONS,
                   SUPPORTED_RESOLUTIONS, apply_resolution,
                   EscapeRoom,
-                  MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES,
+                  MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES_BASE, MAX_ENEMIES_CAP, get_max_enemies,
                   _is_visible,
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats, STATS_FILE)
 import game
@@ -2236,8 +2236,19 @@ class TestMultiWeaponInventory(unittest.TestCase):
 class TestEnemyRebalance(unittest.TestCase):
     """Tests for the enemy rebalance: reduced counts, buffed stats."""
 
-    def test_max_enemies_reduced(self):
-        self.assertEqual(MAX_ENEMIES, 140)
+    def test_max_enemies_base(self):
+        self.assertEqual(MAX_ENEMIES_BASE, 140)
+        self.assertEqual(MAX_ENEMIES_CAP, 200)
+
+    def test_max_enemies_scales_with_wave(self):
+        # Wave 1: 140 + 1*2 = 142
+        self.assertEqual(get_max_enemies(1), 142)
+        # Wave 20: 140 + 20*2 = 180
+        self.assertEqual(get_max_enemies(20), 180)
+        # Wave 30: 140 + 30*2 = 200 (hits cap)
+        self.assertEqual(get_max_enemies(30), 200)
+        # Wave 50: still capped at 200
+        self.assertEqual(get_max_enemies(50), 200)
 
     def test_buffed_hp_values(self):
         expected_hp = {"basic": 3, "runner": 2, "brute": 9, "shielded": 6,

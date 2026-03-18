@@ -134,9 +134,9 @@ This means:
 - Wave 20: 180
 - Wave 30+: 200 (cap)
 
-- [ ] In spawn logic, replace `MAX_ENEMIES` constant check with `min(200, 140 + wave * 2)` or extract a helper function
-- [ ] Add test_max_enemies_scales_with_wave verifying the formula at wave 1, 20, and 30+
-- [ ] Run tests - must pass before task 6
+- [x] In spawn logic, replace `MAX_ENEMIES` constant check with `min(200, 140 + wave * 2)` or extract a helper function
+- [x] Add test_max_enemies_scales_with_wave verifying the formula at wave 1, 20, and 30+
+- [x] Run tests - must pass before task 6
 
 ## Task 6: Update existing tests, add integration-style balance test
 
