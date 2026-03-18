@@ -20,13 +20,13 @@ Two main changes: (1) Weapons accumulate during a run instead of replacing - pla
 **Files:**
 - Modify: `game.py`
 
-- [ ] Change `weapon_stats` from a single dict to a list of weapon dicts. Player starts with one "normal" weapon entry.
-- [ ] Modify `Unit.shoot_at()` to iterate over all weapons in inventory, firing each weapon type on its own cooldown cycle.
-- [ ] Update `apply_upgrade()`: stat upgrades (damage, fire rate, bullet speed, range) apply to ALL weapons in inventory. Weapon type milestone adds a NEW weapon entry with default stats plus any global bonuses earned so far.
-- [ ] Update `generate_upgrade_options()`: at milestones, only offer weapon types not already in inventory. If all types collected, offer a stat upgrade instead.
-- [ ] Update `draw_upgrade_panel()` / HUD to show current weapon inventory (list of collected weapon types).
-- [ ] Write tests for multi-weapon firing, upgrade application to all weapons, and milestone weapon addition.
-- [ ] Run project test suite - must pass before task 2.
+- [x] Change `weapon_stats` from a single dict to a list of weapon dicts. Player starts with one "normal" weapon entry.
+- [x] Modify `Unit.shoot_at()` to iterate over all weapons in inventory, firing each weapon type on its own cooldown cycle.
+- [x] Update `apply_upgrade()`: stat upgrades (damage, fire rate, bullet speed, range) apply to ALL weapons in inventory. Weapon type milestone adds a NEW weapon entry with default stats plus any global bonuses earned so far.
+- [x] Update `generate_upgrade_options()`: at milestones, only offer weapon types not already in inventory. If all types collected, offer a stat upgrade instead.
+- [x] Update `draw_upgrade_panel()` / HUD to show current weapon inventory (list of collected weapon types).
+- [x] Write tests for multi-weapon firing, upgrade application to all weapons, and milestone weapon addition.
+- [x] Run project test suite - must pass before task 2.
 
 ## Task 2: Rebalance enemy spawning - reduce count, buff stats
 

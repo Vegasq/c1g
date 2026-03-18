@@ -1,7 +1,8 @@
 import unittest
 import math
 import pygame
-from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, Bullet, Unit,
+from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, default_weapon_inventory,
+                  Bullet, Unit,
                   generate_upgrade_options, apply_upgrade, get_scaled_amount, STAT_UPGRADES, WEAPON_TYPES,
                   draw_glow,
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
@@ -2001,7 +2002,7 @@ class TestStatsCollection(unittest.TestCase):
 
         result = collect_run_stats(run_stats, score=15, level=4, wave=3,
                                    xp_earned_total=42, survival_time=120.5,
-                                   weapon_stats=ws)
+                                   weapon_inventory=ws)
         self.assertEqual(result["kills"], 15)
         self.assertEqual(result["damage_dealt"], 50)
         self.assertEqual(result["damage_taken"], 3)
@@ -2009,7 +2010,7 @@ class TestStatsCollection(unittest.TestCase):
         self.assertEqual(result["level_reached"], 4)
         self.assertEqual(result["survival_time_seconds"], 120.5)
         self.assertEqual(result["xp_earned"], 42)
-        self.assertEqual(result["final_weapon"], "shotgun")
+        self.assertEqual(result["final_weapons"], ["shotgun"])
         self.assertEqual(set(result["weapons_used"]), {"normal", "shotgun"})
         self.assertIn("timestamp", result)
         self.assertIn("weapon_stats", result)
@@ -2068,6 +2069,163 @@ class TestStatsCollection(unittest.TestCase):
         finally:
             game.STATS_FILE = old
             os.unlink(tmp)
+
+
+class TestMultiWeaponInventory(unittest.TestCase):
+    """Tests for multi-weapon inventory system."""
+
+    def test_default_weapon_inventory(self):
+        inv = default_weapon_inventory()
+        self.assertIsInstance(inv, list)
+        self.assertEqual(len(inv), 1)
+        self.assertEqual(inv[0]["weapon_type"], "normal")
+        self.assertIn("cooldown", inv[0])
+
+    def test_default_weapon_stats_has_cooldown(self):
+        ws = default_weapon_stats()
+        self.assertIn("cooldown", ws)
+        self.assertEqual(ws["cooldown"], 0)
+
+    def test_multi_weapon_firing(self):
+        """Player with 2 weapons fires both on their own cooldown cycles."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        inv = default_weapon_inventory()
+        # Add a shotgun
+        shotgun = default_weapon_stats()
+        shotgun["weapon_type"] = "shotgun"
+        inv.append(shotgun)
+
+        # Create enemy in range
+        camera = Camera()
+        enemy = Enemy(camera)
+        enemy.x, enemy.y = 120, 100
+
+        bullets = []
+        player.shoot_at(enemy, bullets, weapon_stats=inv)
+        # Both weapons should fire (cooldown=0)
+        # normal: 1 bullet, shotgun: 5 bullets = 6 total
+        self.assertEqual(len(bullets), 6)
+        types = {b.weapon_type for b in bullets}
+        self.assertIn("normal", types)
+        self.assertIn("shotgun", types)
+
+    def test_multi_weapon_independent_cooldowns(self):
+        """Each weapon tracks its own cooldown."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        inv = default_weapon_inventory()
+        shotgun = default_weapon_stats()
+        shotgun["weapon_type"] = "shotgun"
+        inv.append(shotgun)
+
+        camera = Camera()
+        enemy = Enemy(camera)
+        enemy.x, enemy.y = 120, 100
+
+        bullets = []
+        player.shoot_at(enemy, bullets, weapon_stats=inv)
+        # Both fire, now both have cooldowns set
+        self.assertGreater(inv[0]["cooldown"], 0)
+        self.assertGreater(inv[1]["cooldown"], 0)
+
+        # Second call: cooldowns tick down but no firing
+        bullets2 = []
+        player.shoot_at(enemy, bullets2, weapon_stats=inv)
+        self.assertEqual(len(bullets2), 0)
+
+    def test_apply_upgrade_stat_to_all_weapons(self):
+        """Stat upgrades apply to all weapons in inventory."""
+        inv = default_weapon_inventory()
+        shotgun = default_weapon_stats()
+        shotgun["weapon_type"] = "shotgun"
+        inv.append(shotgun)
+
+        option = {"name": "+Damage", "stat": "damage", "amount": 2}
+        apply_upgrade(inv, option)
+        for ws in inv:
+            self.assertEqual(ws["damage"], 3)  # 1 + 2
+
+    def test_apply_upgrade_fire_rate_clamp(self):
+        """Fire rate is clamped to minimum 3 for all weapons."""
+        inv = default_weapon_inventory()
+        inv[0]["fire_rate"] = 5
+        option = {"name": "+Fire Rate", "stat": "fire_rate", "amount": -10}
+        apply_upgrade(inv, option)
+        self.assertEqual(inv[0]["fire_rate"], 3)
+
+    def test_apply_upgrade_weapon_type_adds_to_inventory(self):
+        """Weapon type milestone adds new weapon entry to inventory."""
+        inv = default_weapon_inventory()
+        option = {"name": "Weapon: Shotgun", "weapon_type": "shotgun"}
+        apply_upgrade(inv, option)
+        self.assertEqual(len(inv), 2)
+        self.assertEqual(inv[1]["weapon_type"], "shotgun")
+
+    def test_new_weapon_inherits_stat_bonuses(self):
+        """New weapon added at milestone inherits global stat bonuses."""
+        inv = default_weapon_inventory()
+        # Apply some damage upgrades first
+        apply_upgrade(inv, {"name": "+Damage", "stat": "damage", "amount": 3})
+        self.assertEqual(inv[0]["damage"], 4)
+
+        # Now add shotgun
+        apply_upgrade(inv, {"name": "Weapon: Shotgun", "weapon_type": "shotgun"})
+        self.assertEqual(len(inv), 2)
+        self.assertEqual(inv[1]["damage"], 4)  # inherits bonus
+
+    def test_generate_upgrade_excludes_owned_weapons(self):
+        """Milestone upgrade options exclude already-owned weapon types."""
+        inv = default_weapon_inventory()
+        shotgun = default_weapon_stats()
+        shotgun["weapon_type"] = "shotgun"
+        inv.append(shotgun)
+
+        import random
+        random.seed(42)
+        # Force milestone level
+        for _ in range(100):
+            options = generate_upgrade_options(10, inv)
+            for opt in options:
+                if "weapon_type" in opt:
+                    self.assertNotEqual(opt["weapon_type"], "normal")
+                    self.assertNotEqual(opt["weapon_type"], "shotgun")
+
+    def test_generate_upgrade_all_weapons_collected(self):
+        """When all weapon types collected, milestone offers stat upgrade instead."""
+        inv = default_weapon_inventory()
+        for wt in WEAPON_TYPES:
+            ws = default_weapon_stats()
+            ws["weapon_type"] = wt
+            inv.append(ws)
+
+        import random
+        random.seed(42)
+        options = generate_upgrade_options(10, inv)
+        # All 3 options should be stat upgrades (no weapon_type key)
+        for opt in options:
+            self.assertNotIn("weapon_type", opt)
+
+    def test_collect_run_stats_with_inventory(self):
+        """collect_run_stats handles weapon inventory list."""
+        run_stats = default_run_stats()
+        inv = default_weapon_inventory()
+        shotgun = default_weapon_stats()
+        shotgun["weapon_type"] = "shotgun"
+        inv.append(shotgun)
+
+        result = collect_run_stats(run_stats, score=5, level=2, wave=1,
+                                   xp_earned_total=10, survival_time=30.0,
+                                   weapon_inventory=inv)
+        self.assertEqual(result["final_weapons"], ["normal", "shotgun"])
+
+    def test_apply_upgrade_max_hp_with_inventory(self):
+        """Max HP upgrade works with inventory (doesn't modify weapons)."""
+        inv = default_weapon_inventory()
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        option = {"name": "+Max HP", "stat": "max_hp", "amount": 1}
+        apply_upgrade(inv, option, player=player)
+        self.assertEqual(player.max_hp, 6)
+        # Weapons unchanged
+        self.assertEqual(len(inv), 1)
 
 
 if __name__ == "__main__":
