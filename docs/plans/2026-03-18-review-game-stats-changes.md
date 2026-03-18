@@ -29,7 +29,7 @@ Between game 3 (09:29) and game 4 (13:27), the late-game difficulty scaling feat
 | Level reached | 51 | 46 | -5 |
 | XP earned | 127,292 | 65,271 | -62,021 |
 | DPS | 663.5 | 532.8 | -130.7 |
-| Kills/sec | 26.5 | 25.1 | -1.4 |
+| Kills/sec | 26.5 | 25.1 | -1.3 |
 
 ## Key Finding: Game now ends by death instead of voluntary quit
 
@@ -50,12 +50,12 @@ Between game 3 (09:29) and game 4 (13:27), the late-game difficulty scaling feat
 
 ## Analysis of Changes
 
-1. **Enemy count scaling works**: Both games had similar enemy counts in early waves (G3: 52, G4: 45 at wave 5), but diverge significantly after wave 7. Game 3 capped at 133-140 from wave 7 onward, while game 4 grew steadily to 199 by wave 33. The MAX_ENEMIES scaling is clearly active.
+1. **Enemy count scaling works**: Both games had similar enemy counts in early waves (G3: 52, G4: 45 at wave 5), but diverge significantly after wave 7. Game 3 capped at 130-140 from wave 7 onward, while game 4 grew steadily to 199 by wave 33. The MAX_ENEMIES scaling is clearly active.
 2. **Player leveled faster early but hit a wall**: Game 4 player reached level 28 by wave 15 (vs 14 in game 3), likely because MAX_ENEMIES scaling put more enemies on screen, generating more kills and XP. However, the damage upgrade scaling nerf meant those extra levels translated to less DPS growth, partially counteracting the faster leveling.
 3. **Kills per wave peaked then declined**: Game 4 kills peaked around wave 15 (455 kills) then dropped to 200 by wave 33, showing enemies were getting tanky enough (compound HP scaling after wave 20) to outpace player damage.
 4. **Weapon stats show non-uniform reduction**: Weapons dealt 30-52% less total damage in game 4 (piercing 30%, normal 38%, explosive 38%, shotgun 52%). Note: raw totals are confounded by game 3 lasting 17 more waves; per-second DPS shows a 7-35% reduction range.
-5. **Death caused by one-shot contact damage**: The player took only 10 total damage across the entire game (3 in waves 1-33, 7 in wave 34). At wave 34, contact damage = `1 + (34-1)//5 = 7`, which exceeded the player's 6 max HP. A single enemy touch was lethal. This suggests contact damage scaling may outpace max HP growth, making late-wave deaths feel like unfair one-shots rather than gradual attrition.
+5. **Death caused by one-shot contact damage**: The player took only 10 total damage across the entire game (3 in waves 1-33, 7 in wave 34). Contact damage first became lethal at wave 26 (`1 + 25//5 = 6`, matching the player's 6 max HP), meaning the player was in a one-hit-death state for the final 9 waves. The player survived waves 26-33 purely by avoiding contact. At wave 34, the player upgraded to 7 max HP (level 46), but contact damage also reached 7 (`1 + 33//5 = 7`), making the hit exactly lethal. This suggests contact damage scaling outpaces max HP growth, creating a prolonged fragile state where a single touch is fatal.
 
 ## Verdict
 
-The late-game difficulty scaling achieves the goal of creating a lethal endgame instead of indefinite survival. However, the death at wave 34 was a one-shot kill (7 contact damage vs 6 max HP) rather than gradual attrition, which may warrant tuning contact damage scaling relative to max HP growth. The wall hits around wave 30-34 where enemy count (199) and compound HP scaling outpace player DPS growth.
+The late-game difficulty scaling achieves the goal of creating a lethal endgame instead of indefinite survival. However, the player entered a one-hit-death state at wave 26 (contact damage matched max HP at 6) and remained fragile for 9 waves before dying at wave 34 (7 contact damage vs 7 max HP). Deaths feel like unfair one-shots rather than gradual attrition, which may warrant tuning contact damage scaling relative to max HP growth. The wall hits around wave 30-34 where enemy count (199) and compound HP scaling outpace player DPS growth.
