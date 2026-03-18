@@ -53,8 +53,8 @@ Three issues addressed:
 
 ## Final Validation
 
-- [ ] Manual test: all three features work together without regressions
-- [ ] Run full game loop: start game, reach upgrade popup (verify centered), open options (verify mouse works), play until game over (verify stats saved)
+- [x] Manual test: all three features work together without regressions
+- [x] Run full game loop: start game, reach upgrade popup (verify centered), open options (verify mouse works), play until game over (verify stats saved)
 
 ## Wrap-up
 
