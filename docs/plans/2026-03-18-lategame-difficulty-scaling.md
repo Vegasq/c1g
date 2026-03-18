@@ -143,10 +143,10 @@ This means:
 **Files:**
 - Modify: `test_game.py`
 
-- [ ] Fix any tests broken by the above changes
-- [ ] Add test_lategame_enemy_survives_base_damage: create a wave-50 basic enemy, assert HP > 100 (ensures compound scaling works)
-- [ ] Add test_damage_upgrade_diminishing: verify get_scaled_amount returns +1 at level 10, +2 at level 20 (new values)
-- [ ] Run full test suite: `python -m pytest test_game.py -x -q`
+- [x] Fix any tests broken by the above changes
+- [x] Add test_lategame_enemy_survives_base_damage: create a wave-50 basic enemy, assert HP > 100 (ensures compound scaling works)
+- [x] Add test_damage_upgrade_diminishing: verify get_scaled_amount returns +1 at level 10, +2 at level 20 (new values)
+- [x] Run full test suite: `python -m pytest test_game.py -x -q`
 
 ## Expected Balance Curve (after all changes)
 

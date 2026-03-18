@@ -2355,6 +2355,19 @@ class TestEnemyWaveScaling(unittest.TestCase):
         e20 = Enemy(self.camera, enemy_type="elite", wave=20)
         self.assertEqual(e20.hp, 49)
 
+    def test_lategame_enemy_survives_base_damage(self):
+        """Wave-50 basic enemy should have HP > 100 thanks to compound scaling."""
+        e = Enemy(self.camera, enemy_type="basic", wave=50)
+        self.assertGreater(e.hp, 100,
+                           f"Wave 50 basic enemy HP ({e.hp}) should exceed 100 to survive late-game hits")
+
+    def test_damage_upgrade_diminishing(self):
+        """Verify get_scaled_amount returns reduced values at level 10 and 20."""
+        # Level 10: base +1 damage returns +1 (unchanged from base)
+        self.assertEqual(get_scaled_amount("damage", 1, 10), 1)
+        # Level 20: base +1 damage returns +2 (base_amount + 1)
+        self.assertEqual(get_scaled_amount("damage", 1, 20), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
