@@ -885,11 +885,12 @@ class TestMenuAndHUDRendering(unittest.TestCase):
 
     def test_upgrade_panel_dimensions(self):
         """Verify panel constants define a centered ~500x350 panel."""
-        from game import PANEL_WIDTH, PANEL_HEIGHT, PANEL_X, PANEL_Y, WIDTH, HEIGHT
+        from game import PANEL_WIDTH, PANEL_HEIGHT, _panel_origin, WIDTH, HEIGHT
         self.assertEqual(PANEL_WIDTH, 500)
         self.assertEqual(PANEL_HEIGHT, 350)
-        self.assertEqual(PANEL_X, (WIDTH - PANEL_WIDTH) // 2)
-        self.assertEqual(PANEL_Y, (HEIGHT - PANEL_HEIGHT) // 2)
+        panel_x, panel_y = _panel_origin()
+        self.assertEqual(panel_x, (WIDTH - PANEL_WIDTH) // 2)
+        self.assertEqual(panel_y, (HEIGHT - PANEL_HEIGHT) // 2)
 
     def test_upgrade_panel_renders_without_error(self):
         """Verify draw_upgrade_panel runs without raising."""
@@ -905,21 +906,22 @@ class TestMenuAndHUDRendering(unittest.TestCase):
     def test_upgrade_panel_draws_to_screen(self):
         """Verify draw_upgrade_panel actually draws pixels in the panel region."""
         import game
-        from game import draw_upgrade_panel, PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT
+        from game import draw_upgrade_panel, _panel_origin, PANEL_WIDTH, PANEL_HEIGHT
         game.screen.fill((0, 0, 0))
         options = [{"name": "Test", "stat": "damage", "amount": 1}]
         draw_upgrade_panel(1, options)
-        # Check that a pixel inside the panel region is no longer black
-        cx = PANEL_X + PANEL_WIDTH // 2
-        cy = PANEL_Y + PANEL_HEIGHT // 2
+        panel_x, panel_y = _panel_origin()
+        cx = panel_x + PANEL_WIDTH // 2
+        cy = panel_y + PANEL_HEIGHT // 2
         pixel = game.screen.get_at((cx, cy))
         self.assertNotEqual(pixel[:3], (0, 0, 0))
 
     def test_upgrade_panel_centered_on_screen(self):
         """Verify the panel is centered horizontally and vertically."""
-        from game import PANEL_WIDTH, PANEL_HEIGHT, PANEL_X, PANEL_Y, WIDTH, HEIGHT
-        center_x = PANEL_X + PANEL_WIDTH // 2
-        center_y = PANEL_Y + PANEL_HEIGHT // 2
+        from game import PANEL_WIDTH, PANEL_HEIGHT, _panel_origin, WIDTH, HEIGHT
+        panel_x, panel_y = _panel_origin()
+        center_x = panel_x + PANEL_WIDTH // 2
+        center_y = panel_y + PANEL_HEIGHT // 2
         self.assertEqual(center_x, WIDTH // 2)
         self.assertEqual(center_y, HEIGHT // 2)
 
@@ -972,27 +974,30 @@ class TestMenuAndHUDRendering(unittest.TestCase):
 
     def test_get_hovered_upgrade_index_hit(self):
         """Click inside an option row returns correct index."""
-        from game import (get_hovered_upgrade_index, PANEL_X, PANEL_Y,
+        from game import (get_hovered_upgrade_index, _panel_origin,
                           OPTION_START_Y, OPTION_ROW_HEIGHT, PANEL_WIDTH)
+        panel_x, panel_y = _panel_origin()
         row_h = OPTION_ROW_HEIGHT - 5  # actual row rect height
-        mx = PANEL_X + PANEL_WIDTH // 2
+        mx = panel_x + PANEL_WIDTH // 2
         for i in range(3):
             # Click geometric center of each row
-            my = PANEL_Y + OPTION_START_Y + i * OPTION_ROW_HEIGHT + row_h // 2
+            my = panel_y + OPTION_START_Y + i * OPTION_ROW_HEIGHT + row_h // 2
             self.assertEqual(get_hovered_upgrade_index(mx, my, 3), i)
 
     def test_get_hovered_upgrade_index_miss(self):
         """Click outside all option rows returns -1."""
-        from game import get_hovered_upgrade_index, PANEL_X, PANEL_Y
+        from game import get_hovered_upgrade_index, _panel_origin
+        panel_x, panel_y = _panel_origin()
         # Click well outside panel
         self.assertEqual(get_hovered_upgrade_index(0, 0, 3), -1)
         # Click above options (in title area)
-        self.assertEqual(get_hovered_upgrade_index(PANEL_X + 100, PANEL_Y + 10, 3), -1)
+        self.assertEqual(get_hovered_upgrade_index(panel_x + 100, panel_y + 10, 3), -1)
 
     def test_get_hovered_upgrade_index_no_options(self):
         """With zero options, always returns -1."""
-        from game import get_hovered_upgrade_index, PANEL_X, PANEL_Y
-        self.assertEqual(get_hovered_upgrade_index(PANEL_X + 100, PANEL_Y + 100, 0), -1)
+        from game import get_hovered_upgrade_index, _panel_origin
+        panel_x, panel_y = _panel_origin()
+        self.assertEqual(get_hovered_upgrade_index(panel_x + 100, panel_y + 100, 0), -1)
 
 
 class TestEnemyTypes(unittest.TestCase):
@@ -2005,6 +2010,7 @@ class TestStatsCollection(unittest.TestCase):
         self.assertEqual(result["survival_time_seconds"], 120.5)
         self.assertEqual(result["xp_earned"], 42)
         self.assertEqual(result["final_weapon"], "shotgun")
+        self.assertEqual(set(result["weapons_used"]), {"normal", "shotgun"})
         self.assertIn("timestamp", result)
         self.assertIn("weapon_stats", result)
 
@@ -2041,8 +2047,8 @@ class TestStatsCollection(unittest.TestCase):
             with open(tmp) as f:
                 data = json.load(f)
             self.assertEqual(len(data), 2)
-            game.STATS_FILE = old
         finally:
+            game.STATS_FILE = old
             if os.path.exists(tmp):
                 os.unlink(tmp)
 
@@ -2059,8 +2065,8 @@ class TestStatsCollection(unittest.TestCase):
             with open(tmp) as f:
                 data = json.load(f)
             self.assertEqual(len(data), 1)
-            game.STATS_FILE = old
         finally:
+            game.STATS_FILE = old
             os.unlink(tmp)
 
 

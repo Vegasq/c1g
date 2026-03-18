@@ -490,8 +490,13 @@ def save_stats(run_data):
         except (json.JSONDecodeError, IOError):
             stats = []
     stats.append(run_data)
-    with open(STATS_FILE, "w") as f:
-        json.dump(stats, f, indent=2)
+    try:
+        tmp_path = STATS_FILE + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(stats, f, indent=2)
+        os.replace(tmp_path, STATS_FILE)
+    except OSError:
+        pass
 
 
 class Bullet:
@@ -1142,10 +1147,14 @@ def create_upgrade_icon(option):
     return surf
 
 
+def _panel_origin():
+    """Return (x, y) for the centered upgrade panel."""
+    return (WIDTH - PANEL_WIDTH) // 2, (HEIGHT - PANEL_HEIGHT) // 2
+
+
 def draw_upgrade_panel(level, upgrade_options):
     """Draw a centered floating panel with neon border for the upgrade selector."""
-    panel_x = (WIDTH - PANEL_WIDTH) // 2
-    panel_y = (HEIGHT - PANEL_HEIGHT) // 2
+    panel_x, panel_y = _panel_origin()
     # Panel background
     panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
     panel_surf.fill(PANEL_BG_COLOR)
@@ -1214,8 +1223,7 @@ def draw_upgrade_panel(level, upgrade_options):
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
     """Return the index of the upgrade option under the mouse, or -1 if none."""
-    panel_x = (WIDTH - PANEL_WIDTH) // 2
-    panel_y = (HEIGHT - PANEL_HEIGHT) // 2
+    panel_x, panel_y = _panel_origin()
     local_mx = mouse_x - panel_x
     local_my = mouse_y - panel_y
     for i in range(num_options):
