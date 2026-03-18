@@ -1006,8 +1006,6 @@ def draw_dim_overlay():
 # Upgrade panel constants
 PANEL_WIDTH = 500
 PANEL_HEIGHT = 350
-PANEL_X = (WIDTH - PANEL_WIDTH) // 2
-PANEL_Y = (HEIGHT - PANEL_HEIGHT) // 2
 PANEL_BG_COLOR = (10, 5, 25, 200)
 PANEL_BORDER_GLOW_LAYERS = 4
 OPTION_ROW_HEIGHT = 55
@@ -1084,6 +1082,8 @@ def create_upgrade_icon(option):
 
 def draw_upgrade_panel(level, upgrade_options):
     """Draw a centered floating panel with neon border for the upgrade selector."""
+    panel_x = (WIDTH - PANEL_WIDTH) // 2
+    panel_y = (HEIGHT - PANEL_HEIGHT) // 2
     # Panel background
     panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
     panel_surf.fill(PANEL_BG_COLOR)
@@ -1097,7 +1097,7 @@ def draw_upgrade_panel(level, upgrade_options):
                                 PANEL_WIDTH + expand * 2, PANEL_HEIGHT + expand * 2)
         glow_surf = pygame.Surface((glow_rect.width, glow_rect.height), pygame.SRCALPHA)
         pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius=8)
-        screen.blit(glow_surf, (PANEL_X - expand, PANEL_Y - expand))
+        screen.blit(glow_surf, (panel_x - expand, panel_y - expand))
 
     # Solid border
     pygame.draw.rect(panel_surf, BORDER_COLOR,
@@ -1147,13 +1147,15 @@ def draw_upgrade_panel(level, upgrade_options):
         text_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - text.get_height() // 2
         panel_surf.blit(text, (icon_x + ICON_SIZE + 10, text_y))
 
-    screen.blit(panel_surf, (PANEL_X, PANEL_Y))
+    screen.blit(panel_surf, (panel_x, panel_y))
 
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
     """Return the index of the upgrade option under the mouse, or -1 if none."""
-    local_mx = mouse_x - PANEL_X
-    local_my = mouse_y - PANEL_Y
+    panel_x = (WIDTH - PANEL_WIDTH) // 2
+    panel_y = (HEIGHT - PANEL_HEIGHT) // 2
+    local_mx = mouse_x - panel_x
+    local_my = mouse_y - panel_y
     for i in range(num_options):
         row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
         row_rect = pygame.Rect(OPTION_PADDING, row_y,

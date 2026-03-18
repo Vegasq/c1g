@@ -34,9 +34,9 @@ Three issues addressed:
 **Files:**
 - Modify: `game.py`
 
-- [ ] Replace module-level `PANEL_X`/`PANEL_Y` constants with dynamic calculation using current `WIDTH`/`HEIGHT`
-- [ ] Compute panel position at draw time in `draw_upgrade_panel()` and `get_hovered_upgrade_index()`
-- [ ] Manual test: verify upgrades popup is centered at multiple resolutions (change resolution in options, trigger upgrade popup)
+- [x] Replace module-level `PANEL_X`/`PANEL_Y` constants with dynamic calculation using current `WIDTH`/`HEIGHT`
+- [x] Compute panel position at draw time in `draw_upgrade_panel()` and `get_hovered_upgrade_index()`
+- [x] Manual test: verify upgrades popup is centered at multiple resolutions (change resolution in options, trigger upgrade popup)
 
 ## Task 3: Add stats collection system
 
