@@ -2,6 +2,9 @@ import pygame
 import math
 import random
 import sys
+import json
+import os
+import time
 
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
@@ -430,6 +433,65 @@ def default_weapon_stats():
         "range": 90,
         "weapon_type": "normal",
     }
+
+
+STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats.json")
+
+
+def default_run_stats():
+    """Return default per-run tracking stats."""
+    return {
+        "damage_dealt": 0,
+        "damage_taken": 0,
+        "weapons_used": set(),
+        "weapon_damage": {},
+        "weapon_kills": {},
+        "weapon_picks": {},
+    }
+
+
+def collect_run_stats(run_stats, score, level, wave, xp_earned_total, survival_time, weapon_stats):
+    """Gather per-run data into a serializable dict."""
+    return {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "kills": score,
+        "damage_dealt": run_stats["damage_dealt"],
+        "damage_taken": run_stats["damage_taken"],
+        "waves_reached": wave,
+        "level_reached": level,
+        "survival_time_seconds": round(survival_time, 1),
+        "weapons_used": list(run_stats["weapons_used"]),
+        "xp_earned": xp_earned_total,
+        "final_weapon": weapon_stats["weapon_type"],
+        "weapon_stats": collect_weapon_stats(run_stats),
+    }
+
+
+def collect_weapon_stats(run_stats):
+    """Gather per-weapon data."""
+    all_weapons = set(run_stats["weapon_damage"].keys()) | set(run_stats["weapon_kills"].keys()) | set(run_stats["weapon_picks"].keys())
+    result = {}
+    for w in all_weapons:
+        result[w] = {
+            "times_picked": run_stats["weapon_picks"].get(w, 0),
+            "total_damage": run_stats["weapon_damage"].get(w, 0),
+            "total_kills": run_stats["weapon_kills"].get(w, 0),
+        }
+    return result
+
+
+def save_stats(run_data):
+    """Append run data to stats.json."""
+    stats = []
+    if os.path.exists(STATS_FILE):
+        try:
+            with open(STATS_FILE, "r") as f:
+                stats = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            stats = []
+    stats.append(run_data)
+    with open(STATS_FILE, "w") as f:
+        json.dump(stats, f, indent=2)
 
 
 class Bullet:
@@ -1381,11 +1443,17 @@ def run():
     xp_thresholds = generate_xp_thresholds()
     weapon_stats = default_weapon_stats()
     upgrade_options = []
+    run_stats = default_run_stats()
+    run_stats["weapons_used"].add("normal")
+    run_stats["weapon_picks"]["normal"] = 1
+    run_start_time = time.time()
+    total_xp_earned = 0
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies, bullets, health_pickups, heal_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_stats, upgrade_options, escape_flash_timer
+        nonlocal run_stats, run_start_time, total_xp_earned
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -1407,6 +1475,11 @@ def run():
         level = 1
         weapon_stats = default_weapon_stats()
         upgrade_options = []
+        run_stats = default_run_stats()
+        run_stats["weapons_used"].add("normal")
+        run_stats["weapon_picks"]["normal"] = 1
+        run_start_time = time.time()
+        total_xp_earned = 0
 
     running = True
 
@@ -1452,7 +1525,12 @@ def run():
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
-                        apply_upgrade(weapon_stats, upgrade_options[idx], player)
+                        opt = upgrade_options[idx]
+                        apply_upgrade(weapon_stats, opt, player)
+                        if "weapon_type" in opt:
+                            wt = opt["weapon_type"]
+                            run_stats["weapons_used"].add(wt)
+                            run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
                         upgrade_options = []
                         state = STATE_PLAYING
                 elif state == STATE_MENU:
@@ -1508,7 +1586,12 @@ def run():
                 elif state == STATE_LEVEL_UP and upgrade_options:
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
-                        apply_upgrade(weapon_stats, upgrade_options[idx], player)
+                        opt = upgrade_options[idx]
+                        apply_upgrade(weapon_stats, opt, player)
+                        if "weapon_type" in opt:
+                            wt = opt["weapon_type"]
+                            run_stats["weapons_used"].add(wt)
+                            run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
                         upgrade_options = []
                         state = STATE_PLAYING
 
@@ -1579,6 +1662,7 @@ def run():
                         surviving_enemies.append(e)
                 enemies = surviving_enemies
                 score += er_killed
+                total_xp_earned += er_xp
                 xp += er_xp
                 xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
                 if leveled_up:
@@ -1691,6 +1775,9 @@ def run():
                             b.life = 0
                         break
                     e.hp -= b.damage
+                    run_stats["damage_dealt"] += b.damage
+                    wt = b.weapon_type or "normal"
+                    run_stats["weapon_damage"][wt] = run_stats["weapon_damage"].get(wt, 0) + b.damage
                     if b.weapon_type == "piercing":
                         b.pierced_enemies.add(e.uid)
                     elif b.weapon_type == "explosive":
@@ -1703,6 +1790,7 @@ def run():
                         killed += 1
                         xp_earned += e.xp_value
                         dead_enemies.append((e.x, e.y, e.enemy_type))
+                        run_stats["weapon_kills"][wt] = run_stats["weapon_kills"].get(wt, 0) + 1
                         if e.enemy_type == "splitter":
                             split_spawns.append((e.x, e.y))
                     break
@@ -1720,10 +1808,13 @@ def run():
                         e.shield = False
                     else:
                         e.hp -= edmg
+                        run_stats["damage_dealt"] += edmg
+                        run_stats["weapon_damage"]["explosive"] = run_stats["weapon_damage"].get("explosive", 0) + edmg
                         if e.hp <= 0:
                             killed += 1
                             xp_earned += e.xp_value
                             dead_enemies.append((e.x, e.y, e.enemy_type))
+                            run_stats["weapon_kills"]["explosive"] = run_stats["weapon_kills"].get("explosive", 0) + 1
                             if e.enemy_type == "splitter":
                                 split_spawns.append((e.x, e.y))
                             continue
@@ -1747,6 +1838,7 @@ def run():
                 health_pickups.append(HealthPickup(dx, dy))
 
         # Award XP and check level-up
+        total_xp_earned += xp_earned
         xp += xp_earned
         xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
         if leveled_up:
@@ -1786,6 +1878,7 @@ def run():
         for e in enemies:
             if math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
                 player.hp -= 1
+                run_stats["damage_taken"] += 1
             else:
                 surviving.append(e)
         enemies = surviving
@@ -1803,6 +1896,9 @@ def run():
         heal_effects = [(x, y, t - 1) for x, y, t in heal_effects if t > 0]
 
         if player.hp <= 0:
+            survival_time = time.time() - run_start_time
+            run_data = collect_run_stats(run_stats, score, level, wave, total_xp_earned, survival_time, weapon_stats)
+            save_stats(run_data)
             state = STATE_GAME_OVER
 
         # Tick escape room pulse timers

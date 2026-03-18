@@ -44,12 +44,12 @@ Three issues addressed:
 - Modify: `game.py`
 - Created at runtime: `stats.json`
 
-- [ ] Add tracking variables for damage dealt, damage taken, and weapon usage during gameplay
-- [ ] Create a `collect_run_stats()` function that gathers per-run data: kills, damage dealt, damage taken, waves reached, survival time, weapons used, XP earned
-- [ ] Create a `collect_weapon_stats()` function that gathers per-weapon data: times picked, total damage, total kills
-- [ ] Save stats to `stats.json` in the game directory, appending each run as a new entry in a JSON array
-- [ ] Call stats collection at game over (STATE_GAME_OVER transition)
-- [ ] Manual test: verify `stats.json` is created after a game over with correct structure
+- [x] Add tracking variables for damage dealt, damage taken, and weapon usage during gameplay
+- [x] Create a `collect_run_stats()` function that gathers per-run data: kills, damage dealt, damage taken, waves reached, survival time, weapons used, XP earned
+- [x] Create a `collect_weapon_stats()` function that gathers per-weapon data: times picked, total damage, total kills
+- [x] Save stats to `stats.json` in the game directory, appending each run as a new entry in a JSON array
+- [x] Call stats collection at game over (STATE_GAME_OVER transition)
+- [x] Manual test: verify `stats.json` is created after a game over with correct structure
 
 ## Final Validation
 

@@ -14,7 +14,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   SUPPORTED_RESOLUTIONS, apply_resolution,
                   EscapeRoom,
                   MAP_WIDTH, MAP_HEIGHT,
-                  _is_visible)
+                  _is_visible,
+                  default_run_stats, collect_run_stats, collect_weapon_stats, save_stats, STATS_FILE)
 import game
 
 
@@ -1968,6 +1969,99 @@ class TestMenuKeyboardNavigation(unittest.TestCase):
         self.assertEqual(game.menu_selected_index, 0)
         self.assertEqual(game.menu_fade_alpha, 0)
         self.assertTrue(game.menu_fade_active)
+
+
+class TestStatsCollection(unittest.TestCase):
+    """Tests for stats collection system."""
+
+    def test_default_run_stats(self):
+        stats = default_run_stats()
+        self.assertEqual(stats["damage_dealt"], 0)
+        self.assertEqual(stats["damage_taken"], 0)
+        self.assertIsInstance(stats["weapons_used"], set)
+        self.assertIsInstance(stats["weapon_damage"], dict)
+        self.assertIsInstance(stats["weapon_kills"], dict)
+        self.assertIsInstance(stats["weapon_picks"], dict)
+
+    def test_collect_run_stats(self):
+        run_stats = default_run_stats()
+        run_stats["damage_dealt"] = 50
+        run_stats["damage_taken"] = 3
+        run_stats["weapons_used"] = {"normal", "shotgun"}
+        run_stats["weapon_damage"] = {"normal": 30, "shotgun": 20}
+        run_stats["weapon_kills"] = {"normal": 10, "shotgun": 5}
+        run_stats["weapon_picks"] = {"normal": 1, "shotgun": 1}
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+
+        result = collect_run_stats(run_stats, score=15, level=4, wave=3,
+                                   xp_earned_total=42, survival_time=120.5,
+                                   weapon_stats=ws)
+        self.assertEqual(result["kills"], 15)
+        self.assertEqual(result["damage_dealt"], 50)
+        self.assertEqual(result["damage_taken"], 3)
+        self.assertEqual(result["waves_reached"], 3)
+        self.assertEqual(result["level_reached"], 4)
+        self.assertEqual(result["survival_time_seconds"], 120.5)
+        self.assertEqual(result["xp_earned"], 42)
+        self.assertEqual(result["final_weapon"], "shotgun")
+        self.assertIn("timestamp", result)
+        self.assertIn("weapon_stats", result)
+
+    def test_collect_weapon_stats(self):
+        run_stats = default_run_stats()
+        run_stats["weapon_damage"] = {"normal": 30, "shotgun": 20}
+        run_stats["weapon_kills"] = {"normal": 10}
+        run_stats["weapon_picks"] = {"normal": 1, "shotgun": 1}
+
+        result = collect_weapon_stats(run_stats)
+        self.assertEqual(result["normal"]["total_damage"], 30)
+        self.assertEqual(result["normal"]["total_kills"], 10)
+        self.assertEqual(result["normal"]["times_picked"], 1)
+        self.assertEqual(result["shotgun"]["total_damage"], 20)
+        self.assertEqual(result["shotgun"]["total_kills"], 0)
+        self.assertEqual(result["shotgun"]["times_picked"], 1)
+
+    def test_save_stats_creates_file(self):
+        import tempfile, os, json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            tmp = f.name
+        os.unlink(tmp)
+        try:
+            import game
+            old = game.STATS_FILE
+            game.STATS_FILE = tmp
+            save_stats({"test": True})
+            with open(tmp) as f:
+                data = json.load(f)
+            self.assertEqual(len(data), 1)
+            self.assertTrue(data[0]["test"])
+            # Append second entry
+            save_stats({"test2": True})
+            with open(tmp) as f:
+                data = json.load(f)
+            self.assertEqual(len(data), 2)
+            game.STATS_FILE = old
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+    def test_save_stats_handles_corrupt_file(self):
+        import tempfile, os, json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            f.write("not json")
+            tmp = f.name
+        try:
+            import game
+            old = game.STATS_FILE
+            game.STATS_FILE = tmp
+            save_stats({"recovery": True})
+            with open(tmp) as f:
+                data = json.load(f)
+            self.assertEqual(len(data), 1)
+            game.STATS_FILE = old
+        finally:
+            os.unlink(tmp)
 
 
 if __name__ == "__main__":
