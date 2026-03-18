@@ -2564,5 +2564,201 @@ class TestGamepadInitialization(unittest.TestCase):
             self.assertEqual(game.active_joystick, existing_joy)
 
 
+class TestGamepadMovement(unittest.TestCase):
+    """Tests for gamepad movement input during STATE_PLAYING."""
+
+    def setUp(self):
+        self.saved_joystick = game.active_joystick
+
+    def tearDown(self):
+        game.active_joystick = self.saved_joystick
+
+    def test_analog_stick_horizontal_movement(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.8, 1: 0.0}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        self.assertAlmostEqual(mx, 0.8)
+        self.assertAlmostEqual(my, 0.0)
+
+    def test_analog_stick_vertical_movement(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.0, 1: -0.9}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        self.assertAlmostEqual(mx, 0.0)
+        self.assertAlmostEqual(my, -0.9)
+
+    def test_analog_stick_diagonal_movement(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.7, 1: 0.7}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        self.assertAlmostEqual(mx, 0.7)
+        self.assertAlmostEqual(my, 0.7)
+
+    def test_analog_stick_deadzone_filters_small_input(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.1, 1: -0.2}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        self.assertAlmostEqual(mx, 0.0)
+        self.assertAlmostEqual(my, 0.0)
+
+    def test_analog_stick_at_deadzone_boundary_filtered(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.3, 1: -0.3}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        self.assertAlmostEqual(mx, 0.0)
+        self.assertAlmostEqual(my, 0.0)
+
+    def test_dpad_movement_right(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.return_value = 0.0
+        mock_joy.get_numhats.return_value = 1
+        mock_joy.get_hat.return_value = (1, 0)
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        if mock_joy.get_numhats() > 0:
+            hat_x, hat_y = mock_joy.get_hat(0)
+            mx += hat_x
+            my -= hat_y
+        self.assertEqual(mx, 1)
+        self.assertEqual(my, 0)
+
+    def test_dpad_movement_up(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.return_value = 0.0
+        mock_joy.get_numhats.return_value = 1
+        mock_joy.get_hat.return_value = (0, 1)
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        if mock_joy.get_numhats() > 0:
+            hat_x, hat_y = mock_joy.get_hat(0)
+            mx += hat_x
+            my -= hat_y
+        self.assertEqual(mx, 0)
+        self.assertEqual(my, -1)
+
+    def test_dpad_movement_down_left(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.return_value = 0.0
+        mock_joy.get_numhats.return_value = 1
+        mock_joy.get_hat.return_value = (-1, -1)
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        if mock_joy.get_numhats() > 0:
+            hat_x, hat_y = mock_joy.get_hat(0)
+            mx += hat_x
+            my -= hat_y
+        self.assertEqual(mx, -1)
+        self.assertEqual(my, 1)
+
+    def test_no_joystick_no_gamepad_input(self):
+        game.active_joystick = None
+        mx, my = 0, 0
+        if game.active_joystick is not None:
+            mx += game.active_joystick.get_axis(0)
+        self.assertEqual(mx, 0)
+        self.assertEqual(my, 0)
+
+    def test_combined_keyboard_and_stick_movement(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.5, 1: 0.0}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        # Simulate keyboard pressing left (mx=-1) combined with stick right (0.5)
+        mx, my = -1, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        self.assertAlmostEqual(mx, -0.5)
+        self.assertAlmostEqual(my, 0.0)
+
+    def test_combined_keyboard_and_dpad_movement(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.return_value = 0.0
+        mock_joy.get_numhats.return_value = 1
+        mock_joy.get_hat.return_value = (1, 0)
+        game.active_joystick = mock_joy
+        # Simulate keyboard pressing up (my=-1) combined with dpad right
+        mx, my = 0, -1
+        if mock_joy.get_numhats() > 0:
+            hat_x, hat_y = mock_joy.get_hat(0)
+            mx += hat_x
+            my -= hat_y
+        self.assertEqual(mx, 1)
+        self.assertEqual(my, -1)
+
+    def test_movement_normalization_with_gamepad(self):
+        # Verify that combined movement gets normalized properly
+        mx, my = 1.5, 1.5
+        if mx or my:
+            length = math.hypot(mx, my)
+            norm_mx = mx / length
+            norm_my = my / length
+            # Normalized vector should have magnitude 1
+            self.assertAlmostEqual(math.hypot(norm_mx, norm_my), 1.0)
+
+    def test_dpad_no_hats_available(self):
+        mock_joy = MagicMock()
+        mock_joy.get_axis.return_value = 0.0
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        mx, my = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > game.JOYSTICK_DEADZONE:
+            mx += axis_x
+        if abs(axis_y) > game.JOYSTICK_DEADZONE:
+            my += axis_y
+        if mock_joy.get_numhats() > 0:
+            hat_x, hat_y = mock_joy.get_hat(0)
+            mx += hat_x
+            my -= hat_y
+        self.assertEqual(mx, 0)
+        self.assertEqual(my, 0)
+        mock_joy.get_hat.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

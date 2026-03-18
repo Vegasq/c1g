@@ -42,11 +42,11 @@ Button mapping (SDL/Steam Deck standard):
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] Read left analog stick axes (axis 0 = horizontal, axis 1 = vertical) during `STATE_PLAYING`, apply deadzone, and combine with existing keyboard mx/my movement
-- [ ] Read D-pad (hat 0) during `STATE_PLAYING` and combine with movement
-- [ ] Normalize combined movement vector (same as existing keyboard normalization)
-- [ ] Write tests for gamepad movement input handling
-- [ ] Run project test suite - must pass before task 3
+- [x] Read left analog stick axes (axis 0 = horizontal, axis 1 = vertical) during `STATE_PLAYING`, apply deadzone, and combine with existing keyboard mx/my movement
+- [x] Read D-pad (hat 0) during `STATE_PLAYING` and combine with movement
+- [x] Normalize combined movement vector (same as existing keyboard normalization)
+- [x] Write tests for gamepad movement input handling
+- [x] Run project test suite - must pass before task 3
 
 ## Task 3: Gamepad support for all menu and UI states
 

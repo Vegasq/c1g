@@ -1762,6 +1762,21 @@ def run():
             mx -= 1
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
             mx += 1
+
+        # Gamepad input
+        if active_joystick is not None:
+            # Left analog stick
+            axis_x = active_joystick.get_axis(0)
+            axis_y = active_joystick.get_axis(1)
+            if abs(axis_x) > JOYSTICK_DEADZONE:
+                mx += axis_x
+            if abs(axis_y) > JOYSTICK_DEADZONE:
+                my += axis_y
+            # D-pad (hat 0)
+            if active_joystick.get_numhats() > 0:
+                hat_x, hat_y = active_joystick.get_hat(0)
+                mx += hat_x
+                my -= hat_y  # SDL hat y is inverted (up=1, down=-1)
         if mx or my:
             length = math.hypot(mx, my)
             player.x += mx / length * 3.5
