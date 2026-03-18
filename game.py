@@ -1775,7 +1775,7 @@ def run():
 
         # Gamepad D-pad/stick navigation for menu states (with repeat delay)
         if active_joystick is not None and state != STATE_PLAYING:
-            now = time.time()
+            now = time.monotonic()
             nav_x, nav_y = 0, 0
             # Analog stick
             if active_joystick.get_numaxes() >= 2:
@@ -1801,7 +1801,7 @@ def run():
                     current_options_idx = options_selected_index
                     if nav_y:
                         options_selected_index = (options_selected_index + (1 if nav_y > 0 else -1)) % 3
-                    if nav_x:
+                    elif nav_x:
                         direction = 1 if nav_x > 0 else -1
                         if current_options_idx == 0:
                             options_resolution_index = (options_resolution_index + direction) % len(SUPPORTED_RESOLUTIONS)

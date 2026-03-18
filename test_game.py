@@ -3011,8 +3011,8 @@ class TestGamepadMenuNavigation(unittest.TestCase):
         """Navigation should be blocked if called again within repeat delay."""
         game.menu_selected_index = 0
         import time
-        game._gamepad_nav_last_time = time.time()  # just navigated
-        now = time.time()
+        game._gamepad_nav_last_time = time.monotonic()  # just navigated
+        now = time.monotonic()
         # Should not navigate because we just did
         if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
             game.menu_selected_index = (game.menu_selected_index + 1) % len(MENU_ITEMS)
@@ -3022,8 +3022,8 @@ class TestGamepadMenuNavigation(unittest.TestCase):
         """Navigation should proceed after repeat delay has passed."""
         game.menu_selected_index = 0
         import time
-        game._gamepad_nav_last_time = time.time() - GAMEPAD_NAV_REPEAT_DELAY - 0.01
-        now = time.time()
+        game._gamepad_nav_last_time = time.monotonic() - GAMEPAD_NAV_REPEAT_DELAY - 0.01
+        now = time.monotonic()
         if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
             game._gamepad_nav_last_time = now
             game.menu_selected_index = (game.menu_selected_index + 1) % len(MENU_ITEMS)
