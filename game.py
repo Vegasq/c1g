@@ -1773,6 +1773,8 @@ def run():
                 score += er_killed
                 total_xp_earned += er_xp
                 xp += er_xp
+                run_stats["wave_kills"] += er_killed
+                run_stats["wave_xp_earned"] += er_xp
                 xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
                 if leveled_up:
                     upgrade_options = generate_upgrade_options(level, weapon_inventory)
