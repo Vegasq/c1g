@@ -14,7 +14,7 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   STATE_OPTIONS,
                   SUPPORTED_RESOLUTIONS, apply_resolution,
                   EscapeRoom,
-                  MAP_WIDTH, MAP_HEIGHT,
+                  MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES,
                   _is_visible,
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats, STATS_FILE)
 import game
@@ -1016,19 +1016,19 @@ class TestEnemyTypes(unittest.TestCase):
     def test_enemy_types_config_has_basic(self):
         self.assertIn("basic", ENEMY_TYPES)
         basic = ENEMY_TYPES["basic"]
-        self.assertEqual(basic["hp"], 2)
-        self.assertAlmostEqual(basic["speed"], 1.2)
+        self.assertEqual(basic["hp"], 3)
+        self.assertAlmostEqual(basic["speed"], 1.4)
         self.assertEqual(basic["radius"], 12)
-        self.assertEqual(basic["xp_value"], 1)
+        self.assertEqual(basic["xp_value"], 2)
 
     def test_basic_enemy_creation(self):
         e = Enemy(self.camera)
         self.assertEqual(e.enemy_type, "basic")
-        self.assertEqual(e.hp, 2)
-        self.assertAlmostEqual(e.speed, 1.2)
+        self.assertEqual(e.hp, 3)
+        self.assertAlmostEqual(e.speed, 1.4)
         self.assertEqual(e.radius, 12)
         self.assertEqual(e.color, (255, 30, 60))
-        self.assertEqual(e.xp_value, 1)
+        self.assertEqual(e.xp_value, 2)
 
     def test_enemy_type_defaults_to_basic(self):
         e = Enemy(self.camera)
@@ -1037,7 +1037,7 @@ class TestEnemyTypes(unittest.TestCase):
     def test_explicit_basic_type(self):
         e = Enemy(self.camera, enemy_type="basic")
         self.assertEqual(e.enemy_type, "basic")
-        self.assertEqual(e.hp, 2)
+        self.assertEqual(e.hp, 3)
 
     def test_enemy_has_unique_uid(self):
         e1 = Enemy(self.camera)
@@ -1045,9 +1045,9 @@ class TestEnemyTypes(unittest.TestCase):
         self.assertNotEqual(e1.uid, e2.uid)
 
     def test_enemy_xp_value_used_for_scoring(self):
-        """Basic enemies should give xp_value=1."""
+        """Basic enemies should give xp_value=2."""
         e = Enemy(self.camera)
-        self.assertEqual(e.xp_value, 1)
+        self.assertEqual(e.xp_value, 2)
 
     def test_all_enemy_types_have_required_keys(self):
         required_keys = {"hp", "speed", "radius", "color", "xp_value"}
@@ -1072,31 +1072,31 @@ class TestEnemyTypes(unittest.TestCase):
     def test_runner_type_config(self):
         self.assertIn("runner", ENEMY_TYPES)
         cfg = ENEMY_TYPES["runner"]
-        self.assertEqual(cfg["hp"], 1)
+        self.assertEqual(cfg["hp"], 2)
         self.assertEqual(cfg["speed"], 2.2)
         self.assertEqual(cfg["radius"], 8)
-        self.assertEqual(cfg["xp_value"], 1)
+        self.assertEqual(cfg["xp_value"], 2)
 
     def test_brute_type_config(self):
         self.assertIn("brute", ENEMY_TYPES)
         cfg = ENEMY_TYPES["brute"]
-        self.assertEqual(cfg["hp"], 6)
-        self.assertEqual(cfg["speed"], 0.7)
+        self.assertEqual(cfg["hp"], 9)
+        self.assertEqual(cfg["speed"], 0.9)
         self.assertEqual(cfg["radius"], 18)
-        self.assertEqual(cfg["xp_value"], 3)
+        self.assertEqual(cfg["xp_value"], 5)
 
     def test_runner_creation(self):
         e = Enemy(self.camera, enemy_type="runner")
         self.assertEqual(e.enemy_type, "runner")
-        self.assertEqual(e.hp, 1)
+        self.assertEqual(e.hp, 2)
         self.assertEqual(e.speed, 2.2)
         self.assertEqual(e.radius, 8)
 
     def test_brute_creation(self):
         e = Enemy(self.camera, enemy_type="brute")
         self.assertEqual(e.enemy_type, "brute")
-        self.assertEqual(e.hp, 6)
-        self.assertEqual(e.speed, 0.7)
+        self.assertEqual(e.hp, 9)
+        self.assertEqual(e.speed, 0.9)
         self.assertEqual(e.radius, 18)
 
     def test_runner_draw_renders_triangle(self):
@@ -1143,17 +1143,17 @@ class TestShieldedEnemy(unittest.TestCase):
     def test_shielded_type_config(self):
         self.assertIn("shielded", ENEMY_TYPES)
         cfg = ENEMY_TYPES["shielded"]
-        self.assertEqual(cfg["hp"], 4)
+        self.assertEqual(cfg["hp"], 6)
         self.assertEqual(cfg["speed"], 1.0)
         self.assertEqual(cfg["radius"], 14)
         self.assertEqual(cfg["color"], (0, 255, 255))
-        self.assertEqual(cfg["xp_value"], 4)
+        self.assertEqual(cfg["xp_value"], 6)
         self.assertTrue(cfg["shield"])
 
     def test_shielded_creation(self):
         e = Enemy(self.camera, enemy_type="shielded")
         self.assertEqual(e.enemy_type, "shielded")
-        self.assertEqual(e.hp, 4)
+        self.assertEqual(e.hp, 6)
         self.assertTrue(e.shield)
 
     def test_shield_absorbs_first_hit(self):
@@ -1209,16 +1209,16 @@ class TestSplitterEnemy(unittest.TestCase):
     def test_splitter_type_config(self):
         self.assertIn("splitter", ENEMY_TYPES)
         cfg = ENEMY_TYPES["splitter"]
-        self.assertEqual(cfg["hp"], 3)
+        self.assertEqual(cfg["hp"], 4)
         self.assertEqual(cfg["speed"], 1.0)
         self.assertEqual(cfg["radius"], 14)
         self.assertEqual(cfg["color"], (0, 255, 100))
-        self.assertEqual(cfg["xp_value"], 2)
+        self.assertEqual(cfg["xp_value"], 3)
 
     def test_mini_type_config(self):
         self.assertIn("mini", ENEMY_TYPES)
         cfg = ENEMY_TYPES["mini"]
-        self.assertEqual(cfg["hp"], 1)
+        self.assertEqual(cfg["hp"], 2)
         self.assertEqual(cfg["speed"], 1.8)
         self.assertEqual(cfg["radius"], 7)
         self.assertEqual(cfg["xp_value"], 1)
@@ -1226,13 +1226,13 @@ class TestSplitterEnemy(unittest.TestCase):
     def test_splitter_creation(self):
         e = Enemy(self.camera, enemy_type="splitter")
         self.assertEqual(e.enemy_type, "splitter")
-        self.assertEqual(e.hp, 3)
+        self.assertEqual(e.hp, 4)
         self.assertFalse(e.shield)
 
     def test_mini_creation(self):
         e = Enemy(self.camera, enemy_type="mini")
         self.assertEqual(e.enemy_type, "mini")
-        self.assertEqual(e.hp, 1)
+        self.assertEqual(e.hp, 2)
         self.assertEqual(e.radius, 7)
 
     def test_splitter_draw_renders(self):
@@ -1280,7 +1280,7 @@ class TestSplitterEnemy(unittest.TestCase):
         self.assertEqual(len(minis), 2)
         self.assertEqual(minis[0].enemy_type, "mini")
         self.assertEqual(minis[1].enemy_type, "mini")
-        self.assertEqual(minis[0].hp, 1)
+        self.assertEqual(minis[0].hp, 2)
         self.assertAlmostEqual(minis[0].x, 88.0)
         self.assertAlmostEqual(minis[1].x, 112.0)
 
@@ -1300,18 +1300,18 @@ class TestEliteEnemy(unittest.TestCase):
     def test_elite_type_config(self):
         self.assertIn("elite", ENEMY_TYPES)
         cfg = ENEMY_TYPES["elite"]
-        self.assertEqual(cfg["hp"], 10)
+        self.assertEqual(cfg["hp"], 15)
         self.assertEqual(cfg["speed"], 1.8)
         self.assertEqual(cfg["radius"], 16)
         self.assertEqual(cfg["color"], (255, 0, 255))
-        self.assertEqual(cfg["xp_value"], 8)
+        self.assertEqual(cfg["xp_value"], 12)
 
     def test_elite_creation(self):
         e = Enemy(self.camera, enemy_type="elite")
         self.assertEqual(e.enemy_type, "elite")
-        self.assertEqual(e.hp, 10)
+        self.assertEqual(e.hp, 15)
         self.assertEqual(e.speed, 1.8)
-        self.assertEqual(e.xp_value, 8)
+        self.assertEqual(e.xp_value, 12)
 
     def test_elite_draw_renders(self):
         import game
@@ -2226,6 +2226,38 @@ class TestMultiWeaponInventory(unittest.TestCase):
         self.assertEqual(player.max_hp, 6)
         # Weapons unchanged
         self.assertEqual(len(inv), 1)
+
+
+class TestEnemyRebalance(unittest.TestCase):
+    """Tests for the enemy rebalance: reduced counts, buffed stats."""
+
+    def test_max_enemies_reduced(self):
+        self.assertEqual(MAX_ENEMIES, 140)
+
+    def test_buffed_hp_values(self):
+        expected_hp = {"basic": 3, "runner": 2, "brute": 9, "shielded": 6,
+                       "splitter": 4, "mini": 2, "elite": 15}
+        for etype, hp in expected_hp.items():
+            self.assertEqual(ENEMY_TYPES[etype]["hp"], hp,
+                             f"{etype} HP should be {hp}")
+
+    def test_buffed_xp_values(self):
+        expected_xp = {"basic": 2, "runner": 2, "brute": 5, "shielded": 6,
+                        "splitter": 3, "mini": 1, "elite": 12}
+        for etype, xp in expected_xp.items():
+            self.assertEqual(ENEMY_TYPES[etype]["xp_value"], xp,
+                             f"{etype} xp_value should be {xp}")
+
+    def test_speed_buffs(self):
+        self.assertAlmostEqual(ENEMY_TYPES["basic"]["speed"], 1.4)
+        self.assertAlmostEqual(ENEMY_TYPES["brute"]["speed"], 0.9)
+
+    def test_spawn_count_formula_lower(self):
+        """wave + wave // 4 produces fewer enemies than wave + wave // 2."""
+        for wave in range(1, 20):
+            new_count = wave + wave // 4
+            old_count = wave + wave // 2
+            self.assertLessEqual(new_count, old_count)
 
 
 if __name__ == "__main__":

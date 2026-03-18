@@ -33,13 +33,13 @@ Two main changes: (1) Weapons accumulate during a run instead of replacing - pla
 **Files:**
 - Modify: `game.py`
 
-- [ ] Reduce `MAX_ENEMIES` from 200 to 140 (70% of current).
-- [ ] Reduce spawn count per event: change formula from `wave + wave // 2` to `wave + wave // 4` (roughly 60-70% of current at higher waves).
-- [ ] Increase initial `spawn_interval` from 90 to 110 (slower early ramp).
-- [ ] Buff `ENEMY_TYPES` stats: increase HP by ~50% across all types (basic: 3, runner: 2, brute: 9, shielded: 6, splitter: 4, mini: 2, elite: 15). Increase speed slightly for basic and brute (+0.2 each).
-- [ ] Increase XP values proportionally to compensate for fewer but tougher enemies (roughly +50%: basic: 2, runner: 2, brute: 5, shielded: 6, splitter: 3, mini: 1, elite: 12).
-- [ ] Write tests for updated enemy stats and spawn rate calculations.
-- [ ] Run project test suite - must pass before task 3.
+- [x] Reduce `MAX_ENEMIES` from 200 to 140 (70% of current).
+- [x] Reduce spawn count per event: change formula from `wave + wave // 2` to `wave + wave // 4` (roughly 60-70% of current at higher waves).
+- [x] Increase initial `spawn_interval` from 90 to 110 (slower early ramp).
+- [x] Buff `ENEMY_TYPES` stats: increase HP by ~50% across all types (basic: 3, runner: 2, brute: 9, shielded: 6, splitter: 4, mini: 2, elite: 15). Increase speed slightly for basic and brute (+0.2 each).
+- [x] Increase XP values proportionally to compensate for fewer but tougher enemies (roughly +50%: basic: 2, runner: 2, brute: 5, shielded: 6, splitter: 3, mini: 1, elite: 12).
+- [x] Write tests for updated enemy stats and spawn rate calculations.
+- [x] Run project test suite - must pass before task 3.
 
 ## Task 3: Integration testing and balance verification
 

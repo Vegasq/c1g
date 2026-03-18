@@ -9,7 +9,7 @@ import time
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60
-MAX_ENEMIES = 200
+MAX_ENEMIES = 140
 
 # Defer pygame display/font init so the module can be imported for testing
 screen = None
@@ -661,13 +661,13 @@ class Unit:
 
 
 ENEMY_TYPES = {
-    "basic": {"hp": 2, "speed": 1.2, "radius": 12, "color": (255, 30, 60), "xp_value": 1},
-    "runner": {"hp": 1, "speed": 2.2, "radius": 8, "color": (230, 255, 0), "xp_value": 1},
-    "brute": {"hp": 6, "speed": 0.7, "radius": 18, "color": (255, 140, 0), "xp_value": 3},
-    "shielded": {"hp": 4, "speed": 1.0, "radius": 14, "color": (0, 255, 255), "xp_value": 4, "shield": True},
-    "splitter": {"hp": 3, "speed": 1.0, "radius": 14, "color": (0, 255, 100), "xp_value": 2},
-    "mini": {"hp": 1, "speed": 1.8, "radius": 7, "color": (0, 255, 100), "xp_value": 1},
-    "elite": {"hp": 10, "speed": 1.8, "radius": 16, "color": (255, 0, 255), "xp_value": 8},
+    "basic": {"hp": 3, "speed": 1.4, "radius": 12, "color": (255, 30, 60), "xp_value": 2},
+    "runner": {"hp": 2, "speed": 2.2, "radius": 8, "color": (230, 255, 0), "xp_value": 2},
+    "brute": {"hp": 9, "speed": 0.9, "radius": 18, "color": (255, 140, 0), "xp_value": 5},
+    "shielded": {"hp": 6, "speed": 1.0, "radius": 14, "color": (0, 255, 255), "xp_value": 6, "shield": True},
+    "splitter": {"hp": 4, "speed": 1.0, "radius": 14, "color": (0, 255, 100), "xp_value": 3},
+    "mini": {"hp": 2, "speed": 1.8, "radius": 7, "color": (0, 255, 100), "xp_value": 1},
+    "elite": {"hp": 15, "speed": 1.8, "radius": 16, "color": (255, 0, 255), "xp_value": 12},
 }
 
 # Wave-based spawn weight tables: maps wave thresholds to enemy type weights.
@@ -1514,7 +1514,7 @@ def run():
     escape_flash_timer = 0
     score = 0
     spawn_timer = 0
-    spawn_interval = 90  # frames between spawns
+    spawn_interval = 110  # frames between spawns
     wave = 1
     wave_timer = 0
     xp = 0
@@ -1547,7 +1547,7 @@ def run():
         escape_flash_timer = 0
         score = 0
         spawn_timer = 0
-        spawn_interval = 90
+        spawn_interval = 110
         wave = 1
         wave_timer = 0
         xp = 0
@@ -1786,7 +1786,7 @@ def run():
             spawn_interval = max(10, spawn_interval - 14)
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
-            for _ in range(wave + wave // 2):
+            for _ in range(wave + wave // 4):
                 if len(enemies) >= MAX_ENEMIES:
                     break
                 etype = get_enemy_type_for_wave(wave)
