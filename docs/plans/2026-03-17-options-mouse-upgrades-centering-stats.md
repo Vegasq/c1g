@@ -23,11 +23,11 @@ Three issues addressed:
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create `get_hovered_options_index()` helper similar to `get_hovered_menu_index()` at ~line 1247
-- [ ] Add MOUSEMOTION handler for STATE_OPTIONS that updates `options_selected_index` on hover
-- [ ] Add MOUSEBUTTONDOWN handler for STATE_OPTIONS that triggers the same actions as RETURN/LEFT/RIGHT keys (cycle resolution, toggle fullscreen, go back)
-- [ ] For Resolution and Fullscreen items, left-click cycles forward (same as RIGHT key)
-- [ ] Manual test: verify options menu items highlight on hover, clicking Resolution cycles values, clicking Fullscreen toggles, clicking Back returns to main menu
+- [x] Create `get_hovered_options_index()` helper similar to `get_hovered_menu_index()` at ~line 1247
+- [x] Add MOUSEMOTION handler for STATE_OPTIONS that updates `options_selected_index` on hover
+- [x] Add MOUSEBUTTONDOWN handler for STATE_OPTIONS that triggers the same actions as RETURN/LEFT/RIGHT keys (cycle resolution, toggle fullscreen, go back)
+- [x] For Resolution and Fullscreen items, left-click cycles forward (same as RIGHT key)
+- [x] Manual test: verify options menu items highlight on hover, clicking Resolution cycles values, clicking Fullscreen toggles, clicking Back returns to main menu
 
 ## Task 2: Fix upgrades popup centering on all resolutions
 

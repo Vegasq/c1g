@@ -1252,6 +1252,14 @@ def get_hovered_menu_index(mx, my):
     return -1
 
 
+def get_hovered_options_index(mx, my):
+    """Return options menu item index under mouse position, or -1 if none."""
+    for i in range(3):  # Resolution, Fullscreen, Back
+        if get_menu_item_rect(i).collidepoint(mx, my):
+            return i
+    return -1
+
+
 def draw_menu_separator(surface, x, y, width, ticks):
     """Draw an animated orange line separator between menu items."""
     # Pulsing alpha based on time
@@ -1463,12 +1471,29 @@ def run():
                     if state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
+            if event.type == pygame.MOUSEMOTION and state == STATE_OPTIONS:
+                idx = get_hovered_options_index(event.pos[0], event.pos[1])
+                if idx >= 0:
+                    options_selected_index = idx
             if event.type == pygame.MOUSEMOTION and state == STATE_MENU:
                 idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                 if idx >= 0:
                     menu_selected_index = idx
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if state == STATE_MENU:
+                if state == STATE_OPTIONS:
+                    idx = get_hovered_options_index(event.pos[0], event.pos[1])
+                    if idx == 0:  # Resolution - cycle forward
+                        options_resolution_index = (
+                            options_resolution_index + 1
+                        ) % len(SUPPORTED_RESOLUTIONS)
+                        apply_resolution()
+                    elif idx == 1:  # Fullscreen - toggle
+                        options_fullscreen = not options_fullscreen
+                        apply_resolution()
+                    elif idx == 2:  # Back
+                        state = STATE_MENU
+                        _reset_menu_state()
+                elif state == STATE_MENU:
                     idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                     if idx == 0:  # NEW GAME
                         reset_game()
