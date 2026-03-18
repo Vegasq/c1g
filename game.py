@@ -951,7 +951,7 @@ def apply_upgrade(weapon_stats, option, player=None):
             for stat_key in ("damage", "fire_rate", "bullet_speed", "range"):
                 bonus = ref[stat_key] - defaults[stat_key]
                 new_weapon[stat_key] += bonus
-            new_weapon["fire_rate"] = max(3, new_weapon["fire_rate"])
+            new_weapon["fire_rate"] = max(5, new_weapon["fire_rate"])
             weapon_stats.append(new_weapon)
         else:
             weapon_stats["weapon_type"] = option["weapon_type"]
@@ -965,11 +965,11 @@ def apply_upgrade(weapon_stats, option, player=None):
             for ws in weapon_stats:
                 ws[option["stat"]] += option["amount"]
                 if option["stat"] == "fire_rate":
-                    ws["fire_rate"] = max(3, ws["fire_rate"])
+                    ws["fire_rate"] = max(5, ws["fire_rate"])
         else:
             weapon_stats[option["stat"]] += option["amount"]
             if option["stat"] == "fire_rate":
-                weapon_stats["fire_rate"] = max(3, weapon_stats["fire_rate"])
+                weapon_stats["fire_rate"] = max(5, weapon_stats["fire_rate"])
     return weapon_stats
 
 

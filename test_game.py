@@ -268,7 +268,7 @@ class TestApplyUpgrade(unittest.TestCase):
         stats = default_weapon_stats()
         stats["fire_rate"] = 4
         apply_upgrade(stats, {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3})
-        self.assertEqual(stats["fire_rate"], 3)
+        self.assertEqual(stats["fire_rate"], 5)
 
     def test_apply_weapon_type(self):
         stats = default_weapon_stats()
@@ -2145,12 +2145,12 @@ class TestMultiWeaponInventory(unittest.TestCase):
             self.assertEqual(ws["damage"], 3)  # 1 + 2
 
     def test_apply_upgrade_fire_rate_clamp(self):
-        """Fire rate is clamped to minimum 3 for all weapons."""
+        """Fire rate is clamped to minimum 5 for all weapons."""
         inv = default_weapon_inventory()
         inv[0]["fire_rate"] = 5
         option = {"name": "+Fire Rate", "stat": "fire_rate", "amount": -10}
         apply_upgrade(inv, option)
-        self.assertEqual(inv[0]["fire_rate"], 3)
+        self.assertEqual(inv[0]["fire_rate"], 5)
 
     def test_apply_upgrade_weapon_type_adds_to_inventory(self):
         """Weapon type milestone adds new weapon entry to inventory."""

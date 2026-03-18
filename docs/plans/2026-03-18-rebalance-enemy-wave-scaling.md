@@ -50,8 +50,8 @@ Add wave-based scaling to enemies so the game stays challenging in mid-to-late w
 **Files:**
 - Modify: `game.py`
 
-- [ ] Change 3 occurrences of `max(3, ...)` in apply_upgrade() to `max(5, ...)` (lines 950, 964, 968)
-- [ ] Run tests - must pass before task 5
+- [x] Change 3 occurrences of `max(3, ...)` in apply_upgrade() to `max(5, ...)` (lines 950, 964, 968)
+- [x] Run tests - must pass before task 5
 
 ## Task 5: Update existing tests, add new tests
 
