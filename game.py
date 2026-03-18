@@ -1715,9 +1715,12 @@ def run():
                 if is_active:
                     active_joystick = None
                     # If another joystick is still connected, grab it
-                    if pygame.joystick.get_count() > 0:
-                        active_joystick = pygame.joystick.Joystick(0)
-                        active_joystick.init()
+                    try:
+                        if pygame.joystick.get_count() > 0:
+                            active_joystick = pygame.joystick.Joystick(0)
+                            active_joystick.init()
+                    except pygame.error:
+                        pass
             _joy_btn_match = False
             if event.type == pygame.JOYBUTTONDOWN and active_joystick is not None:
                 try:
