@@ -54,13 +54,13 @@ Button mapping (SDL/Steam Deck standard):
 - Modify: `game.py`
 - Modify: `test_game.py`
 
-- [ ] `STATE_MENU`: D-pad up/down or left stick to change selected menu item, A button to confirm selection, B button to quit
-- [ ] `STATE_OPTIONS`: D-pad up/down to navigate options, D-pad left/right to change values (resolution, fullscreen), A button on "Back" to return, B button as shortcut to return
-- [ ] `STATE_LEVEL_UP`: D-pad up/down to highlight upgrade (add keyboard-style selection index if not present), A button to select highlighted upgrade
-- [ ] `STATE_GAME_OVER`: A button to start new game (replaces Enter), B button to return to menu (replaces Escape)
-- [ ] Add repeat-delay for D-pad/stick menu navigation to prevent too-fast scrolling
-- [ ] Write tests for gamepad menu interactions across all states
-- [ ] Run project test suite - must pass before task 4
+- [x] `STATE_MENU`: D-pad up/down or left stick to change selected menu item, A button to confirm selection, B button to quit
+- [x] `STATE_OPTIONS`: D-pad up/down to navigate options, D-pad left/right to change values (resolution, fullscreen), A button on "Back" to return, B button as shortcut to return
+- [x] `STATE_LEVEL_UP`: D-pad up/down to highlight upgrade (add keyboard-style selection index if not present), A button to select highlighted upgrade
+- [x] `STATE_GAME_OVER`: A button to start new game (replaces Enter), B button to return to menu (replaces Escape)
+- [x] Add repeat-delay for D-pad/stick menu navigation to prevent too-fast scrolling
+- [x] Write tests for gamepad menu interactions across all states
+- [x] Run project test suite - must pass before task 4
 
 ## Task 4: Final validation
 

@@ -30,7 +30,10 @@ title_font = None
 
 # Gamepad support
 JOYSTICK_DEADZONE = 0.3
+GAMEPAD_NAV_REPEAT_DELAY = 0.2  # seconds between repeated D-pad/stick menu navigation
 active_joystick = None
+_gamepad_nav_last_time = 0  # timestamp of last gamepad menu navigation
+level_up_selected_index = 0  # keyboard/gamepad selection index for upgrade panel
 
 
 def init_pygame():
@@ -1280,12 +1283,14 @@ def draw_upgrade_panel(level, upgrade_options):
     # Upgrade option rows
     mouse_x, mouse_y = pygame.mouse.get_pos()
     hovered_idx = get_hovered_upgrade_index(mouse_x, mouse_y, len(upgrade_options))
+    # Use mouse hover if hovering, otherwise fall back to keyboard/gamepad selection
+    selected_idx = hovered_idx if hovered_idx >= 0 else level_up_selected_index
     for i, opt in enumerate(upgrade_options):
         row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
         row_rect = pygame.Rect(OPTION_PADDING, row_y,
                                PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
 
-        hovered = (i == hovered_idx)
+        hovered = (i == selected_idx)
 
         # Row background
         if hovered:
@@ -1520,6 +1525,7 @@ def draw_game_over(score, level=1):
 def run():
     global options_selected_index, options_resolution_index, options_fullscreen
     global menu_selected_index, active_joystick
+    global level_up_selected_index, _gamepad_nav_last_time
     init_pygame()
     state = STATE_MENU
     camera = Camera()
@@ -1685,6 +1691,10 @@ def run():
                 idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                 if idx >= 0:
                     menu_selected_index = idx
+            if event.type == pygame.MOUSEMOTION and state == STATE_LEVEL_UP and upgrade_options:
+                idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
+                if idx >= 0:
+                    level_up_selected_index = idx
             if event.type == pygame.JOYDEVICEADDED:
                 if active_joystick is None:
                     joy_index = event.device_index
@@ -1697,6 +1707,40 @@ def run():
                     if pygame.joystick.get_count() > 0:
                         active_joystick = pygame.joystick.Joystick(0)
                         active_joystick.init()
+            if event.type == pygame.JOYBUTTONDOWN:
+                if event.button == 0:  # A button - confirm/select
+                    if state == STATE_MENU:
+                        if menu_selected_index == 0:  # NEW GAME
+                            reset_game()
+                            state = STATE_PLAYING
+                        elif menu_selected_index == 1:  # OPTIONS
+                            options_selected_index = 0
+                            state = STATE_OPTIONS
+                        elif menu_selected_index == 2:  # QUIT
+                            running = False
+                    elif state == STATE_OPTIONS:
+                        if options_selected_index == 2:  # Back
+                            state = STATE_MENU
+                            _reset_menu_state()
+                    elif state == STATE_LEVEL_UP and upgrade_options:
+                        if 0 <= level_up_selected_index < len(upgrade_options):
+                            apply_chosen_upgrade(upgrade_options[level_up_selected_index])
+                    elif state == STATE_GAME_OVER:
+                        reset_game()
+                        state = STATE_PLAYING
+                elif event.button == 1:  # B button - back/escape
+                    if state == STATE_OPTIONS:
+                        state = STATE_MENU
+                        _reset_menu_state()
+                    elif state == STATE_PLAYING:
+                        save_if_playing()
+                        state = STATE_MENU
+                        _reset_menu_state()
+                    elif state == STATE_GAME_OVER:
+                        state = STATE_MENU
+                        _reset_menu_state()
+                    elif state == STATE_MENU:
+                        running = False
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if state == STATE_OPTIONS:
                     idx = get_hovered_options_index(event.pos[0], event.pos[1])
@@ -1725,6 +1769,44 @@ def run():
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
                         apply_chosen_upgrade(upgrade_options[idx])
+
+        # Gamepad D-pad/stick navigation for menu states (with repeat delay)
+        if active_joystick is not None and state != STATE_PLAYING:
+            now = time.time()
+            nav_x, nav_y = 0, 0
+            # Analog stick
+            axis_x = active_joystick.get_axis(0)
+            axis_y = active_joystick.get_axis(1)
+            if abs(axis_x) > JOYSTICK_DEADZONE:
+                nav_x = 1 if axis_x > 0 else -1
+            if abs(axis_y) > JOYSTICK_DEADZONE:
+                nav_y = 1 if axis_y > 0 else -1
+            # D-pad
+            if active_joystick.get_numhats() > 0:
+                hat_x, hat_y = active_joystick.get_hat(0)
+                if hat_x:
+                    nav_x = hat_x
+                if hat_y:
+                    nav_y = -hat_y  # SDL hat y is inverted
+            if (nav_x or nav_y) and (now - _gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY):
+                _gamepad_nav_last_time = now
+                if state == STATE_MENU:
+                    if nav_y:
+                        menu_selected_index = (menu_selected_index + (1 if nav_y > 0 else -1)) % len(MENU_ITEMS)
+                elif state == STATE_OPTIONS:
+                    if nav_y:
+                        options_selected_index = (options_selected_index + (1 if nav_y > 0 else -1)) % 3
+                    if nav_x:
+                        direction = 1 if nav_x > 0 else -1
+                        if options_selected_index == 0:
+                            options_resolution_index = (options_resolution_index + direction) % len(SUPPORTED_RESOLUTIONS)
+                            apply_resolution()
+                        elif options_selected_index == 1:
+                            options_fullscreen = not options_fullscreen
+                            apply_resolution()
+                elif state == STATE_LEVEL_UP and upgrade_options:
+                    if nav_y:
+                        level_up_selected_index = (level_up_selected_index + (1 if nav_y > 0 else -1)) % len(upgrade_options)
 
         if state == STATE_MENU:
             draw_menu()
@@ -1817,6 +1899,7 @@ def run():
                     upgrade_options = generate_upgrade_options(level, weapon_inventory)
                     for opt in upgrade_options:
                         opt['_icon'] = create_upgrade_icon(opt)
+                    level_up_selected_index = 0
                     state = STATE_LEVEL_UP
                 # Health pickup drops
                 for dx, dy, etype in er_dead:
@@ -2017,6 +2100,7 @@ def run():
             upgrade_options = generate_upgrade_options(level, weapon_inventory)
             for opt in upgrade_options:
                 opt['_icon'] = create_upgrade_icon(opt)
+            level_up_selected_index = 0
             state = STATE_LEVEL_UP
             # Spawn allies before pausing (reward kills even on level-up frame)
             for _ in range(killed):

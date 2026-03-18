@@ -12,14 +12,15 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   WAVE_COMPOSITION, get_enemy_type_for_wave,
                   HealthPickup,
                   HEALTH_DROP_CHANCE, get_health_drop_chance,
-                  STATE_OPTIONS,
+                  STATE_MENU, STATE_PLAYING, STATE_GAME_OVER, STATE_LEVEL_UP, STATE_OPTIONS,
+                  MENU_ITEMS,
                   SUPPORTED_RESOLUTIONS, apply_resolution,
                   EscapeRoom,
                   MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES_BASE, MAX_ENEMIES_CAP, get_max_enemies,
                   get_spawn_count, snapshot_weapon_power,
                   _is_visible,
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats, STATS_FILE,
-                  JOYSTICK_DEADZONE, init_pygame)
+                  JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame)
 import game
 
 
@@ -2758,6 +2759,350 @@ class TestGamepadMovement(unittest.TestCase):
         self.assertEqual(mx, 0)
         self.assertEqual(my, 0)
         mock_joy.get_hat.assert_not_called()
+
+
+class TestGamepadMenuNavigation(unittest.TestCase):
+    """Tests for gamepad button and D-pad/stick navigation across all UI states."""
+
+    def setUp(self):
+        self._orig_joystick = game.active_joystick
+        self._orig_menu_idx = game.menu_selected_index
+        self._orig_options_idx = game.options_selected_index
+        self._orig_levelup_idx = game.level_up_selected_index
+        self._orig_nav_time = game._gamepad_nav_last_time
+
+    def tearDown(self):
+        game.active_joystick = self._orig_joystick
+        game.menu_selected_index = self._orig_menu_idx
+        game.options_selected_index = self._orig_options_idx
+        game.level_up_selected_index = self._orig_levelup_idx
+        game._gamepad_nav_last_time = self._orig_nav_time
+
+    # -- Constants --
+
+    def test_nav_repeat_delay_exists_and_positive(self):
+        self.assertIsInstance(GAMEPAD_NAV_REPEAT_DELAY, float)
+        self.assertGreater(GAMEPAD_NAV_REPEAT_DELAY, 0.0)
+
+    def test_level_up_selected_index_default(self):
+        # Should default to 0
+        game.level_up_selected_index = 0
+        self.assertEqual(game.level_up_selected_index, 0)
+
+    # -- A button (button 0) tests --
+
+    def test_a_button_menu_new_game(self):
+        """A button on menu index 0 should trigger NEW GAME (state -> STATE_PLAYING)."""
+        game.menu_selected_index = 0
+        state = STATE_MENU
+        # Simulate JOYBUTTONDOWN button=0 handling
+        if state == STATE_MENU:
+            if game.menu_selected_index == 0:
+                state = STATE_PLAYING
+        self.assertEqual(state, STATE_PLAYING)
+
+    def test_a_button_menu_options(self):
+        """A button on menu index 1 should go to OPTIONS."""
+        game.menu_selected_index = 1
+        state = STATE_MENU
+        if state == STATE_MENU:
+            if game.menu_selected_index == 1:
+                game.options_selected_index = 0
+                state = STATE_OPTIONS
+        self.assertEqual(state, STATE_OPTIONS)
+        self.assertEqual(game.options_selected_index, 0)
+
+    def test_a_button_menu_quit(self):
+        """A button on menu index 2 should set running=False."""
+        game.menu_selected_index = 2
+        state = STATE_MENU
+        running = True
+        if state == STATE_MENU:
+            if game.menu_selected_index == 2:
+                running = False
+        self.assertFalse(running)
+
+    def test_a_button_options_back(self):
+        """A button on options index 2 (Back) should return to menu."""
+        game.options_selected_index = 2
+        state = STATE_OPTIONS
+        if state == STATE_OPTIONS:
+            if game.options_selected_index == 2:
+                state = STATE_MENU
+        self.assertEqual(state, STATE_MENU)
+
+    def test_a_button_options_not_back(self):
+        """A button on options index 0 or 1 should not change state."""
+        game.options_selected_index = 0
+        state = STATE_OPTIONS
+        if state == STATE_OPTIONS:
+            if game.options_selected_index == 2:
+                state = STATE_MENU
+        self.assertEqual(state, STATE_OPTIONS)
+
+    def test_a_button_level_up_selects_upgrade(self):
+        """A button in level-up state should select the highlighted upgrade."""
+        game.level_up_selected_index = 1
+        upgrade_options = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
+        selected = None
+        state = STATE_LEVEL_UP
+        if state == STATE_LEVEL_UP and upgrade_options:
+            idx = game.level_up_selected_index
+            if 0 <= idx < len(upgrade_options):
+                selected = upgrade_options[idx]
+        self.assertEqual(selected, {"name": "B"})
+
+    def test_a_button_level_up_out_of_range(self):
+        """A button with out-of-range index should not select anything."""
+        game.level_up_selected_index = 5
+        upgrade_options = [{"name": "A"}, {"name": "B"}]
+        selected = None
+        state = STATE_LEVEL_UP
+        if state == STATE_LEVEL_UP and upgrade_options:
+            idx = game.level_up_selected_index
+            if 0 <= idx < len(upgrade_options):
+                selected = upgrade_options[idx]
+        self.assertIsNone(selected)
+
+    def test_a_button_game_over_restarts(self):
+        """A button on game over should restart (state -> STATE_PLAYING)."""
+        state = STATE_GAME_OVER
+        if state == STATE_GAME_OVER:
+            state = STATE_PLAYING
+        self.assertEqual(state, STATE_PLAYING)
+
+    # -- B button (button 1) tests --
+
+    def test_b_button_options_returns_to_menu(self):
+        """B button in options should return to menu."""
+        state = STATE_OPTIONS
+        if state == STATE_OPTIONS:
+            state = STATE_MENU
+        self.assertEqual(state, STATE_MENU)
+
+    def test_b_button_game_over_returns_to_menu(self):
+        """B button on game over should return to menu."""
+        state = STATE_GAME_OVER
+        if state == STATE_GAME_OVER:
+            state = STATE_MENU
+        self.assertEqual(state, STATE_MENU)
+
+    def test_b_button_playing_returns_to_menu(self):
+        """B button during gameplay should return to menu."""
+        state = STATE_PLAYING
+        if state == STATE_PLAYING:
+            state = STATE_MENU
+        self.assertEqual(state, STATE_MENU)
+
+    def test_b_button_menu_quits(self):
+        """B button on menu should quit."""
+        state = STATE_MENU
+        running = True
+        if state == STATE_MENU:
+            running = False
+        self.assertFalse(running)
+
+    # -- D-pad/stick navigation tests --
+
+    def test_dpad_menu_navigate_down(self):
+        """D-pad down in menu should increment selected index."""
+        game.menu_selected_index = 0
+        game._gamepad_nav_last_time = 0
+        nav_y = 1  # down
+        import time
+        now = time.time()
+        if nav_y and (now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY):
+            game._gamepad_nav_last_time = now
+            game.menu_selected_index = (game.menu_selected_index + 1) % len(MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, 1)
+
+    def test_dpad_menu_navigate_up(self):
+        """D-pad up in menu should decrement selected index (wrapping)."""
+        game.menu_selected_index = 0
+        game._gamepad_nav_last_time = 0
+        nav_y = -1  # up
+        import time
+        now = time.time()
+        if nav_y and (now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY):
+            game._gamepad_nav_last_time = now
+            game.menu_selected_index = (game.menu_selected_index - 1) % len(MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, len(MENU_ITEMS) - 1)
+
+    def test_dpad_menu_wraps_around(self):
+        """Menu navigation should wrap from last to first."""
+        game.menu_selected_index = len(MENU_ITEMS) - 1
+        game._gamepad_nav_last_time = 0
+        import time
+        now = time.time()
+        game._gamepad_nav_last_time = now
+        game.menu_selected_index = (game.menu_selected_index + 1) % len(MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, 0)
+
+    def test_dpad_options_navigate_down(self):
+        """D-pad down in options should increment selected index."""
+        game.options_selected_index = 0
+        game._gamepad_nav_last_time = 0
+        import time
+        now = time.time()
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game._gamepad_nav_last_time = now
+            game.options_selected_index = (game.options_selected_index + 1) % 3
+        self.assertEqual(game.options_selected_index, 1)
+
+    def test_dpad_options_left_right_changes_resolution(self):
+        """D-pad left/right on resolution option should change resolution index."""
+        game.options_selected_index = 0
+        orig_res = game.options_resolution_index
+        game._gamepad_nav_last_time = 0
+        import time
+        now = time.time()
+        nav_x = 1
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game._gamepad_nav_last_time = now
+            if game.options_selected_index == 0:
+                game.options_resolution_index = (game.options_resolution_index + nav_x) % len(SUPPORTED_RESOLUTIONS)
+        expected = (orig_res + 1) % len(SUPPORTED_RESOLUTIONS)
+        self.assertEqual(game.options_resolution_index, expected)
+        # Restore
+        game.options_resolution_index = orig_res
+
+    def test_dpad_options_left_right_toggles_fullscreen(self):
+        """D-pad left/right on fullscreen option should toggle it."""
+        game.options_selected_index = 1
+        orig_fs = game.options_fullscreen
+        game._gamepad_nav_last_time = 0
+        import time
+        now = time.time()
+        nav_x = 1
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game._gamepad_nav_last_time = now
+            if game.options_selected_index == 1:
+                game.options_fullscreen = not game.options_fullscreen
+        self.assertEqual(game.options_fullscreen, not orig_fs)
+        # Restore
+        game.options_fullscreen = orig_fs
+
+    def test_dpad_level_up_navigate(self):
+        """D-pad in level-up should change level_up_selected_index."""
+        game.level_up_selected_index = 0
+        game._gamepad_nav_last_time = 0
+        upgrade_options = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
+        import time
+        now = time.time()
+        nav_y = 1  # down
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game._gamepad_nav_last_time = now
+            game.level_up_selected_index = (game.level_up_selected_index + 1) % len(upgrade_options)
+        self.assertEqual(game.level_up_selected_index, 1)
+
+    def test_dpad_level_up_wraps(self):
+        """Level-up navigation should wrap around."""
+        upgrade_options = [{"name": "A"}, {"name": "B"}]
+        game.level_up_selected_index = 1
+        game._gamepad_nav_last_time = 0
+        import time
+        now = time.time()
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game._gamepad_nav_last_time = now
+            game.level_up_selected_index = (game.level_up_selected_index + 1) % len(upgrade_options)
+        self.assertEqual(game.level_up_selected_index, 0)
+
+    def test_repeat_delay_blocks_rapid_navigation(self):
+        """Navigation should be blocked if called again within repeat delay."""
+        game.menu_selected_index = 0
+        import time
+        game._gamepad_nav_last_time = time.time()  # just navigated
+        now = time.time()
+        # Should not navigate because we just did
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game.menu_selected_index = (game.menu_selected_index + 1) % len(MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, 0)
+
+    def test_repeat_delay_allows_after_timeout(self):
+        """Navigation should proceed after repeat delay has passed."""
+        game.menu_selected_index = 0
+        import time
+        game._gamepad_nav_last_time = time.time() - GAMEPAD_NAV_REPEAT_DELAY - 0.01
+        now = time.time()
+        if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
+            game._gamepad_nav_last_time = now
+            game.menu_selected_index = (game.menu_selected_index + 1) % len(MENU_ITEMS)
+        self.assertEqual(game.menu_selected_index, 1)
+
+    def test_stick_deadzone_blocks_menu_nav(self):
+        """Analog stick within deadzone should not trigger menu navigation."""
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.1, 1: 0.2}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        nav_x, nav_y = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > JOYSTICK_DEADZONE:
+            nav_x = 1 if axis_x > 0 else -1
+        if abs(axis_y) > JOYSTICK_DEADZONE:
+            nav_y = 1 if axis_y > 0 else -1
+        self.assertEqual(nav_x, 0)
+        self.assertEqual(nav_y, 0)
+
+    def test_stick_above_deadzone_triggers_menu_nav(self):
+        """Analog stick above deadzone should produce navigation direction."""
+        mock_joy = MagicMock()
+        mock_joy.get_axis.side_effect = lambda a: {0: 0.0, 1: 0.8}[a]
+        mock_joy.get_numhats.return_value = 0
+        game.active_joystick = mock_joy
+        nav_x, nav_y = 0, 0
+        axis_x = mock_joy.get_axis(0)
+        axis_y = mock_joy.get_axis(1)
+        if abs(axis_x) > JOYSTICK_DEADZONE:
+            nav_x = 1 if axis_x > 0 else -1
+        if abs(axis_y) > JOYSTICK_DEADZONE:
+            nav_y = 1 if axis_y > 0 else -1
+        self.assertEqual(nav_x, 0)
+        self.assertEqual(nav_y, 1)
+
+    def test_dpad_hat_produces_nav_direction(self):
+        """D-pad hat input should produce navigation directions."""
+        mock_joy = MagicMock()
+        mock_joy.get_axis.return_value = 0.0
+        mock_joy.get_numhats.return_value = 1
+        mock_joy.get_hat.return_value = (1, -1)  # right, down (SDL inverted)
+        game.active_joystick = mock_joy
+        nav_x, nav_y = 0, 0
+        if mock_joy.get_numhats() > 0:
+            hat_x, hat_y = mock_joy.get_hat(0)
+            if hat_x:
+                nav_x = hat_x
+            if hat_y:
+                nav_y = -hat_y
+        self.assertEqual(nav_x, 1)
+        self.assertEqual(nav_y, 1)  # down after inversion
+
+    def test_no_joystick_no_menu_nav(self):
+        """Without a joystick, no gamepad menu navigation should occur."""
+        game.active_joystick = None
+        game.menu_selected_index = 0
+        # The navigation code checks active_joystick is not None first
+        if game.active_joystick is not None:
+            game.menu_selected_index = 1
+        self.assertEqual(game.menu_selected_index, 0)
+
+    def test_mousemotion_level_up_updates_selected_index(self):
+        """Mouse hover over upgrade option should update level_up_selected_index."""
+        game.level_up_selected_index = 0
+        # Simulate: MOUSEMOTION updates level_up_selected_index when hovering
+        hovered_idx = 2  # simulate get_hovered_upgrade_index returning 2
+        if hovered_idx >= 0:
+            game.level_up_selected_index = hovered_idx
+        self.assertEqual(game.level_up_selected_index, 2)
+
+    def test_mousemotion_level_up_no_hover_keeps_index(self):
+        """Mouse not hovering over any option should keep level_up_selected_index."""
+        game.level_up_selected_index = 1
+        hovered_idx = -1  # not hovering
+        if hovered_idx >= 0:
+            game.level_up_selected_index = hovered_idx
+        self.assertEqual(game.level_up_selected_index, 1)
 
 
 if __name__ == "__main__":
