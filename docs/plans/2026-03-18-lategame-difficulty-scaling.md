@@ -77,10 +77,10 @@ Expected HP at key waves (basic, base=3):
 | 40   | 24          | 77            | 384             |
 | 50   | 20          | 119           | 593             |
 
-- [ ] In Enemy.__init__, multiply HP by `1.06 ** max(0, wave - 20)` after existing linear scaling
-- [ ] Update TestEnemyWaveScaling tests: add test_hp_compound_scaling_after_wave_20 verifying wave 30 and wave 50 values
-- [ ] Verify test_hp_scales_with_wave (wave 10) still passes unchanged since compound kicks in at wave 21
-- [ ] Run tests - must pass before task 3
+- [x] In Enemy.__init__, multiply HP by `1.06 ** max(0, wave - 20)` after existing linear scaling
+- [x] Update TestEnemyWaveScaling tests: add test_hp_compound_scaling_after_wave_20 verifying wave 30 and wave 50 values
+- [x] Verify test_hp_scales_with_wave (wave 10) still passes unchanged since compound kicks in at wave 21
+- [x] Run tests - must pass before task 3
 
 ## Task 3: Raise enemy speed cap from 1.6x to 2.0x
 

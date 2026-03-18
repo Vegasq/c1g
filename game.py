@@ -720,7 +720,9 @@ class Enemy:
         self.enemy_type = enemy_type
         type_cfg = ENEMY_TYPES[enemy_type]
         base_hp = type_cfg["hp"]
-        self.hp = max(base_hp, int(base_hp * (1 + 0.12 * (wave - 1))))
+        linear = 1 + 0.12 * (wave - 1)
+        compound = 1.06 ** max(0, wave - 20)
+        self.hp = max(base_hp, int(base_hp * linear * compound))
         base_speed = type_cfg["speed"]
         self.speed = base_speed * min(1.6, 1 + 0.02 * (wave - 1))
         self.radius = type_cfg["radius"]

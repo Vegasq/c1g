@@ -2317,6 +2317,28 @@ class TestEnemyWaveScaling(unittest.TestCase):
         # mini base_speed=1.8, 1.8 * 1.18 = 2.124
         self.assertAlmostEqual(e.speed, 2.124)
 
+    def test_hp_compound_scaling_after_wave_20(self):
+        # Compound multiplier 1.06^(wave-20) kicks in after wave 20
+        # Wave 30 basic: int(3 * 4.48 * 1.06^10) = int(3 * 4.48 * 1.7908) = 24
+        e30 = Enemy(self.camera, enemy_type="basic", wave=30)
+        self.assertEqual(e30.hp, 24)
+        # Wave 50 basic: int(3 * 6.88 * 1.06^30) = int(3 * 6.88 * 5.7434) = 118
+        e50 = Enemy(self.camera, enemy_type="basic", wave=50)
+        self.assertEqual(e50.hp, 118)
+        # Wave 30 elite: int(15 * 4.48 * 1.06^10) = 120
+        e30_elite = Enemy(self.camera, enemy_type="elite", wave=30)
+        self.assertEqual(e30_elite.hp, 120)
+        # Wave 50 elite: int(15 * 6.88 * 1.06^30) = 592
+        e50_elite = Enemy(self.camera, enemy_type="elite", wave=50)
+        self.assertEqual(e50_elite.hp, 592)
+
+    def test_hp_compound_unchanged_before_wave_21(self):
+        # Compound multiplier is 1.0 for waves <= 20, so HP unchanged
+        e10 = Enemy(self.camera, enemy_type="basic", wave=10)
+        self.assertEqual(e10.hp, 6)
+        e20 = Enemy(self.camera, enemy_type="elite", wave=20)
+        self.assertEqual(e20.hp, 49)
+
 
 if __name__ == "__main__":
     unittest.main()
