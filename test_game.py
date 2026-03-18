@@ -19,8 +19,9 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES_BASE, MAX_ENEMIES_CAP, get_max_enemies,
                   get_spawn_count, snapshot_weapon_power,
                   _is_visible,
-                  default_run_stats, collect_run_stats, collect_weapon_stats, save_stats, STATS_FILE,
-                  JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame)
+                  default_run_stats, collect_run_stats, collect_weapon_stats, save_stats,
+                  JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
+                  handle_joy_device_added, handle_joy_device_removed)
 import game
 
 
@@ -2326,7 +2327,9 @@ class TestStatsCollection(unittest.TestCase):
         self.assertEqual(result["shotgun"]["times_picked"], 1)
 
     def test_save_stats_creates_file(self):
-        import tempfile, os, json
+        import tempfile
+        import os
+        import json
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             tmp = f.name
         os.unlink(tmp)
@@ -2350,7 +2353,9 @@ class TestStatsCollection(unittest.TestCase):
                 os.unlink(tmp)
 
     def test_save_stats_handles_corrupt_file(self):
-        import tempfile, os, json
+        import tempfile
+        import os
+        import json
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
             f.write("not json")
             tmp = f.name
@@ -2555,7 +2560,7 @@ class TestEnemyRebalance(unittest.TestCase):
 
     def test_buffed_xp_values(self):
         expected_xp = {"basic": 2, "runner": 2, "brute": 5, "shielded": 6,
-                        "splitter": 3, "mini": 1, "elite": 12}
+                       "splitter": 3, "mini": 1, "elite": 12}
         for etype, xp in expected_xp.items():
             self.assertEqual(ENEMY_TYPES[etype]["xp_value"], xp,
                              f"{etype} xp_value should be {xp}")
@@ -2753,8 +2758,8 @@ class TestGamepadInitialization(unittest.TestCase):
     @patch('pygame.display.set_caption')
     @patch('pygame.font.SysFont', return_value=MagicMock())
     def test_init_pygame_calls_joystick_init(self, mock_sysfont, mock_caption,
-                                              mock_set_mode, mock_get_count,
-                                              mock_joy_init):
+                                             mock_set_mode, mock_get_count,
+                                             mock_joy_init):
         game.screen = None
         game.active_joystick = None
         init_pygame()
@@ -2770,8 +2775,8 @@ class TestGamepadInitialization(unittest.TestCase):
     @patch('pygame.display.set_caption')
     @patch('pygame.font.SysFont', return_value=MagicMock())
     def test_init_pygame_grabs_first_joystick(self, mock_sysfont, mock_caption,
-                                               mock_set_mode, mock_get_count,
-                                               mock_joy_init, mock_joystick_cls):
+                                              mock_set_mode, mock_get_count,
+                                              mock_joy_init, mock_joystick_cls):
         mock_joy = MagicMock()
         mock_joystick_cls.return_value = mock_joy
         game.screen = None
@@ -2782,71 +2787,64 @@ class TestGamepadInitialization(unittest.TestCase):
         self.assertEqual(game.active_joystick, mock_joy)
 
     def test_joy_device_added_sets_active_joystick(self):
-        game.active_joystick = None
         mock_joy = MagicMock()
         with patch('pygame.joystick.Joystick', return_value=mock_joy) as mock_cls:
-            event = pygame.event.Event(pygame.JOYDEVICEADDED, device_index=0)
-            # Simulate the event handling logic from run()
-            if game.active_joystick is None:
-                joy_index = event.device_index
-                game.active_joystick = pygame.joystick.Joystick(joy_index)
-                game.active_joystick.init()
+            result = handle_joy_device_added(None, 0)
             mock_cls.assert_called_once_with(0)
             mock_joy.init.assert_called_once()
-            self.assertEqual(game.active_joystick, mock_joy)
+            self.assertEqual(result, mock_joy)
 
     def test_joy_device_removed_clears_active_joystick(self):
         mock_joy = MagicMock()
         mock_joy.get_instance_id.return_value = 42
-        game.active_joystick = mock_joy
         with patch('pygame.joystick.get_count', return_value=0):
-            event = pygame.event.Event(pygame.JOYDEVICEREMOVED, instance_id=42)
-            # Simulate the event handling logic from run()
-            if game.active_joystick is not None and event.instance_id == game.active_joystick.get_instance_id():
-                game.active_joystick = None
-                if pygame.joystick.get_count() > 0:
-                    game.active_joystick = pygame.joystick.Joystick(0)
-                    game.active_joystick.init()
-            self.assertIsNone(game.active_joystick)
+            result = handle_joy_device_removed(mock_joy, 42)
+            self.assertIsNone(result)
 
     def test_joy_device_removed_grabs_next_joystick(self):
         mock_joy = MagicMock()
         mock_joy.get_instance_id.return_value = 42
-        game.active_joystick = mock_joy
         mock_joy2 = MagicMock()
         with patch('pygame.joystick.get_count', return_value=1), \
              patch('pygame.joystick.Joystick', return_value=mock_joy2):
-            event = pygame.event.Event(pygame.JOYDEVICEREMOVED, instance_id=42)
-            if game.active_joystick is not None and event.instance_id == game.active_joystick.get_instance_id():
-                game.active_joystick = None
-                if pygame.joystick.get_count() > 0:
-                    game.active_joystick = pygame.joystick.Joystick(0)
-                    game.active_joystick.init()
-            self.assertEqual(game.active_joystick, mock_joy2)
+            result = handle_joy_device_removed(mock_joy, 42)
+            self.assertEqual(result, mock_joy2)
             mock_joy2.init.assert_called_once()
 
     def test_joy_device_removed_different_instance_no_change(self):
         mock_joy = MagicMock()
         mock_joy.get_instance_id.return_value = 42
-        game.active_joystick = mock_joy
-        event = pygame.event.Event(pygame.JOYDEVICEREMOVED, instance_id=99)
-        # Different instance_id, should not clear active_joystick
-        if game.active_joystick is not None and event.instance_id == game.active_joystick.get_instance_id():
-            game.active_joystick = None
-        self.assertEqual(game.active_joystick, mock_joy)
+        result = handle_joy_device_removed(mock_joy, 99)
+        self.assertEqual(result, mock_joy)
 
     def test_joy_device_added_ignored_if_already_active(self):
         existing_joy = MagicMock()
-        game.active_joystick = existing_joy
         mock_joy2 = MagicMock()
         with patch('pygame.joystick.Joystick', return_value=mock_joy2) as mock_cls:
-            event = pygame.event.Event(pygame.JOYDEVICEADDED, device_index=1)
-            if game.active_joystick is None:
-                game.active_joystick = pygame.joystick.Joystick(event.device_index)
-                game.active_joystick.init()
-            # Should not have created a new joystick
+            result = handle_joy_device_added(existing_joy, 1)
             mock_cls.assert_not_called()
-            self.assertEqual(game.active_joystick, existing_joy)
+            self.assertEqual(result, existing_joy)
+
+    @patch('pygame.joystick.Joystick', side_effect=pygame.error("no joystick"))
+    @patch('pygame.joystick.init')
+    @patch('pygame.joystick.get_count', return_value=1)
+    @patch('pygame.display.set_mode', return_value=pygame.Surface((1024, 768)))
+    @patch('pygame.display.set_caption')
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    def test_init_pygame_joystick_error_sets_none(self, mock_sysfont, mock_caption,
+                                                  mock_set_mode, mock_get_count,
+                                                  mock_joy_init, mock_joystick_cls):
+        """init_pygame() catches pygame.error during joystick probe and leaves active_joystick as None."""
+        game.screen = None
+        game.active_joystick = None
+        init_pygame()
+        self.assertIsNone(game.active_joystick)
+
+    def test_joy_device_added_error_sets_none(self):
+        """JOYDEVICEADDED handler catches pygame.error and leaves active_joystick as None."""
+        with patch('pygame.joystick.Joystick', side_effect=pygame.error("device gone")):
+            result = handle_joy_device_added(None, 0)
+            self.assertIsNone(result)
 
 
 class TestGamepadMovement(unittest.TestCase):
@@ -3256,7 +3254,7 @@ class TestGamepadMenuNavigation(unittest.TestCase):
         game._gamepad_nav_last_time = 0
         import time
         now = time.time()
-        nav_x = 1
+        _nav_x = 1  # noqa: F841 — documents simulated d-pad input
         if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
             game._gamepad_nav_last_time = now
             if game.options_selected_index == 1:
@@ -3272,7 +3270,7 @@ class TestGamepadMenuNavigation(unittest.TestCase):
         upgrade_options = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
         import time
         now = time.time()
-        nav_y = 1  # down
+        _nav_y = 1  # noqa: F841 — documents simulated d-pad input (down)
         if now - game._gamepad_nav_last_time >= GAMEPAD_NAV_REPEAT_DELAY:
             game._gamepad_nav_last_time = now
             game.level_up_selected_index = (game.level_up_selected_index + 1) % len(upgrade_options)

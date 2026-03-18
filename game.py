@@ -44,15 +44,49 @@ def init_pygame():
         return
     pygame.init()
     # Grab the first connected joystick, if any
-    if pygame.joystick.get_count() > 0:
-        active_joystick = pygame.joystick.Joystick(0)
-        active_joystick.init()
+    try:
+        if pygame.joystick.get_count() > 0:
+            active_joystick = pygame.joystick.Joystick(0)
+            active_joystick.init()
+    except pygame.error:
+        active_joystick = None
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Squad Survivors")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
     title_font = pygame.font.SysFont(None, 72)
     menu_font = pygame.font.SysFont(None, 52)
+
+
+def handle_joy_device_added(current_joystick, device_index):
+    """Handle JOYDEVICEADDED event. Returns the (possibly new) active joystick."""
+    if current_joystick is not None:
+        return current_joystick
+    try:
+        joy = pygame.joystick.Joystick(device_index)
+        joy.init()
+        return joy
+    except pygame.error:
+        return None
+
+
+def handle_joy_device_removed(current_joystick, instance_id):
+    """Handle JOYDEVICEREMOVED event. Returns the (possibly new) active joystick."""
+    try:
+        is_active = current_joystick is not None and instance_id == current_joystick.get_instance_id()
+    except pygame.error:
+        is_active = True  # Stale joystick; treat as removed
+    if not is_active:
+        return current_joystick
+    # Active joystick was removed; try to grab another
+    try:
+        if pygame.joystick.get_count() > 0:
+            joy = pygame.joystick.Joystick(0)
+            joy.init()
+            return joy
+    except pygame.error:
+        pass
+    return None
 
 
 # Game states
@@ -1930,24 +1964,9 @@ def run():
                 if idx >= 0:
                     level_up_selected_index = idx
             if event.type == pygame.JOYDEVICEADDED:
-                if active_joystick is None:
-                    joy_index = event.device_index
-                    active_joystick = pygame.joystick.Joystick(joy_index)
-                    active_joystick.init()
+                active_joystick = handle_joy_device_added(active_joystick, event.device_index)
             if event.type == pygame.JOYDEVICEREMOVED:
-                try:
-                    is_active = active_joystick is not None and event.instance_id == active_joystick.get_instance_id()
-                except pygame.error:
-                    is_active = True  # Stale joystick; treat as removed
-                if is_active:
-                    active_joystick = None
-                    # If another joystick is still connected, grab it
-                    try:
-                        if pygame.joystick.get_count() > 0:
-                            active_joystick = pygame.joystick.Joystick(0)
-                            active_joystick.init()
-                    except pygame.error:
-                        pass
+                active_joystick = handle_joy_device_removed(active_joystick, event.instance_id)
             _joy_btn_match = False
             if event.type == pygame.JOYBUTTONDOWN and active_joystick is not None:
                 try:
@@ -2192,6 +2211,7 @@ def run():
                     for opt in upgrade_options:
                         opt['_icon'] = create_upgrade_icon(opt)
                     level_up_selected_index = 0
+                    _last_levelup_mouse_pos = pygame.mouse.get_pos()
                     state = STATE_LEVEL_UP
                 # Health pickup drops
                 for dx, dy, etype in er_dead:
@@ -2395,6 +2415,7 @@ def run():
             for opt in upgrade_options:
                 opt['_icon'] = create_upgrade_icon(opt)
             level_up_selected_index = 0
+            _last_levelup_mouse_pos = pygame.mouse.get_pos()
             state = STATE_LEVEL_UP
             # Spawn allies before pausing (reward kills even on level-up frame)
             for _ in range(killed):
