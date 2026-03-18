@@ -2265,5 +2265,58 @@ class TestEnemyRebalance(unittest.TestCase):
             self.assertLessEqual(new_count, old_count)
 
 
+class TestEnemyWaveScaling(unittest.TestCase):
+    """Tests for wave-based enemy stat scaling."""
+
+    def setUp(self):
+        self.camera = Camera()
+
+    def test_wave_1_uses_base_stats(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=1)
+        self.assertEqual(e.hp, 3)
+        self.assertAlmostEqual(e.speed, 1.4)
+        self.assertEqual(e.xp_value, 2)
+        self.assertEqual(e.contact_damage, 1)
+
+    def test_hp_scales_with_wave(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=10)
+        # int(3 * (1 + 0.12 * 9)) = int(3 * 2.08) = int(6.24) = 6
+        self.assertEqual(e.hp, 6)
+
+    def test_elite_hp_at_wave_20(self):
+        e = Enemy(self.camera, enemy_type="elite", wave=20)
+        # int(15 * (1 + 0.12 * 19)) = int(15 * 3.28) = int(49.2) = 49
+        self.assertEqual(e.hp, 49)
+
+    def test_speed_scales_with_wave(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=10)
+        # 1.4 * min(1.6, 1 + 0.02 * 9) = 1.4 * 1.18 = 1.652
+        self.assertAlmostEqual(e.speed, 1.652)
+
+    def test_speed_capped(self):
+        e = Enemy(self.camera, enemy_type="runner", wave=50)
+        # 2.2 * min(1.6, 1 + 0.02 * 49) = 2.2 * 1.6 = 3.52
+        self.assertAlmostEqual(e.speed, 3.52)
+
+    def test_contact_damage_per_wave(self):
+        cases = [(1, 1), (9, 2), (17, 3), (25, 4)]
+        for wave, expected_dmg in cases:
+            e = Enemy(self.camera, enemy_type="basic", wave=wave)
+            self.assertEqual(e.contact_damage, expected_dmg,
+                             f"wave {wave}: expected contact_damage={expected_dmg}, got {e.contact_damage}")
+
+    def test_xp_scales_with_wave(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=10)
+        # 2 + 10 // 5 = 4
+        self.assertEqual(e.xp_value, 4)
+
+    def test_mini_spawns_get_wave_scaling(self):
+        e = Enemy(self.camera, enemy_type="mini", wave=10)
+        # mini base_hp=2, int(2 * 2.08) = int(4.16) = 4
+        self.assertEqual(e.hp, 4)
+        # mini base_speed=1.8, 1.8 * 1.18 = 2.124
+        self.assertAlmostEqual(e.speed, 2.124)
+
+
 if __name__ == "__main__":
     unittest.main()

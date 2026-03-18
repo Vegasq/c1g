@@ -58,8 +58,8 @@ Add wave-based scaling to enemies so the game stays challenging in mid-to-late w
 **Files:**
 - Modify: `test_game.py`
 
-- [ ] Update `test_fire_rate_clamped_to_minimum` (line 267) expected value from 3 to 5
-- [ ] Add `TestEnemyWaveScaling` class with tests:
+- [x] Update `test_fire_rate_clamped_to_minimum` (line 267) expected value from 3 to 5
+- [x] Add `TestEnemyWaveScaling` class with tests:
   - `test_wave_1_uses_base_stats` - no scaling at wave 1
   - `test_hp_scales_with_wave` - basic at wave 10: int(3 * 2.08) = 6
   - `test_elite_hp_at_wave_20` - int(15 * 3.28) = 49
@@ -68,7 +68,7 @@ Add wave-based scaling to enemies so the game stays challenging in mid-to-late w
   - `test_contact_damage_per_wave` - 1/2/3/4 at waves 1/9/17/25
   - `test_xp_scales_with_wave` - basic at wave 10: 2 + 10//5 = 4
   - `test_mini_spawns_get_wave_scaling` - verify wave param is used
-- [ ] Run full test suite
+- [x] Run full test suite
 
 ## Expected Balance Curve
 
