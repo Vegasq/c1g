@@ -2032,5 +2032,2686 @@
       }
     ],
     "quit": true
+  },
+  {
+    "timestamp": "2026-03-18 09:29:52",
+    "kills": 12364,
+    "damage_dealt": 309638,
+    "damage_taken": 11,
+    "waves_reached": 51,
+    "level_reached": 51,
+    "survival_time_seconds": 466.7,
+    "weapons_used": [
+      "explosive",
+      "shotgun",
+      "normal",
+      "piercing"
+    ],
+    "xp_earned": 127292,
+    "final_weapons": [
+      "normal",
+      "shotgun",
+      "piercing",
+      "explosive"
+    ],
+    "weapon_stats": {
+      "piercing": {
+        "times_picked": 1,
+        "total_damage": 100034,
+        "total_kills": 4221
+      },
+      "normal": {
+        "times_picked": 1,
+        "total_damage": 55266,
+        "total_kills": 2155
+      },
+      "explosive": {
+        "times_picked": 1,
+        "total_damage": 55637,
+        "total_kills": 2471
+      },
+      "shotgun": {
+        "times_picked": 1,
+        "total_damage": 98701,
+        "total_kills": 3517
+      }
+    },
+    "wave_logs": [
+      {
+        "wave": 1,
+        "kills": 3,
+        "damage_dealt": 9,
+        "damage_taken": 0,
+        "xp_earned": 6,
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "enemy_count": 1,
+        "level": 1,
+        "time": 8.1
+      },
+      {
+        "wave": 2,
+        "kills": 7,
+        "damage_dealt": 21,
+        "damage_taken": 0,
+        "xp_earned": 14,
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "enemy_count": 4,
+        "level": 2,
+        "time": 17.8
+      },
+      {
+        "wave": 3,
+        "kills": 10,
+        "damage_dealt": 43,
+        "damage_taken": 0,
+        "xp_earned": 23,
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "enemy_count": 12,
+        "level": 3,
+        "time": 27.9
+      },
+      {
+        "wave": 4,
+        "kills": 20,
+        "damage_dealt": 71,
+        "damage_taken": 0,
+        "xp_earned": 46,
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "enemy_count": 27,
+        "level": 4,
+        "time": 39.2
+      },
+      {
+        "wave": 5,
+        "kills": 29,
+        "damage_dealt": 132,
+        "damage_taken": 0,
+        "xp_earned": 68,
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "enemy_count": 52,
+        "level": 5,
+        "time": 48.2
+      },
+      {
+        "wave": 6,
+        "kills": 38,
+        "damage_dealt": 170,
+        "damage_taken": 1,
+        "xp_earned": 116,
+        "player_hp": 5,
+        "player_max_hp": 6,
+        "enemy_count": 99,
+        "level": 7,
+        "time": 60.4
+      },
+      {
+        "wave": 7,
+        "kills": 33,
+        "damage_dealt": 190,
+        "damage_taken": 2,
+        "xp_earned": 113,
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 8,
+        "time": 72.4
+      },
+      {
+        "wave": 8,
+        "kills": 22,
+        "damage_dealt": 111,
+        "damage_taken": 0,
+        "xp_earned": 70,
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 8,
+        "time": 80.6
+      },
+      {
+        "wave": 9,
+        "kills": 18,
+        "damage_dealt": 143,
+        "damage_taken": 0,
+        "xp_earned": 67,
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 9,
+        "time": 90.2
+      },
+      {
+        "wave": 10,
+        "kills": 23,
+        "damage_dealt": 152,
+        "damage_taken": 0,
+        "xp_earned": 71,
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 9,
+        "time": 98.3
+      },
+      {
+        "wave": 11,
+        "kills": 27,
+        "damage_dealt": 243,
+        "damage_taken": 0,
+        "xp_earned": 135,
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "enemy_count": 139,
+        "level": 10,
+        "time": 107.4
+      },
+      {
+        "wave": 12,
+        "kills": 38,
+        "damage_dealt": 484,
+        "damage_taken": 0,
+        "xp_earned": 193,
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 11,
+        "time": 116.9
+      },
+      {
+        "wave": 13,
+        "kills": 35,
+        "damage_dealt": 520,
+        "damage_taken": 0,
+        "xp_earned": 201,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 11,
+        "time": 125.0
+      },
+      {
+        "wave": 14,
+        "kills": 47,
+        "damage_dealt": 590,
+        "damage_taken": 0,
+        "xp_earned": 275,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 139,
+        "level": 12,
+        "time": 134.5
+      },
+      {
+        "wave": 15,
+        "kills": 86,
+        "damage_dealt": 1158,
+        "damage_taken": 2,
+        "xp_earned": 496,
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "enemy_count": 139,
+        "level": 14,
+        "time": 145.1
+      },
+      {
+        "wave": 16,
+        "kills": 71,
+        "damage_dealt": 964,
+        "damage_taken": 0,
+        "xp_earned": 557,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 138,
+        "level": 15,
+        "time": 154.8
+      },
+      {
+        "wave": 17,
+        "kills": 90,
+        "damage_dealt": 1368,
+        "damage_taken": 0,
+        "xp_earned": 628,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 139,
+        "level": 16,
+        "time": 164.5
+      },
+      {
+        "wave": 18,
+        "kills": 155,
+        "damage_dealt": 2060,
+        "damage_taken": 0,
+        "xp_earned": 1072,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 18,
+        "time": 174.4
+      },
+      {
+        "wave": 19,
+        "kills": 180,
+        "damage_dealt": 2995,
+        "damage_taken": 3,
+        "xp_earned": 1315,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 139,
+        "level": 20,
+        "time": 184.4
+      },
+      {
+        "wave": 20,
+        "kills": 254,
+        "damage_dealt": 3938,
+        "damage_taken": 3,
+        "xp_earned": 1904,
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "enemy_count": 140,
+        "level": 22,
+        "time": 195.0
+      },
+      {
+        "wave": 21,
+        "kills": 229,
+        "damage_dealt": 4131,
+        "damage_taken": 0,
+        "xp_earned": 1890,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 137,
+        "level": 24,
+        "time": 205.3
+      },
+      {
+        "wave": 22,
+        "kills": 260,
+        "damage_dealt": 4372,
+        "damage_taken": 0,
+        "xp_earned": 2050,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 137,
+        "level": 25,
+        "time": 214.6
+      },
+      {
+        "wave": 23,
+        "kills": 190,
+        "damage_dealt": 3698,
+        "damage_taken": 0,
+        "xp_earned": 1592,
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "enemy_count": 139,
+        "level": 26,
+        "time": 223.9
+      },
+      {
+        "wave": 24,
+        "kills": 410,
+        "damage_dealt": 6899,
+        "damage_taken": 0,
+        "xp_earned": 3119,
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "enemy_count": 137,
+        "level": 28,
+        "time": 233.5
+      },
+      {
+        "wave": 25,
+        "kills": 395,
+        "damage_dealt": 7488,
+        "damage_taken": 0,
+        "xp_earned": 3415,
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "enemy_count": 134,
+        "level": 30,
+        "time": 242.8
+      },
+      {
+        "wave": 26,
+        "kills": 437,
+        "damage_dealt": 8570,
+        "damage_taken": 0,
+        "xp_earned": 3828,
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "enemy_count": 136,
+        "level": 32,
+        "time": 252.6
+      },
+      {
+        "wave": 27,
+        "kills": 438,
+        "damage_dealt": 9512,
+        "damage_taken": 0,
+        "xp_earned": 4024,
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "enemy_count": 130,
+        "level": 34,
+        "time": 262.3
+      },
+      {
+        "wave": 28,
+        "kills": 419,
+        "damage_dealt": 9267,
+        "damage_taken": 0,
+        "xp_earned": 3884,
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "enemy_count": 139,
+        "level": 36,
+        "time": 271.9
+      },
+      {
+        "wave": 29,
+        "kills": 466,
+        "damage_dealt": 10834,
+        "damage_taken": 0,
+        "xp_earned": 4288,
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "enemy_count": 135,
+        "level": 37,
+        "time": 280.4
+      },
+      {
+        "wave": 30,
+        "kills": 484,
+        "damage_dealt": 11463,
+        "damage_taken": 0,
+        "xp_earned": 4852,
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "enemy_count": 140,
+        "level": 39,
+        "time": 290.6
+      },
+      {
+        "wave": 31,
+        "kills": 393,
+        "damage_dealt": 9405,
+        "damage_taken": 0,
+        "xp_earned": 3961,
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "enemy_count": 138,
+        "level": 40,
+        "time": 299.5
+      },
+      {
+        "wave": 32,
+        "kills": 393,
+        "damage_dealt": 10031,
+        "damage_taken": 0,
+        "xp_earned": 4026,
+        "player_hp": 11,
+        "player_max_hp": 11,
+        "enemy_count": 139,
+        "level": 41,
+        "time": 308.1
+      },
+      {
+        "wave": 33,
+        "kills": 501,
+        "damage_dealt": 11877,
+        "damage_taken": 0,
+        "xp_earned": 4989,
+        "player_hp": 12,
+        "player_max_hp": 12,
+        "enemy_count": 133,
+        "level": 43,
+        "time": 317.6
+      },
+      {
+        "wave": 34,
+        "kills": 392,
+        "damage_dealt": 9279,
+        "damage_taken": 0,
+        "xp_earned": 3870,
+        "player_hp": 12,
+        "player_max_hp": 12,
+        "enemy_count": 136,
+        "level": 44,
+        "time": 326.3
+      },
+      {
+        "wave": 35,
+        "kills": 409,
+        "damage_dealt": 10881,
+        "damage_taken": 0,
+        "xp_earned": 4418,
+        "player_hp": 12,
+        "player_max_hp": 12,
+        "enemy_count": 136,
+        "level": 45,
+        "time": 336.5
+      },
+      {
+        "wave": 36,
+        "kills": 395,
+        "damage_dealt": 10629,
+        "damage_taken": 0,
+        "xp_earned": 4393,
+        "player_hp": 13,
+        "player_max_hp": 13,
+        "enemy_count": 133,
+        "level": 46,
+        "time": 345.3
+      },
+      {
+        "wave": 37,
+        "kills": 339,
+        "damage_dealt": 8634,
+        "damage_taken": 0,
+        "xp_earned": 3753,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 139,
+        "level": 47,
+        "time": 356.4
+      },
+      {
+        "wave": 38,
+        "kills": 362,
+        "damage_dealt": 10913,
+        "damage_taken": 0,
+        "xp_earned": 4159,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 138,
+        "level": 48,
+        "time": 365.7
+      },
+      {
+        "wave": 39,
+        "kills": 350,
+        "damage_dealt": 9591,
+        "damage_taken": 0,
+        "xp_earned": 3795,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 140,
+        "level": 49,
+        "time": 374.1
+      },
+      {
+        "wave": 40,
+        "kills": 286,
+        "damage_dealt": 9084,
+        "damage_taken": 0,
+        "xp_earned": 3477,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 139,
+        "level": 49,
+        "time": 381.9
+      },
+      {
+        "wave": 41,
+        "kills": 384,
+        "damage_dealt": 11151,
+        "damage_taken": 0,
+        "xp_earned": 4549,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 138,
+        "level": 50,
+        "time": 390.6
+      },
+      {
+        "wave": 42,
+        "kills": 352,
+        "damage_dealt": 11777,
+        "damage_taken": 0,
+        "xp_earned": 4454,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 136,
+        "level": 51,
+        "time": 399.4
+      },
+      {
+        "wave": 43,
+        "kills": 360,
+        "damage_dealt": 11424,
+        "damage_taken": 0,
+        "xp_earned": 4362,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 139,
+        "level": 51,
+        "time": 407.2
+      },
+      {
+        "wave": 44,
+        "kills": 347,
+        "damage_dealt": 9781,
+        "damage_taken": 0,
+        "xp_earned": 4034,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 137,
+        "level": 51,
+        "time": 415.0
+      },
+      {
+        "wave": 45,
+        "kills": 267,
+        "damage_dealt": 8814,
+        "damage_taken": 0,
+        "xp_earned": 3448,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 139,
+        "level": 51,
+        "time": 422.8
+      },
+      {
+        "wave": 46,
+        "kills": 395,
+        "damage_dealt": 12005,
+        "damage_taken": 0,
+        "xp_earned": 4992,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 138,
+        "level": 51,
+        "time": 430.6
+      },
+      {
+        "wave": 47,
+        "kills": 294,
+        "damage_dealt": 9888,
+        "damage_taken": 0,
+        "xp_earned": 3808,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 133,
+        "level": 51,
+        "time": 438.4
+      },
+      {
+        "wave": 48,
+        "kills": 351,
+        "damage_dealt": 11187,
+        "damage_taken": 0,
+        "xp_earned": 4526,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 140,
+        "level": 51,
+        "time": 446.2
+      },
+      {
+        "wave": 49,
+        "kills": 333,
+        "damage_dealt": 12268,
+        "damage_taken": 0,
+        "xp_earned": 4426,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 140,
+        "level": 51,
+        "time": 454.0
+      },
+      {
+        "wave": 50,
+        "kills": 354,
+        "damage_dealt": 13180,
+        "damage_taken": 0,
+        "xp_earned": 4932,
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "enemy_count": 137,
+        "level": 51,
+        "time": 461.9
+      }
+    ],
+    "level_logs": [
+      {
+        "level": 2,
+        "wave": 2,
+        "time": 12.7,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Max HP",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 8,
+            "range": 90
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "total_damage_taken": 0
+      },
+      {
+        "level": 3,
+        "wave": 3,
+        "time": 22.8,
+        "chosen": "+Range",
+        "options": [
+          "+Fire Rate",
+          "+Range",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 8,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "total_damage_taken": 0
+      },
+      {
+        "level": 4,
+        "wave": 4,
+        "time": 33.3,
+        "chosen": "+Bullet Speed",
+        "options": [
+          "+Max HP",
+          "+Range",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 10,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "total_damage_taken": 0
+      },
+      {
+        "level": 5,
+        "wave": 5,
+        "time": 41.8,
+        "chosen": "Weapon: Shotgun",
+        "options": [
+          "Weapon: Shotgun",
+          "+Range",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 10,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 10,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "total_damage_taken": 0
+      },
+      {
+        "level": 6,
+        "wave": 6,
+        "time": 49.6,
+        "chosen": "+Bullet Speed",
+        "options": [
+          "+Range",
+          "+Max HP",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 5,
+        "total_damage_taken": 0
+      },
+      {
+        "level": 7,
+        "wave": 6,
+        "time": 58.7,
+        "chosen": "+Max HP",
+        "options": [
+          "+Max HP",
+          "+Range",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 6,
+        "total_damage_taken": 1
+      },
+      {
+        "level": 8,
+        "wave": 7,
+        "time": 70.3,
+        "chosen": "+Max HP",
+        "options": [
+          "+Bullet Speed",
+          "+Range",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 2,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "total_damage_taken": 3
+      },
+      {
+        "level": 9,
+        "wave": 9,
+        "time": 87.2,
+        "chosen": "+Damage",
+        "options": [
+          "+Max HP",
+          "+Bullet Speed",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 3,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 3,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "total_damage_taken": 3
+      },
+      {
+        "level": 10,
+        "wave": 11,
+        "time": 106.5,
+        "chosen": "Weapon: Piercing",
+        "options": [
+          "Weapon: Piercing",
+          "+Max HP",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 3,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 3,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 3,
+            "fire_rate": 25,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "total_damage_taken": 3
+      },
+      {
+        "level": 11,
+        "wave": 12,
+        "time": 116.1,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Max HP",
+          "+Fire Rate",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 3,
+            "fire_rate": 22,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 3,
+            "fire_rate": 22,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 3,
+            "fire_rate": 22,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "total_damage_taken": 3
+      },
+      {
+        "level": 12,
+        "wave": 14,
+        "time": 129.0,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Max HP",
+          "+Fire Rate",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 3,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 3,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 3,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 3
+      },
+      {
+        "level": 13,
+        "wave": 15,
+        "time": 136.8,
+        "chosen": "+Damage",
+        "options": [
+          "+Range",
+          "+Damage",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 5,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 5,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 5,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 3
+      },
+      {
+        "level": 14,
+        "wave": 15,
+        "time": 142.9,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Max HP",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "total_damage_taken": 5
+      },
+      {
+        "level": 15,
+        "wave": 16,
+        "time": 153.1,
+        "chosen": "Weapon: Explosive",
+        "options": [
+          "Weapon: Explosive",
+          "+Range",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 7,
+            "fire_rate": 19,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 5
+      },
+      {
+        "level": 16,
+        "wave": 17,
+        "time": 160.3,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Range",
+          "+Fire Rate",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 7,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 7,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 7,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 7,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 5
+      },
+      {
+        "level": 17,
+        "wave": 18,
+        "time": 168.2,
+        "chosen": "+Damage",
+        "options": [
+          "+Range",
+          "+Fire Rate",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 9,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 9,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 9,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 9,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 5
+      },
+      {
+        "level": 18,
+        "wave": 18,
+        "time": 172.5,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Max HP",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 11,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 11,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 11,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 11,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 5
+      },
+      {
+        "level": 19,
+        "wave": 19,
+        "time": 177.7,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Fire Rate",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 13,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 13,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 13,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 13,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "total_damage_taken": 8
+      },
+      {
+        "level": 20,
+        "wave": 19,
+        "time": 183.5,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Max HP",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 16,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 16,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 16,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 16,
+            "fire_rate": 14,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 6,
+        "player_max_hp": 7,
+        "total_damage_taken": 8
+      },
+      {
+        "level": 21,
+        "wave": 20,
+        "time": 188.4,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Bullet Speed",
+          "+Fire Rate",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 16,
+            "fire_rate": 9,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 16,
+            "fire_rate": 9,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 16,
+            "fire_rate": 9,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 16,
+            "fire_rate": 9,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 4,
+        "player_max_hp": 7,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 22,
+        "wave": 20,
+        "time": 193.9,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Range",
+          "+Fire Rate",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 16,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 16,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 16,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 16,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 23,
+        "wave": 21,
+        "time": 198.1,
+        "chosen": "+Damage",
+        "options": [
+          "+Max HP",
+          "+Bullet Speed",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 5,
+        "player_max_hp": 7,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 24,
+        "wave": 21,
+        "time": 204.4,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Fire Rate",
+          "+Bullet Speed",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 19,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 25,
+        "wave": 22,
+        "time": 210.3,
+        "chosen": "+Damage",
+        "options": [
+          "+Bullet Speed",
+          "+Damage",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 26,
+        "wave": 23,
+        "time": 217.1,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Bullet Speed",
+          "+Range",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 7,
+        "player_max_hp": 7,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 27,
+        "wave": 24,
+        "time": 225.0,
+        "chosen": "+Max HP",
+        "options": [
+          "+Damage",
+          "+Bullet Speed",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 8,
+        "player_max_hp": 8,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 28,
+        "wave": 24,
+        "time": 229.8,
+        "chosen": "+Max HP",
+        "options": [
+          "+Max HP",
+          "+Damage",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 22,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 29,
+        "wave": 25,
+        "time": 234.2,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Fire Rate",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 25,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 25,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 25,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 25,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 30,
+        "wave": 25,
+        "time": 239.0,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Max HP",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 31,
+        "wave": 26,
+        "time": 244.1,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Max HP",
+          "+Fire Rate",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 32,
+        "wave": 26,
+        "time": 249.0,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Bullet Speed",
+          "+Fire Rate",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 28,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 33,
+        "wave": 27,
+        "time": 254.2,
+        "chosen": "+Damage",
+        "options": [
+          "+Fire Rate",
+          "+Max HP",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 31,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 31,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 31,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 31,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 34,
+        "wave": 27,
+        "time": 259.9,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Range",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 12,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 35,
+        "wave": 28,
+        "time": 265.4,
+        "chosen": "+Bullet Speed",
+        "options": [
+          "+Damage",
+          "+Bullet Speed",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 36,
+        "wave": 28,
+        "time": 271.0,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Fire Rate",
+          "+Bullet Speed",
+          "+Range"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 9,
+        "player_max_hp": 9,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 37,
+        "wave": 29,
+        "time": 276.2,
+        "chosen": "+Max HP",
+        "options": [
+          "+Bullet Speed",
+          "+Damage",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 38,
+        "wave": 30,
+        "time": 282.3,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Max HP",
+          "+Fire Rate",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 39,
+        "wave": 30,
+        "time": 288.4,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Range",
+          "+Fire Rate",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 34,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 40,
+        "wave": 31,
+        "time": 295.2,
+        "chosen": "+Damage",
+        "options": [
+          "+Fire Rate",
+          "+Damage",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 10,
+        "player_max_hp": 10,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 41,
+        "wave": 32,
+        "time": 303.0,
+        "chosen": "+Max HP",
+        "options": [
+          "+Max HP",
+          "+Range",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 37,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 11,
+        "player_max_hp": 11,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 42,
+        "wave": 33,
+        "time": 309.8,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Fire Rate",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 11,
+        "player_max_hp": 11,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 43,
+        "wave": 33,
+        "time": 316.1,
+        "chosen": "+Max HP",
+        "options": [
+          "+Max HP",
+          "+Bullet Speed",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 40,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 12,
+        "player_max_hp": 12,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 44,
+        "wave": 34,
+        "time": 324.4,
+        "chosen": "+Damage",
+        "options": [
+          "+Range",
+          "+Damage",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 105
+          }
+        ],
+        "player_hp": 12,
+        "player_max_hp": 12,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 45,
+        "wave": 35,
+        "time": 333.3,
+        "chosen": "+Range",
+        "options": [
+          "+Damage",
+          "+Range",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 12,
+        "player_max_hp": 12,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 46,
+        "wave": 36,
+        "time": 341.6,
+        "chosen": "+Max HP",
+        "options": [
+          "+Range",
+          "+Max HP",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 13,
+        "player_max_hp": 13,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 47,
+        "wave": 37,
+        "time": 354.7,
+        "chosen": "+Max HP",
+        "options": [
+          "+Range",
+          "+Max HP",
+          "+Bullet Speed"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 48,
+        "wave": 38,
+        "time": 364.4,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Bullet Speed",
+          "+Max HP",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 49,
+        "wave": 39,
+        "time": 373.7,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Fire Rate",
+          "+Range",
+          "+Damage"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 50,
+        "wave": 41,
+        "time": 385.6,
+        "chosen": "+Fire Rate",
+        "options": [
+          "+Fire Rate",
+          "+Range",
+          "+Max HP"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 43,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "total_damage_taken": 11
+      },
+      {
+        "level": 51,
+        "wave": 42,
+        "time": 394.7,
+        "chosen": "+Damage",
+        "options": [
+          "+Damage",
+          "+Max HP",
+          "+Fire Rate"
+        ],
+        "weapons": [
+          {
+            "type": "normal",
+            "dmg": 46,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "shotgun",
+            "dmg": 46,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "piercing",
+            "dmg": 46,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          },
+          {
+            "type": "explosive",
+            "dmg": 46,
+            "fire_rate": 5,
+            "speed": 14,
+            "range": 120
+          }
+        ],
+        "player_hp": 14,
+        "player_max_hp": 14,
+        "total_damage_taken": 11
+      }
+    ],
+    "quit": true
   }
 ]
