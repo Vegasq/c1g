@@ -4260,5 +4260,185 @@ class TestConfigDrivenScaling(unittest.TestCase):
             self.assertLessEqual(e.shoot_timer, timer_max)
 
 
+class TestConfigDrivenWeapons(unittest.TestCase):
+    """Tests that weapon stats are built from BALANCE config."""
+
+    def test_default_weapon_stats_from_config(self):
+        """default_weapon_stats() should use values from BALANCE."""
+        wcfg = BALANCE["weapons"]["default"]
+        ws = default_weapon_stats()
+        self.assertEqual(ws["damage"], wcfg["damage"])
+        self.assertEqual(ws["fire_rate"], wcfg["fire_rate"])
+        self.assertEqual(ws["bullet_speed"], wcfg["bullet_speed"])
+        self.assertEqual(ws["range"], wcfg["range"])
+
+    def test_enemy_bullet_stats_from_config(self):
+        """EnemyBullet class attrs should match BALANCE config."""
+        eb_cfg = BALANCE["bullets"]["enemy"]
+        self.assertEqual(EnemyBullet.SPEED, eb_cfg["speed"])
+        self.assertEqual(EnemyBullet.RADIUS, eb_cfg["radius"])
+        self.assertEqual(EnemyBullet.LIFETIME, eb_cfg["lifetime"])
+
+    def test_shotgun_pellet_count_from_config(self):
+        """Shotgun should fire pellet_count bullets from config."""
+        pellet_count = BALANCE["weapons"]["shotgun"]["pellet_count"]
+        u = Unit(0, 0, (255, 255, 255), is_player=True)
+        target = type('T', (), {'x': 100.0, 'y': 0.0})()
+        bullets = []
+        ws = default_weapon_stats()
+        ws["weapon_type"] = "shotgun"
+        u.shoot_at(target, bullets, weapon_stats=[ws])
+        self.assertEqual(len(bullets), pellet_count)
+
+    def test_explosive_radius_from_config(self):
+        """Explosive radius config value should exist and be positive."""
+        radius = BALANCE["weapons"]["explosive"]["radius"]
+        self.assertGreater(radius, 0)
+
+
+class TestConfigDrivenUpgrades(unittest.TestCase):
+    """Tests that upgrade amounts and scaling use BALANCE config."""
+
+    def test_stat_upgrades_from_config(self):
+        """STAT_UPGRADES amounts should match BALANCE config."""
+        ucfg = BALANCE["upgrades"]
+        by_stat = {u["stat"]: u["amount"] for u in STAT_UPGRADES}
+        self.assertEqual(by_stat["damage"], ucfg["damage_amount"])
+        self.assertEqual(by_stat["fire_rate"], ucfg["fire_rate_amount"])
+        self.assertEqual(by_stat["bullet_speed"], ucfg["bullet_speed_amount"])
+        self.assertEqual(by_stat["range"], ucfg["range_amount"])
+        self.assertEqual(by_stat["max_hp"], ucfg["max_hp_amount"])
+
+    def test_damage_scaling_uses_config_tiers(self):
+        """get_scaled_amount for damage should use config tier levels."""
+        scfg = BALANCE["upgrades"]["scaling"]
+        tier3_level = scfg["damage_tier3_level"]
+        tier3_bonus = scfg["damage_tier3_bonus"]
+        result = get_scaled_amount("damage", 1, tier3_level)
+        self.assertEqual(result, 1 + tier3_bonus)
+
+    def test_fire_rate_scaling_uses_config_tier(self):
+        """get_scaled_amount for fire_rate should use config tier level."""
+        scfg = BALANCE["upgrades"]["scaling"]
+        tier2_level = scfg["fire_rate_tier2_level"]
+        tier2_bonus = scfg["fire_rate_tier2_bonus"]
+        result = get_scaled_amount("fire_rate", -3, tier2_level)
+        self.assertEqual(result, -3 + tier2_bonus)
+
+    def test_min_fire_rate_from_config(self):
+        """Fire rate floor in apply_upgrade should use config value."""
+        min_fr = BALANCE["upgrades"]["min_fire_rate"]
+        inv = [default_weapon_stats()]
+        inv[0]["fire_rate"] = min_fr + 1
+        # Apply a large negative fire rate change
+        apply_upgrade(inv, {"stat": "fire_rate", "amount": -100})
+        self.assertEqual(inv[0]["fire_rate"], min_fr)
+
+    def test_milestone_interval_from_config(self):
+        """Milestone intervals should come from config."""
+        scfg = BALANCE["upgrades"]["scaling"]
+        early = scfg["milestone_interval_early"]
+        late = scfg["milestone_interval_late"]
+        threshold = scfg["milestone_threshold"]
+        # At a level <= threshold that's a multiple of early interval, should offer weapon
+        test_level = early
+        if test_level <= threshold:
+            inv = [default_weapon_stats()]
+            options = generate_upgrade_options(test_level, inv)
+            has_weapon = any("weapon_type" in o for o in options)
+            self.assertTrue(has_weapon, f"Level {test_level} should be a milestone")
+
+
+class TestConfigDrivenPlayerStats(unittest.TestCase):
+    """Tests that player/unit stats use BALANCE config."""
+
+    def test_player_hp_from_config(self):
+        """Player max_hp should match config."""
+        expected = BALANCE["player"]["hp"]
+        p = Unit(0, 0, (255, 255, 255), is_player=True)
+        self.assertEqual(p.max_hp, expected)
+
+    def test_ally_hp_from_config(self):
+        """Ally max_hp should match config."""
+        expected = BALANCE["player"]["ally"]["hp"]
+        a = Unit(0, 0, (255, 255, 255), is_player=False)
+        self.assertEqual(a.max_hp, expected)
+
+    def test_unit_radius_from_config(self):
+        self.assertEqual(Unit.RADIUS, BALANCE["player"]["radius"])
+
+    def test_unit_speed_from_config(self):
+        self.assertAlmostEqual(Unit.SPEED, BALANCE["player"]["speed"])
+
+    def test_unit_shoot_cooldown_from_config(self):
+        self.assertEqual(Unit.SHOOT_COOLDOWN, BALANCE["player"]["shoot_cooldown"])
+
+    def test_ally_lifetime_from_config(self):
+        self.assertEqual(Unit.ALLY_LIFETIME, BALANCE["player"]["ally"]["lifetime"])
+
+
+class TestConfigDrivenXP(unittest.TestCase):
+    """Tests that XP thresholds use BALANCE config."""
+
+    def test_xp_formula_uses_config(self):
+        """XP thresholds should use base/linear/quadratic from config."""
+        xp_cfg = BALANCE["xp"]
+        thresholds = generate_xp_thresholds()
+        self.assertEqual(len(thresholds), xp_cfg["max_level"])
+        # Check first threshold: base + 0*linear + 0*quadratic = base
+        self.assertEqual(thresholds[0], xp_cfg["base"])
+        # Check second: base + 1*linear + 1*quadratic
+        expected_1 = xp_cfg["base"] + xp_cfg["linear"] + xp_cfg["quadratic"]
+        self.assertEqual(thresholds[1], expected_1)
+
+    def test_max_level_from_config(self):
+        """Default max_level should come from config."""
+        thresholds = generate_xp_thresholds()
+        self.assertEqual(len(thresholds), BALANCE["xp"]["max_level"])
+
+
+class TestConfigDrivenDifficulty(unittest.TestCase):
+    """Tests that difficulty settings use BALANCE config."""
+
+    def test_max_enemies_base_from_config(self):
+        self.assertEqual(MAX_ENEMIES_BASE, BALANCE["difficulty"]["max_enemies_base"])
+
+    def test_max_enemies_cap_from_config(self):
+        self.assertEqual(MAX_ENEMIES_CAP, BALANCE["difficulty"]["max_enemies_cap"])
+
+    def test_get_max_enemies_uses_config(self):
+        """get_max_enemies should use enemies_per_wave from config."""
+        epw = BALANCE["difficulty"]["enemies_per_wave"]
+        result = get_max_enemies(10)
+        expected = min(MAX_ENEMIES_CAP, MAX_ENEMIES_BASE + 10 * epw)
+        self.assertEqual(result, expected)
+
+    def test_get_spawn_count_uses_config(self):
+        """get_spawn_count should use spawn_count_divisor from config."""
+        divisor = BALANCE["difficulty"]["spawn_count_divisor"]
+        result = get_spawn_count(8)
+        expected = 8 + 8 // divisor
+        self.assertEqual(result, expected)
+
+
+class TestConfigDrivenHealthPickups(unittest.TestCase):
+    """Tests that health pickup stats use BALANCE config."""
+
+    def test_pickup_radius_from_config(self):
+        self.assertEqual(HealthPickup.RADIUS, BALANCE["health_pickups"]["radius"])
+
+    def test_pickup_lifetime_from_config(self):
+        self.assertEqual(HealthPickup.LIFETIME, BALANCE["health_pickups"]["lifetime"])
+
+    def test_pickup_attract_range_from_config(self):
+        self.assertEqual(HealthPickup.ATTRACT_RANGE, BALANCE["health_pickups"]["attract_range"])
+
+    def test_pickup_attract_speed_from_config(self):
+        self.assertAlmostEqual(HealthPickup.ATTRACT_SPEED, BALANCE["health_pickups"]["attract_speed"])
+
+    def test_pickup_collect_range_from_config(self):
+        self.assertEqual(HealthPickup.COLLECT_RANGE, BALANCE["health_pickups"]["collect_range"])
+
+
 if __name__ == "__main__":
     unittest.main()

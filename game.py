@@ -236,18 +236,21 @@ load_balance_config()
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60
-MAX_ENEMIES_BASE = 140
-MAX_ENEMIES_CAP = 200
+_diff_cfg = BALANCE.get("difficulty", {})
+MAX_ENEMIES_BASE = _diff_cfg.get("max_enemies_base", 140)
+MAX_ENEMIES_CAP = _diff_cfg.get("max_enemies_cap", 200)
 
 
 def get_max_enemies(wave):
-    """Return the enemy cap for a given wave: min(200, 140 + wave * 2)."""
-    return min(MAX_ENEMIES_CAP, MAX_ENEMIES_BASE + wave * 2)
+    """Return the enemy cap for a given wave."""
+    enemies_per_wave = BALANCE.get("difficulty", {}).get("enemies_per_wave", 2)
+    return min(MAX_ENEMIES_CAP, MAX_ENEMIES_BASE + wave * enemies_per_wave)
 
 
 def get_spawn_count(wave):
     """Return the number of enemies to spawn per spawn event."""
-    return wave + wave // 4
+    divisor = BALANCE.get("difficulty", {}).get("spawn_count_divisor", 4)
+    return wave + wave // divisor
 
 
 # Defer pygame display/font init so the module can be imported for testing
@@ -749,11 +752,12 @@ def generate_obstacles(count=30):
 
 def default_weapon_stats():
     """Return default weapon stats dict."""
+    wcfg = BALANCE.get("weapons", {}).get("default", {})
     return {
-        "damage": 1,
-        "fire_rate": 25,
-        "bullet_speed": 8,
-        "range": 90,
+        "damage": wcfg.get("damage", 1),
+        "fire_rate": wcfg.get("fire_rate", 25),
+        "bullet_speed": wcfg.get("bullet_speed", 8),
+        "range": wcfg.get("range", 90),
         "weapon_type": "normal",
         "cooldown": 0,
     }
@@ -932,9 +936,10 @@ class Bullet:
 
 
 class EnemyBullet:
-    SPEED = 4
-    RADIUS = 5
-    LIFETIME = 120  # frames
+    _eb_cfg = BALANCE.get("bullets", {}).get("enemy", {})
+    SPEED = _eb_cfg.get("speed", 4)
+    RADIUS = _eb_cfg.get("radius", 5)
+    LIFETIME = _eb_cfg.get("lifetime", 120)
     COLOR = (255, 120, 40)  # red/orange
 
     def __init__(self, x, y, dx, dy, damage=1):
@@ -957,18 +962,22 @@ class EnemyBullet:
 
 
 class Unit:
-    RADIUS = 14
-    SPEED = 2.5
-    SHOOT_COOLDOWN = 25
+    _pcfg = BALANCE.get("player", {})
+    RADIUS = _pcfg.get("radius", 14)
+    SPEED = _pcfg.get("speed", 2.5)
+    SHOOT_COOLDOWN = _pcfg.get("shoot_cooldown", 25)
 
-    ALLY_LIFETIME = 600  # frames (~10 seconds)
+    _ally_cfg = BALANCE.get("player", {}).get("ally", {})
+    ALLY_LIFETIME = _ally_cfg.get("lifetime", 600)
 
     def __init__(self, x, y, color, is_player=False):
         self.x, self.y = float(x), float(y)
         self.color = color
         self.is_player = is_player
         self.cooldown = 0
-        self.max_hp = 5 if is_player else 3
+        pcfg = BALANCE.get("player", {})
+        ally_cfg = pcfg.get("ally", {})
+        self.max_hp = pcfg.get("hp", 5) if is_player else ally_cfg.get("hp", 3)
         self.hp = self.max_hp
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
 
@@ -1031,10 +1040,12 @@ class Unit:
         """Create bullet(s) for one weapon firing."""
         if weapon_type == "shotgun":
             base_angle = math.atan2(dy, dx)
-            spread_angle = math.radians(30)
+            shotgun_cfg = BALANCE.get("weapons", {}).get("shotgun", {})
+            spread_angle = math.radians(shotgun_cfg.get("spread_angle", 30))
+            pellet_count = shotgun_cfg.get("pellet_count", 5)
             shotgun_damage = max(1, damage // 2)
-            for i in range(5):
-                angle = base_angle + spread_angle * (i - 2) / 2
+            for i in range(pellet_count):
+                angle = base_angle + spread_angle * (i - (pellet_count - 1) / 2) / max(1, (pellet_count - 1) / 2)
                 sdx = math.cos(angle)
                 sdy = math.sin(angle)
                 bullets.append(Bullet(self.x, self.y, sdx, sdy,
@@ -1281,11 +1292,12 @@ class Enemy:
 
 
 class HealthPickup:
-    RADIUS = 8
-    LIFETIME = 600  # frames (~10 seconds)
-    ATTRACT_RANGE = 100
-    ATTRACT_SPEED = 4.0
-    COLLECT_RANGE = 20
+    _hp_cfg = BALANCE.get("health_pickups", {})
+    RADIUS = _hp_cfg.get("radius", 8)
+    LIFETIME = _hp_cfg.get("lifetime", 600)
+    ATTRACT_RANGE = _hp_cfg.get("attract_range", 100)
+    ATTRACT_SPEED = _hp_cfg.get("attract_speed", 4.0)
+    COLLECT_RANGE = _hp_cfg.get("collect_range", 20)
 
     def __init__(self, x, y, heal_amount=1):
         self.x = float(x)
@@ -1344,11 +1356,17 @@ def get_health_drop_chance(enemy_type):
     return HEALTH_DROP_CHANCE.get(enemy_type, default_chance)
 
 
-def generate_xp_thresholds(max_level=50):
+def generate_xp_thresholds(max_level=None):
     """Generate XP thresholds for each level. Level n requires thresholds[n-1] XP."""
+    xp_cfg = BALANCE.get("xp", {})
+    if max_level is None:
+        max_level = xp_cfg.get("max_level", 50)
+    base = xp_cfg.get("base", 10)
+    linear = xp_cfg.get("linear", 5)
+    quadratic = xp_cfg.get("quadratic", 2)
     thresholds = []
     for i in range(max_level):
-        thresholds.append(10 + i * 5 + i * i * 2)
+        thresholds.append(base + i * linear + i * i * quadratic)
     return thresholds
 
 
@@ -1362,27 +1380,39 @@ def check_level_up(xp, level, thresholds):
     return xp, level, False
 
 
-STAT_UPGRADES = [
-    {"name": "+Damage", "stat": "damage", "amount": 1},
-    {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
-    {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2},
-    {"name": "+Range", "stat": "range", "amount": 15},
-    {"name": "+Max HP", "stat": "max_hp", "amount": 1},
-]
+def _build_stat_upgrades():
+    """Build STAT_UPGRADES list from BALANCE config."""
+    ucfg = BALANCE.get("upgrades", {})
+    return [
+        {"name": "+Damage", "stat": "damage", "amount": ucfg.get("damage_amount", 1)},
+        {"name": "+Fire Rate", "stat": "fire_rate", "amount": ucfg.get("fire_rate_amount", -3)},
+        {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": ucfg.get("bullet_speed_amount", 2)},
+        {"name": "+Range", "stat": "range", "amount": ucfg.get("range_amount", 15)},
+        {"name": "+Max HP", "stat": "max_hp", "amount": ucfg.get("max_hp_amount", 1)},
+    ]
+
+
+STAT_UPGRADES = _build_stat_upgrades()
 
 WEAPON_TYPES = ["shotgun", "piercing", "explosive"]
 
 
 def get_scaled_amount(stat, base_amount, level):
     """Scale upgrade amounts based on player level."""
+    scfg = BALANCE.get("upgrades", {}).get("scaling", {})
     if stat == "damage":
-        if level >= 20:
-            return base_amount + 1  # +2 total (reduced from +3)
-        elif level >= 10:
-            return base_amount  # +1 total (reduced from +2)
+        tier3_level = scfg.get("damage_tier3_level", 20)
+        tier2_level = scfg.get("damage_tier2_level", 10)
+        tier3_bonus = scfg.get("damage_tier3_bonus", 1)
+        if level >= tier3_level:
+            return base_amount + tier3_bonus
+        elif level >= tier2_level:
+            return base_amount
     elif stat == "fire_rate":
-        if level >= 15:
-            return base_amount - 2  # -5 total
+        tier2_level = scfg.get("fire_rate_tier2_level", 15)
+        tier2_bonus = scfg.get("fire_rate_tier2_bonus", -2)
+        if level >= tier2_level:
+            return base_amount + tier2_bonus
     return base_amount
 
 
@@ -1397,7 +1427,11 @@ def generate_upgrade_options(level, weapon_stats):
     for opt in options:
         if "stat" in opt:
             opt["amount"] = get_scaled_amount(opt["stat"], opt["amount"], level)
-    milestone_interval = 4 if level > 15 else 5
+    scfg = BALANCE.get("upgrades", {}).get("scaling", {})
+    milestone_threshold = scfg.get("milestone_threshold", 15)
+    milestone_interval_late = scfg.get("milestone_interval_late", 4)
+    milestone_interval_early = scfg.get("milestone_interval_early", 5)
+    milestone_interval = milestone_interval_late if level > milestone_threshold else milestone_interval_early
     is_milestone = level % milestone_interval == 0
     if is_milestone:
         owned_types = {w["weapon_type"] for w in weapon_stats}
@@ -1417,6 +1451,7 @@ def apply_upgrade(weapon_stats, option, player=None):
     weapon_stats is a list of weapon dicts (inventory).
     Stat upgrades apply to ALL weapons, weapon_type adds a new weapon entry.
     """
+    min_fire_rate = BALANCE.get("upgrades", {}).get("min_fire_rate", 5)
     if "weapon_type" in option:
         # Add new weapon with default stats plus accumulated global bonuses
         defaults = default_weapon_stats()
@@ -1428,7 +1463,7 @@ def apply_upgrade(weapon_stats, option, player=None):
         for stat_key in ("damage", "fire_rate", "bullet_speed", "range"):
             bonus = ref[stat_key] - defaults[stat_key]
             new_weapon[stat_key] += bonus
-        new_weapon["fire_rate"] = max(5, new_weapon["fire_rate"])
+        new_weapon["fire_rate"] = max(min_fire_rate, new_weapon["fire_rate"])
         weapon_stats.append(new_weapon)
     elif option.get("stat") == "max_hp":
         if player is None:
@@ -1439,7 +1474,7 @@ def apply_upgrade(weapon_stats, option, player=None):
         for ws in weapon_stats:
             ws[option["stat"]] += option["amount"]
             if option["stat"] == "fire_rate":
-                ws["fire_rate"] = max(5, ws["fire_rate"])
+                ws["fire_rate"] = max(min_fire_rate, ws["fire_rate"])
     return weapon_stats
 
 
@@ -2238,7 +2273,8 @@ def run():
     escape_flash_timer = 0
     score = 0
     spawn_timer = 0
-    spawn_interval = 110  # frames between spawns
+    waves_cfg = BALANCE.get("waves", {})
+    spawn_interval = waves_cfg.get("spawn_interval_base", 110)
     wave = 1
     wave_timer = 0
     xp = 0
@@ -2272,7 +2308,7 @@ def run():
         escape_flash_timer = 0
         score = 0
         spawn_timer = 0
-        spawn_interval = 110
+        spawn_interval = BALANCE.get("waves", {}).get("spawn_interval_base", 110)
         wave = 1
         wave_timer = 0
         xp = 0
@@ -2691,7 +2727,8 @@ def run():
         # Spawn enemies
         spawn_timer += 1
         wave_timer += 1
-        if wave_timer > 480:
+        wave_timer_limit = BALANCE.get("waves", {}).get("timer", 480)
+        if wave_timer > wave_timer_limit:
             # Log completed wave stats before advancing
             run_stats["wave_logs"].append({
                 "wave": wave,
@@ -2711,7 +2748,9 @@ def run():
             run_stats["wave_xp_earned"] = 0
             wave += 1
             wave_timer = 0
-            spawn_interval = max(10, spawn_interval - 14)
+            spawn_min = BALANCE.get("waves", {}).get("spawn_interval_min", 10)
+            spawn_reduction = BALANCE.get("waves", {}).get("spawn_interval_reduction", 14)
+            spawn_interval = max(spawn_min, spawn_interval - spawn_reduction)
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
             for _ in range(get_spawn_count(wave)):
@@ -2820,7 +2859,7 @@ def run():
         enemies = new_enemies
 
         # Explosive area damage (skip enemies already hit directly by the bullet)
-        EXPLOSIVE_RADIUS = 60
+        EXPLOSIVE_RADIUS = BALANCE.get("weapons", {}).get("explosive", {}).get("radius", 60)
         for ex, ey, edmg, direct_hit_uid in explosive_hits:
             surviving_after_explosion = []
             for e in enemies:

@@ -68,16 +68,16 @@ Extract all hardcoded balance values from game.py into a balance.toml config fil
 **Files:**
 - Modify: `game.py`
 
-- [ ] Replace default_weapon_stats() values with config lookups
-- [ ] Replace shotgun pellet count/spread and explosive radius with config values
-- [ ] Replace enemy bullet constants with config values
-- [ ] Replace STAT_UPGRADES amounts and level scaling thresholds with config values
-- [ ] Replace player/unit stats (HP, speed, cooldown, radius, ally lifetime) with config values
-- [ ] Replace XP threshold formula coefficients with config values
-- [ ] Replace difficulty values (max enemies, spawn interval, wave timer) with config values
-- [ ] Replace health pickup stats (radius, lifetime, attract range/speed) with config values
-- [ ] Update tests for weapon/upgrade/player config usage
-- [ ] Run project test suite - must pass before Task 4
+- [x] Replace default_weapon_stats() values with config lookups
+- [x] Replace shotgun pellet count/spread and explosive radius with config values
+- [x] Replace enemy bullet constants with config values
+- [x] Replace STAT_UPGRADES amounts and level scaling thresholds with config values
+- [x] Replace player/unit stats (HP, speed, cooldown, radius, ally lifetime) with config values
+- [x] Replace XP threshold formula coefficients with config values
+- [x] Replace difficulty values (max enemies, spawn interval, wave timer) with config values
+- [x] Replace health pickup stats (radius, lifetime, attract range/speed) with config values
+- [x] Update tests for weapon/upgrade/player config usage
+- [x] Run project test suite - must pass before Task 4
 
 ## Task 4: Final integration and testing
 
