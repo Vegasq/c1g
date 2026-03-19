@@ -4804,5 +4804,119 @@ class TestInvulnerability(unittest.TestCase):
         self.assertEqual(invuln, 120)
 
 
+class TestDamageSourceTracking(unittest.TestCase):
+    """Tests for tracking last damage source and killer info."""
+
+    def test_contact_damage_sets_last_damage_source(self):
+        """last_damage_source should be set to the enemy type on contact damage."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 5
+        player.invulnerable_timer = 0
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+        last_damage_source = ""
+
+        enemy = Enemy(Camera(), enemy_type="brute", wave=1)
+        enemy.x = player.x
+        enemy.y = player.y
+
+        dist = math.hypot(enemy.x - player.x, enemy.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < enemy.radius + player.RADIUS:
+            player.hp -= enemy.contact_damage
+            player.invulnerable_timer = invuln_duration
+            last_damage_source = enemy.enemy_type
+
+        self.assertEqual(last_damage_source, "brute")
+
+    def test_bullet_damage_sets_last_damage_source(self):
+        """last_damage_source should be 'Enemy Bullet' on bullet damage."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 5
+        player.invulnerable_timer = 0
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+        last_damage_source = ""
+
+        eb = EnemyBullet(player.x, player.y, 1, 0)
+        dist = math.hypot(eb.x - player.x, eb.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < eb.RADIUS + player.RADIUS:
+            player.hp -= eb.damage
+            player.invulnerable_timer = invuln_duration
+            last_damage_source = "Enemy Bullet"
+
+        self.assertEqual(last_damage_source, "Enemy Bullet")
+
+    def test_killer_info_stored_on_death(self):
+        """killer_info should capture enemy type, wave, and survival time on death."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 1
+        player.invulnerable_timer = 0
+        last_damage_source = ""
+        killer_info = {}
+        wave = 5
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+
+        enemy = Enemy(Camera(), enemy_type="elite", wave=wave)
+        enemy.x = player.x
+        enemy.y = player.y
+
+        dist = math.hypot(enemy.x - player.x, enemy.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < enemy.radius + player.RADIUS:
+            player.hp -= enemy.contact_damage
+            player.invulnerable_timer = invuln_duration
+            last_damage_source = enemy.enemy_type
+
+        if player.hp <= 0:
+            killer_info = {
+                "killed_by": last_damage_source or "Unknown",
+                "wave": wave,
+                "survival_time": 42.5,
+            }
+
+        self.assertEqual(killer_info["killed_by"], "elite")
+        self.assertEqual(killer_info["wave"], 5)
+        self.assertEqual(killer_info["survival_time"], 42.5)
+
+    def test_killer_info_with_bullet_death(self):
+        """killer_info should say 'Enemy Bullet' when killed by a bullet."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 1
+        player.invulnerable_timer = 0
+        last_damage_source = ""
+        killer_info = {}
+        wave = 3
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+
+        eb = EnemyBullet(player.x, player.y, 1, 0, damage=5)
+        dist = math.hypot(eb.x - player.x, eb.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < eb.RADIUS + player.RADIUS:
+            player.hp -= eb.damage
+            player.invulnerable_timer = invuln_duration
+            last_damage_source = "Enemy Bullet"
+
+        if player.hp <= 0:
+            killer_info = {
+                "killed_by": last_damage_source or "Unknown",
+                "wave": wave,
+                "survival_time": 10.0,
+            }
+
+        self.assertEqual(killer_info["killed_by"], "Enemy Bullet")
+        self.assertEqual(killer_info["wave"], 3)
+
+    def test_killer_info_defaults_to_unknown(self):
+        """killer_info should say 'Unknown' if last_damage_source is empty."""
+        last_damage_source = ""
+        killer_info = {}
+        wave = 1
+
+        # Simulate death without a tracked source
+        killer_info = {
+            "killed_by": last_damage_source or "Unknown",
+            "wave": wave,
+            "survival_time": 1.0,
+        }
+
+        self.assertEqual(killer_info["killed_by"], "Unknown")
+
+
 if __name__ == "__main__":
     unittest.main()

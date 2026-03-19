@@ -2424,6 +2424,8 @@ def run():
     run_stats["weapon_picks"]["normal"] = 1
     run_start_time = time.time()
     total_xp_earned = 0
+    last_damage_source = ""
+    killer_info = {}
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies
@@ -2431,6 +2433,7 @@ def run():
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
+        nonlocal last_damage_source, killer_info
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -2458,6 +2461,8 @@ def run():
         run_stats["weapon_picks"]["normal"] = 1
         run_start_time = time.time()
         total_xp_earned = 0
+        last_damage_source = ""
+        killer_info = {}
 
     def save_if_playing():
         """Save stats if a game is in progress (playing or level-up)."""
@@ -3114,6 +3119,7 @@ def run():
                 run_stats["damage_taken"] += e.contact_damage
                 run_stats["wave_damage_taken"] += e.contact_damage
                 player.invulnerable_timer = invuln_duration
+                last_damage_source = e.enemy_type
             else:
                 surviving.append(e)
         enemies = surviving
@@ -3127,6 +3133,7 @@ def run():
                     run_stats["damage_taken"] += eb.damage
                     run_stats["wave_damage_taken"] += eb.damage
                     player.invulnerable_timer = invuln_duration
+                    last_damage_source = "Enemy Bullet"
                 else:
                     surviving_eb.append(eb)
             enemy_bullets = surviving_eb
@@ -3145,6 +3152,11 @@ def run():
 
         if player.hp <= 0:
             survival_time = time.time() - run_start_time
+            killer_info = {
+                "killed_by": last_damage_source or "Unknown",
+                "wave": wave,
+                "survival_time": round(survival_time, 1),
+            }
             run_data = collect_run_stats(
                 run_stats, score, level, wave, total_xp_earned,
                 survival_time, weapon_inventory)
