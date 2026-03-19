@@ -1836,6 +1836,25 @@ class TestDetectNativeResolution(unittest.TestCase):
         self.assertEqual(result[0], 3840)
         self.assertEqual(result[1], 2160)
 
+    @patch('pygame.display.Info')
+    def test_detect_invalid_resolution_zero(self, mock_info):
+        """If display.Info returns (0, 0), detection is skipped."""
+        mock_info.return_value = MagicMock(current_w=0, current_h=0)
+        orig_index = game.options_resolution_index
+        orig_resolutions = list(game.SUPPORTED_RESOLUTIONS)
+        result = detect_native_resolution()
+        self.assertIsNone(result)
+        self.assertEqual(game.options_resolution_index, orig_index)
+        self.assertEqual(game.SUPPORTED_RESOLUTIONS, orig_resolutions)
+
+    @patch('pygame.display.Info')
+    def test_detect_invalid_resolution_negative(self, mock_info):
+        """If display.Info returns (-1, -1), detection is skipped."""
+        mock_info.return_value = MagicMock(current_w=-1, current_h=-1)
+        result = detect_native_resolution()
+        self.assertIsNone(result)
+        self.assertNotIn((-1, -1), game.SUPPORTED_RESOLUTIONS)
+
     def test_fullscreen_default_is_true(self):
         """options_fullscreen defaults to True for fullscreen startup."""
         # Re-import to check the default
@@ -3796,6 +3815,26 @@ class TestInitPygameSequence(unittest.TestCase):
             init_pygame()
         self.assertFalse(game.options_fullscreen)
         self.assertIsNotNone(game.screen)
+
+    @patch('game.load_settings')
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_fullscreen_fallback_persists_settings(self, mock_count, mock_info,
+                                                         mock_caption, mock_font,
+                                                         mock_load):
+        """When fullscreen fails on startup, corrected state is saved to settings."""
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
+        game.options_fullscreen = True
+        game.screen = None
+        with patch('pygame.display.set_mode',
+                   side_effect=[pygame.error("fullscreen failed"),
+                                pygame.Surface((1920, 1080))]) as mock_set_mode, \
+             patch('game.save_settings') as mock_save:
+            init_pygame()
+        mock_save.assert_called_once()
+        self.assertFalse(game.options_fullscreen)
 
     @patch('pygame.font.SysFont', return_value=MagicMock())
     @patch('pygame.display.set_caption')

@@ -65,6 +65,7 @@ def init_pygame():
         # Fallback to windowed mode if fullscreen fails
         options_fullscreen = False
         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
+        save_settings()
     pygame.display.set_caption("Squad Survivors")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
@@ -132,6 +133,8 @@ def detect_native_resolution():
     global options_resolution_index
     info = pygame.display.Info()
     native_res = (info.current_w, info.current_h)
+    if native_res[0] <= 0 or native_res[1] <= 0:
+        return None
     if native_res not in SUPPORTED_RESOLUTIONS:
         SUPPORTED_RESOLUTIONS.append(native_res)
         SUPPORTED_RESOLUTIONS.sort(key=lambda r: r[0] * r[1])
