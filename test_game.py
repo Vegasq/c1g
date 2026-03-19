@@ -3488,6 +3488,18 @@ class TestGamepadMenuNavigation(unittest.TestCase):
 class TestDisplaySettings(unittest.TestCase):
     """Tests for save/load display settings persistence."""
 
+    def setUp(self):
+        self._orig_settings_file = game.SETTINGS_FILE
+        self._orig_res_index = game.options_resolution_index
+        self._orig_fullscreen = game.options_fullscreen
+        self._saved_resolutions = list(game.SUPPORTED_RESOLUTIONS)
+
+    def tearDown(self):
+        game.SETTINGS_FILE = self._orig_settings_file
+        game.options_resolution_index = self._orig_res_index
+        game.options_fullscreen = self._orig_fullscreen
+        game.SUPPORTED_RESOLUTIONS[:] = self._saved_resolutions
+
     def test_save_settings_creates_file(self):
         import tempfile
         import os
@@ -3667,10 +3679,12 @@ class TestDisplaySettings(unittest.TestCase):
             old = game.SETTINGS_FILE
             game.SETTINGS_FILE = tmp
             old_idx = game.options_resolution_index
+            old_fs = game.options_fullscreen
             result = load_settings()
             self.assertFalse(result)
-            # Fullscreen was still applied even though resolution failed
-            self.assertFalse(game.options_fullscreen)
+            # Neither fullscreen nor resolution should be changed on failed load
+            self.assertEqual(game.options_resolution_index, old_idx)
+            self.assertEqual(game.options_fullscreen, old_fs)
         finally:
             game.SETTINGS_FILE = old
             os.unlink(tmp)

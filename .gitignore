@@ -5,3 +5,5 @@ __pycache__/
 progress*.txt
 # Runtime-generated stats
 stats.json
+# Runtime-generated settings
+settings.json

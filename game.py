@@ -646,22 +646,26 @@ def load_settings():
             data = json.load(f)
         if not isinstance(data, dict):
             return False
-        # Validate and apply fullscreen setting
-        if "fullscreen" in data and isinstance(data["fullscreen"], bool):
-            options_fullscreen = data["fullscreen"]
+        # Determine valid resolution first
+        resolved = False
         # Try to match the saved resolution tuple
         if "resolution" in data and isinstance(data["resolution"], list) and len(data["resolution"]) == 2:
             saved_res = tuple(data["resolution"])
             if saved_res in SUPPORTED_RESOLUTIONS:
                 options_resolution_index = SUPPORTED_RESOLUTIONS.index(saved_res)
-                return True
+                resolved = True
         # Fall back to resolution_index if resolution tuple doesn't match
-        if "resolution_index" in data and isinstance(data["resolution_index"], int):
+        if not resolved and "resolution_index" in data and isinstance(data["resolution_index"], int):
             idx = data["resolution_index"]
             if 0 <= idx < len(SUPPORTED_RESOLUTIONS):
                 options_resolution_index = idx
-                return True
-        return False
+                resolved = True
+        if not resolved:
+            return False
+        # Apply fullscreen only when resolution was also validated
+        if "fullscreen" in data and isinstance(data["fullscreen"], bool):
+            options_fullscreen = data["fullscreen"]
+        return True
     except (json.JSONDecodeError, IOError, KeyError):
         return False
 
