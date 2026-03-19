@@ -32,13 +32,13 @@ Add optional background music support. The game will look for `menu.wav` and `ga
 **Files:**
 - Modify: `game.py`
 
-- [ ] In `run()`, after `init_pygame()`, call `_play_music("menu.wav")` to start menu music
-- [ ] On state transition to `STATE_PLAYING` (new game start, restart from game over), switch to `_play_music("game.wav")`
-- [ ] On state transition to `STATE_MENU` (escape from playing, game over escape, options back), switch to `_play_music("menu.wav")`
-- [ ] On `STATE_GAME_OVER`, keep `game.wav` playing (simpler, still in-game feel)
-- [ ] On `STATE_LEVEL_UP`, keep `game.wav` playing (still in-game)
-- [ ] Write tests verifying music switches happen on state transitions
-- [ ] Run project test suite - must pass
+- [x] In `run()`, after `init_pygame()`, call `_play_music("menu.wav")` to start menu music
+- [x] On state transition to `STATE_PLAYING` (new game start, restart from game over), switch to `_play_music("game.wav")`
+- [x] On state transition to `STATE_MENU` (escape from playing, game over escape, options back), switch to `_play_music("menu.wav")`
+- [x] On `STATE_GAME_OVER`, keep `game.wav` playing (simpler, still in-game feel)
+- [x] On `STATE_LEVEL_UP`, keep `game.wav` playing (still in-game)
+- [x] Write tests verifying music switches happen on state transitions
+- [x] Run project test suite - must pass
 
 ## Verification
 

@@ -2374,6 +2374,7 @@ def run():
     global level_up_selected_index, _gamepad_nav_last_time, _last_levelup_mouse_pos
     init_pygame()
     state = STATE_MENU
+    _play_music("menu.wav")
     camera = Camera()
     player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
     obstacles = []
@@ -2490,17 +2491,21 @@ def run():
                 if event.key == pygame.K_ESCAPE:
                     if state == STATE_OPTIONS:
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_PLAYING:
                         save_if_playing()
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_LEVEL_UP:
                         save_if_playing()
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_MENU:
                         running = False
@@ -2522,6 +2527,7 @@ def run():
                     elif event.key == pygame.K_RETURN:
                         if options_selected_index == 2:
                             state = STATE_MENU
+                            _play_music("menu.wav")
                             _reset_menu_state()
                 elif state == STATE_LEVEL_UP and event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     idx = event.key - pygame.K_1
@@ -2536,6 +2542,7 @@ def run():
                         if menu_selected_index == 0:  # NEW GAME
                             reset_game()
                             state = STATE_PLAYING
+                            _play_music("game.wav")
                         elif menu_selected_index == 1:  # OPTIONS
                             options_selected_index = 0
                             state = STATE_OPTIONS
@@ -2545,6 +2552,7 @@ def run():
                     if state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
+                        _play_music("game.wav")
             if event.type == pygame.MOUSEMOTION and state == STATE_OPTIONS:
                 idx = get_hovered_options_index(event.pos[0], event.pos[1])
                 if idx >= 0:
@@ -2579,6 +2587,7 @@ def run():
                         if menu_selected_index == 0:  # NEW GAME
                             reset_game()
                             state = STATE_PLAYING
+                            _play_music("game.wav")
                         elif menu_selected_index == 1:  # OPTIONS
                             options_selected_index = 0
                             state = STATE_OPTIONS
@@ -2595,6 +2604,7 @@ def run():
                             apply_resolution()
                         elif options_selected_index == 2:  # Back
                             state = STATE_MENU
+                            _play_music("menu.wav")
                             _reset_menu_state()
                     elif state == STATE_LEVEL_UP and upgrade_options:
                         if 0 <= level_up_selected_index < len(upgrade_options):
@@ -2602,20 +2612,25 @@ def run():
                     elif state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
+                        _play_music("game.wav")
                 elif event.button == 1:  # B button - back/escape
                     if state == STATE_OPTIONS:
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_LEVEL_UP:
                         save_if_playing()
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_PLAYING:
                         save_if_playing()
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                     elif state == STATE_MENU:
                         running = False
@@ -2632,12 +2647,14 @@ def run():
                         apply_resolution()
                     elif idx == 2:  # Back
                         state = STATE_MENU
+                        _play_music("menu.wav")
                         _reset_menu_state()
                 elif state == STATE_MENU:
                     idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                     if idx == 0:  # NEW GAME
                         reset_game()
                         state = STATE_PLAYING
+                        _play_music("game.wav")
                     elif idx == 1:  # OPTIONS
                         options_selected_index = 0
                         state = STATE_OPTIONS

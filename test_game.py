@@ -4535,5 +4535,74 @@ class TestMusicHelpers(unittest.TestCase):
         _stop_music()
 
 
+class TestMusicStateTransitions(unittest.TestCase):
+    """Tests verifying music switches on game state transitions via source inspection."""
+
+    def _get_run_source_lines(self):
+        import inspect
+        return inspect.getsource(game.run).split('\n')
+
+    def test_menu_music_plays_on_startup(self):
+        """After init_pygame + state = STATE_MENU, _play_music('menu.wav') should be called."""
+        lines = self._get_run_source_lines()
+        for i, line in enumerate(lines):
+            if 'init_pygame()' in line:
+                # Check within next 5 lines for _play_music("menu.wav")
+                context = '\n'.join(lines[i:i+5])
+                self.assertIn('_play_music("menu.wav")', context,
+                    "run() should call _play_music('menu.wav') shortly after init_pygame()")
+                return
+        self.fail("init_pygame() not found in run()")
+
+    def test_no_music_change_on_level_up(self):
+        """STATE_LEVEL_UP should not trigger any music change (game.wav keeps playing)."""
+        lines = self._get_run_source_lines()
+        for i, line in enumerate(lines):
+            if 'state = STATE_LEVEL_UP' in line:
+                context = '\n'.join(lines[i:i+3])
+                self.assertNotIn('_play_music', context,
+                    "_play_music should not be called after state = STATE_LEVEL_UP transition")
+
+    def test_no_music_change_on_game_over(self):
+        """STATE_GAME_OVER should not trigger any music change (game.wav keeps playing)."""
+        lines = self._get_run_source_lines()
+        for i, line in enumerate(lines):
+            if 'state = STATE_GAME_OVER' in line:
+                context = '\n'.join(lines[i:i+3])
+                self.assertNotIn('_play_music', context,
+                    "_play_music should not be called after state = STATE_GAME_OVER transition")
+
+    def test_menu_music_on_all_menu_transitions(self):
+        """Every state = STATE_MENU transition should be followed by _play_music('menu.wav')."""
+        lines = self._get_run_source_lines()
+        found_initial = False
+        for i, line in enumerate(lines):
+            if 'state = STATE_MENU' in line:
+                if not found_initial:
+                    found_initial = True
+                    context = '\n'.join(lines[i:i+3])
+                    self.assertIn('_play_music', context,
+                        "Initial state = STATE_MENU should be followed by _play_music('menu.wav')")
+                    continue
+                context = '\n'.join(lines[i:i+4])
+                self.assertIn("_play_music", context,
+                    f"state = STATE_MENU at source line {i} should be followed by _play_music('menu.wav')")
+
+    def test_game_music_on_playing_transitions_from_menu_or_gameover(self):
+        """state = STATE_PLAYING from menu/game_over should have _play_music('game.wav')."""
+        lines = self._get_run_source_lines()
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if 'state = STATE_PLAYING' in stripped:
+                # Inside apply_chosen_upgrade (level_up -> playing): game.wav already playing
+                # Detect by checking if we're inside the local function definition
+                context_before = '\n'.join(lines[max(0, i-25):i+1])
+                if 'def apply_chosen_upgrade' in context_before:
+                    continue
+                context_after = '\n'.join(lines[i:i+3])
+                self.assertIn('_play_music', context_after,
+                    f"state = STATE_PLAYING at source line {i} should be followed by _play_music('game.wav')")
+
+
 if __name__ == "__main__":
     unittest.main()
