@@ -49,11 +49,11 @@ Add a "shooter" enemy type that fires projectiles at the player from a distance.
 **Files:**
 - Modify: `game.py`
 
-- [ ] Modify `Enemy.__init__` to add `shoot_cooldown` and `shoot_timer` for shooter type
-- [ ] Modify `Enemy.update` to implement distance-keeping behavior for shooter: approach if >250px from player, retreat if <150px, strafe otherwise
-- [ ] Add shooting logic in `Enemy.update`: when cooldown ready and player in range (~300px), fire an `EnemyBullet` toward player position
-- [ ] Add unique diamond shape for shooter in `Enemy.draw`
-- [ ] Manual test: verify shooters maintain distance and fire projectiles at player
+- [x] Modify `Enemy.__init__` to add `shoot_cooldown` and `shoot_timer` for shooter type
+- [x] Modify `Enemy.update` to implement distance-keeping behavior for shooter: approach if >250px from player, retreat if <150px, strafe otherwise
+- [x] Add shooting logic in `Enemy.update`: when cooldown ready and player in range (~300px), fire an `EnemyBullet` toward player position
+- [x] Add unique diamond shape for shooter in `Enemy.draw`
+- [x] Manual test: verify shooters maintain distance and fire projectiles at player
 
 ## Task 4 - Add enemy bullet to player collision
 

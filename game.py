@@ -897,6 +897,13 @@ class Enemy:
         self.xp_value = base_xp + wave // 5
         self.shield = type_cfg.get("shield", False)
         self.contact_damage = 1 + (wave - 1) // 5
+        # Shooter-specific attributes
+        if enemy_type == "shooter":
+            self.shoot_cooldown = 90  # frames between shots (~1.5 seconds at 60fps)
+            self.shoot_timer = random.randint(30, 90)  # stagger initial shots
+        else:
+            self.shoot_cooldown = 0
+            self.shoot_timer = 0
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
@@ -920,11 +927,32 @@ class Enemy:
         self.x = max(-margin, min(MAP_WIDTH + margin, float(self.x)))
         self.y = max(-margin, min(MAP_HEIGHT + margin, float(self.y)))
 
-    def update(self, target):
+    def update(self, target, enemy_bullets=None):
         dx, dy = target.x - self.x, target.y - self.y
         dist = math.hypot(dx, dy) or 1
-        self.x += dx / dist * self.speed
-        self.y += dy / dist * self.speed
+        if self.enemy_type == "shooter":
+            # Distance-keeping: approach if >250px, retreat if <150px, strafe otherwise
+            nx, ny = dx / dist, dy / dist
+            if dist > 250:
+                # Move toward player
+                self.x += nx * self.speed
+                self.y += ny * self.speed
+            elif dist < 150:
+                # Retreat away from player
+                self.x -= nx * self.speed
+                self.y -= ny * self.speed
+            else:
+                # Strafe perpendicular to player
+                self.x += -ny * self.speed
+                self.y += nx * self.speed
+            # Shooting logic
+            self.shoot_timer -= 1
+            if self.shoot_timer <= 0 and dist <= 300 and enemy_bullets is not None:
+                enemy_bullets.append(EnemyBullet(self.x, self.y, dx, dy))
+                self.shoot_timer = self.shoot_cooldown
+        else:
+            self.x += dx / dist * self.speed
+            self.y += dy / dist * self.speed
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
@@ -963,6 +991,18 @@ class Enemy:
                 angle = math.radians(45 * i - 90)
                 dist = r if i % 2 == 0 else r * 0.5
                 points.append((sx + dist * math.cos(angle), sy + dist * math.sin(angle)))
+        elif self.enemy_type == "shooter":
+            # Tall diamond with crosshair-like notches
+            points = [
+                (sx, sy - r * 1.3),       # top (elongated)
+                (sx + r * 0.4, sy - r * 0.3),
+                (sx + r, sy),              # right
+                (sx + r * 0.4, sy + r * 0.3),
+                (sx, sy + r * 1.3),        # bottom (elongated)
+                (sx - r * 0.4, sy + r * 0.3),
+                (sx - r, sy),              # left
+                (sx - r * 0.4, sy - r * 0.3),
+            ]
         else:
             points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
         pygame.draw.polygon(screen, self.color, points)
@@ -2581,7 +2621,7 @@ def run():
 
         # Update enemies
         for e in enemies:
-            e.update(player)
+            e.update(player, enemy_bullets)
             for obs in obstacles:
                 e.x, e.y = obs.push_circle_out(e.x, e.y, e.radius)
             for er in escape_rooms:
