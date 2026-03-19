@@ -52,7 +52,9 @@ def init_pygame():
         active_joystick = None
     # Detect native resolution before creating the display
     native_res = detect_native_resolution()
-    WIDTH, HEIGHT = native_res
+    # Load saved settings (overrides detected defaults if valid)
+    load_settings()
+    WIDTH, HEIGHT = SUPPORTED_RESOLUTIONS[options_resolution_index]
     flags = pygame.FULLSCREEN if options_fullscreen else 0
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
@@ -524,6 +526,7 @@ def default_weapon_inventory():
 
 
 STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats.json")
+SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
 
 
 def default_run_stats():
@@ -605,6 +608,56 @@ def save_stats(run_data):
         os.replace(tmp_path, STATS_FILE)
     except OSError as e:
         print(f"Warning: could not save stats: {e}")
+
+
+def save_settings():
+    """Save current display settings to settings.json."""
+    data = {
+        "resolution_index": options_resolution_index,
+        "fullscreen": options_fullscreen,
+        "resolution": list(SUPPORTED_RESOLUTIONS[options_resolution_index]),
+    }
+    try:
+        tmp_path = SETTINGS_FILE + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, SETTINGS_FILE)
+    except OSError as e:
+        print(f"Warning: could not save settings: {e}")
+
+
+def load_settings():
+    """Load display settings from settings.json.
+
+    Returns True if settings were loaded, False if defaults should be used.
+    Falls back to auto-detected defaults if file is missing or invalid.
+    """
+    global options_resolution_index, options_fullscreen
+    if not os.path.exists(SETTINGS_FILE):
+        return False
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return False
+        # Validate and apply fullscreen setting
+        if "fullscreen" in data and isinstance(data["fullscreen"], bool):
+            options_fullscreen = data["fullscreen"]
+        # Try to match the saved resolution tuple
+        if "resolution" in data and isinstance(data["resolution"], list) and len(data["resolution"]) == 2:
+            saved_res = tuple(data["resolution"])
+            if saved_res in SUPPORTED_RESOLUTIONS:
+                options_resolution_index = SUPPORTED_RESOLUTIONS.index(saved_res)
+                return True
+        # Fall back to resolution_index if resolution tuple doesn't match
+        if "resolution_index" in data and isinstance(data["resolution_index"], int):
+            idx = data["resolution_index"]
+            if 0 <= idx < len(SUPPORTED_RESOLUTIONS):
+                options_resolution_index = idx
+                return True
+        return False
+    except (json.JSONDecodeError, IOError, KeyError):
+        return False
 
 
 class Bullet:
@@ -1628,6 +1681,7 @@ def apply_resolution():
     _menu_background = None  # Reset so it regenerates at new size
     _fade_overlay = None
     _dim_overlay = None
+    save_settings()
 
 
 def draw_options_menu():

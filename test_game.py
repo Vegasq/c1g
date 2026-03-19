@@ -20,6 +20,7 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   get_spawn_count, snapshot_weapon_power,
                   _is_visible,
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats,
+                  save_settings, load_settings, SETTINGS_FILE,
                   JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
                   handle_joy_device_added, handle_joy_device_removed)
 import game
@@ -3482,6 +3483,223 @@ class TestGamepadMenuNavigation(unittest.TestCase):
         if hovered_idx >= 0:
             game.level_up_selected_index = hovered_idx
         self.assertEqual(game.level_up_selected_index, 1)
+
+
+class TestDisplaySettings(unittest.TestCase):
+    """Tests for save/load display settings persistence."""
+
+    def test_save_settings_creates_file(self):
+        import tempfile
+        import os
+        import json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            tmp = f.name
+        os.unlink(tmp)
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            game.options_resolution_index = 0
+            game.options_fullscreen = True
+            save_settings()
+            with open(tmp) as f:
+                data = json.load(f)
+            self.assertEqual(data["resolution_index"], 0)
+            self.assertTrue(data["fullscreen"])
+            self.assertEqual(data["resolution"], list(SUPPORTED_RESOLUTIONS[0]))
+        finally:
+            game.SETTINGS_FILE = old
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+    def test_save_settings_overwrites_existing(self):
+        import tempfile
+        import os
+        import json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            tmp = f.name
+        os.unlink(tmp)
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            game.options_resolution_index = 0
+            game.options_fullscreen = True
+            save_settings()
+            game.options_resolution_index = 1
+            game.options_fullscreen = False
+            save_settings()
+            with open(tmp) as f:
+                data = json.load(f)
+            self.assertEqual(data["resolution_index"], 1)
+            self.assertFalse(data["fullscreen"])
+        finally:
+            game.SETTINGS_FILE = old
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+    def test_load_settings_missing_file(self):
+        import tempfile
+        import os
+        old = game.SETTINGS_FILE
+        game.SETTINGS_FILE = "/tmp/nonexistent_settings_test.json"
+        if os.path.exists(game.SETTINGS_FILE):
+            os.unlink(game.SETTINGS_FILE)
+        try:
+            result = load_settings()
+            self.assertFalse(result)
+        finally:
+            game.SETTINGS_FILE = old
+
+    def test_load_settings_corrupt_file(self):
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            f.write("not json at all")
+            tmp = f.name
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            result = load_settings()
+            self.assertFalse(result)
+        finally:
+            game.SETTINGS_FILE = old
+            os.unlink(tmp)
+
+    def test_load_settings_invalid_structure(self):
+        import tempfile
+        import os
+        import json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            json.dump([1, 2, 3], f)
+            tmp = f.name
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            result = load_settings()
+            self.assertFalse(result)
+        finally:
+            game.SETTINGS_FILE = old
+            os.unlink(tmp)
+
+    def test_round_trip_save_load(self):
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            tmp = f.name
+        os.unlink(tmp)
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            # Save with specific settings
+            game.options_resolution_index = 2
+            game.options_fullscreen = False
+            save_settings()
+            # Change settings
+            game.options_resolution_index = 0
+            game.options_fullscreen = True
+            # Load should restore
+            result = load_settings()
+            self.assertTrue(result)
+            self.assertEqual(game.options_resolution_index, 2)
+            self.assertFalse(game.options_fullscreen)
+        finally:
+            game.SETTINGS_FILE = old
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+    def test_load_settings_resolution_tuple_match(self):
+        import tempfile
+        import os
+        import json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            json.dump({
+                "resolution_index": 99,
+                "fullscreen": False,
+                "resolution": [1024, 768],
+            }, f)
+            tmp = f.name
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            result = load_settings()
+            self.assertTrue(result)
+            # Should match by resolution tuple, not the invalid index
+            self.assertEqual(
+                SUPPORTED_RESOLUTIONS[game.options_resolution_index],
+                (1024, 768))
+        finally:
+            game.SETTINGS_FILE = old
+            os.unlink(tmp)
+
+    def test_load_settings_fallback_to_index(self):
+        import tempfile
+        import os
+        import json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            json.dump({
+                "resolution_index": 1,
+                "fullscreen": True,
+                "resolution": [9999, 9999],
+            }, f)
+            tmp = f.name
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            result = load_settings()
+            self.assertTrue(result)
+            self.assertEqual(game.options_resolution_index, 1)
+            self.assertTrue(game.options_fullscreen)
+        finally:
+            game.SETTINGS_FILE = old
+            os.unlink(tmp)
+
+    def test_load_settings_invalid_index_and_resolution(self):
+        import tempfile
+        import os
+        import json
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            json.dump({
+                "resolution_index": 999,
+                "fullscreen": False,
+                "resolution": [9999, 9999],
+            }, f)
+            tmp = f.name
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            old_idx = game.options_resolution_index
+            result = load_settings()
+            self.assertFalse(result)
+            # Fullscreen was still applied even though resolution failed
+            self.assertFalse(game.options_fullscreen)
+        finally:
+            game.SETTINGS_FILE = old
+            os.unlink(tmp)
+
+    @patch("game.pygame.display.set_mode")
+    def test_apply_resolution_calls_save_settings(self, mock_set_mode):
+        import tempfile
+        import os
+        import json
+        mock_set_mode.return_value = pygame.Surface((800, 600))
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            tmp = f.name
+        os.unlink(tmp)
+        try:
+            old = game.SETTINGS_FILE
+            game.SETTINGS_FILE = tmp
+            game.options_resolution_index = 0
+            game.options_fullscreen = False
+            game.screen = pygame.Surface((800, 600))
+            apply_resolution()
+            self.assertTrue(os.path.exists(tmp))
+            with open(tmp) as f:
+                data = json.load(f)
+            self.assertEqual(data["resolution_index"], 0)
+            self.assertFalse(data["fullscreen"])
+        finally:
+            game.SETTINGS_FILE = old
+            if os.path.exists(tmp):
+                os.unlink(tmp)
 
 
 if __name__ == "__main__":

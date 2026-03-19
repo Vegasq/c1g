@@ -33,12 +33,12 @@ Detect the native display resolution at startup using Pygame's display info API,
 - Modify: `game.py`
 - Create: `settings.json` (created at runtime, not committed)
 
-- [ ] Add `save_settings()` function that writes current resolution index, fullscreen flag, and the selected resolution tuple to a `settings.json` file (alongside existing `stats.json`)
-- [ ] Add `load_settings()` function that reads `settings.json` on startup and applies saved preferences, falling back to auto-detected defaults if file is missing or invalid
-- [ ] Call `save_settings()` in `apply_resolution()` so changes are persisted when the user modifies them in the options menu
-- [ ] Call `load_settings()` in `init_pygame()` before window creation
-- [ ] Write tests for save/load settings round-trip and fallback behavior
-- [ ] Run project test suite - must pass before task 3
+- [x] Add `save_settings()` function that writes current resolution index, fullscreen flag, and the selected resolution tuple to a `settings.json` file (alongside existing `stats.json`)
+- [x] Add `load_settings()` function that reads `settings.json` on startup and applies saved preferences, falling back to auto-detected defaults if file is missing or invalid
+- [x] Call `save_settings()` in `apply_resolution()` so changes are persisted when the user modifies them in the options menu
+- [x] Call `load_settings()` in `init_pygame()` before window creation
+- [x] Write tests for save/load settings round-trip and fallback behavior
+- [x] Run project test suite - must pass before task 3
 
 ## Task 3 - Ensure proper fullscreen initialization on startup
 
