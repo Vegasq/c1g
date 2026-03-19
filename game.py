@@ -131,7 +131,10 @@ def detect_native_resolution():
     Updates options_resolution_index to point to the native resolution.
     """
     global options_resolution_index
-    info = pygame.display.Info()
+    try:
+        info = pygame.display.Info()
+    except pygame.error:
+        return None
     native_res = (info.current_w, info.current_h)
     if native_res[0] <= 0 or native_res[1] <= 0:
         return None

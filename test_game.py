@@ -1855,6 +1855,16 @@ class TestDetectNativeResolution(unittest.TestCase):
         self.assertIsNone(result)
         self.assertNotIn((-1, -1), game.SUPPORTED_RESOLUTIONS)
 
+    @patch('pygame.display.Info', side_effect=pygame.error("no video device"))
+    def test_detect_display_info_exception(self, mock_info):
+        """If pygame.display.Info() raises, detection returns None gracefully."""
+        orig_index = game.options_resolution_index
+        orig_resolutions = list(game.SUPPORTED_RESOLUTIONS)
+        result = detect_native_resolution()
+        self.assertIsNone(result)
+        self.assertEqual(game.options_resolution_index, orig_index)
+        self.assertEqual(game.SUPPORTED_RESOLUTIONS, orig_resolutions)
+
     def test_fullscreen_default_is_true(self):
         """options_fullscreen defaults to True for fullscreen startup."""
         # Re-import to check the default
