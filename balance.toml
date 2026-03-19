@@ -3,7 +3,7 @@
 
 [player]
 hp = 5                  # starting and base max HP
-speed = 2.5             # movement speed (pixels per frame)
+speed = 3.5             # movement speed (pixels per frame)
 shoot_cooldown = 25     # frames between ally shots
 radius = 14             # collision/draw radius
 

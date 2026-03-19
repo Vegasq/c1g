@@ -4099,7 +4099,7 @@ class TestBalanceConfig(unittest.TestCase):
         """Player section should have correct default values."""
         p = BALANCE["player"]
         self.assertEqual(p["hp"], 5)
-        self.assertAlmostEqual(p["speed"], 2.5)
+        self.assertAlmostEqual(p["speed"], 3.5)
         self.assertEqual(p["shoot_cooldown"], 25)
         self.assertEqual(p["radius"], 14)
         self.assertEqual(p["ally"]["hp"], 3)
@@ -4129,7 +4129,10 @@ class TestBalanceConfig(unittest.TestCase):
 
     def test_default_balance_toml_is_valid(self):
         """The default TOML string should parse without errors."""
-        import tomllib as _tomllib
+        try:
+            import tomllib as _tomllib
+        except ModuleNotFoundError:
+            import tomli as _tomllib
         config = _tomllib.loads(_default_balance_toml())
         self.assertIn("player", config)
         self.assertIn("enemies", config)
@@ -4167,7 +4170,10 @@ class TestBalanceConfig(unittest.TestCase):
     def test_generated_file_matches_defaults(self):
         """Generated balance.toml should parse to the same config as _default_balance_toml()."""
         import tempfile
-        import tomllib as _tomllib
+        try:
+            import tomllib as _tomllib
+        except ModuleNotFoundError:
+            import tomli as _tomllib
         orig_file = game.BALANCE_FILE
         try:
             with tempfile.TemporaryDirectory() as tmpdir:

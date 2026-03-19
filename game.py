@@ -9,7 +9,12 @@ import time
 try:
     import tomllib
 except ModuleNotFoundError:
-    import tomli as tomllib
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        raise ImportError(
+            "Python <3.11 requires the 'tomli' package. Install it with: pip install tomli"
+        )
 
 BALANCE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "balance.toml")
 BALANCE = {}
@@ -23,7 +28,7 @@ def _default_balance_toml():
 
 [player]
 hp = 5                  # starting and base max HP
-speed = 2.5             # movement speed (pixels per frame)
+speed = 3.5             # movement speed (pixels per frame)
 shoot_cooldown = 25     # frames between ally shots
 radius = 14             # collision/draw radius
 
@@ -261,10 +266,10 @@ def get_max_enemies(wave):
 
 def get_spawn_count(wave):
     """Return the number of enemies to spawn per spawn event."""
-    divisor = BALANCE.get("difficulty", {}).get("spawn_count_divisor", 4)
+    divisor = int(BALANCE.get("difficulty", {}).get("spawn_count_divisor", 4))
     if divisor <= 0:
         divisor = 4
-    return wave + wave // divisor
+    return int(wave + wave // divisor)
 
 
 # Defer pygame display/font init so the module can be imported for testing
@@ -978,7 +983,7 @@ class EnemyBullet:
 class Unit:
     _pcfg = BALANCE.get("player", {})
     RADIUS = _pcfg.get("radius", 14)
-    SPEED = _pcfg.get("speed", 2.5)
+    SPEED = _pcfg.get("speed", 3.5)
     SHOOT_COOLDOWN = _pcfg.get("shoot_cooldown", 25)
 
     _ally_cfg = BALANCE.get("player", {}).get("ally", {})
@@ -1056,7 +1061,7 @@ class Unit:
             base_angle = math.atan2(dy, dx)
             shotgun_cfg = BALANCE.get("weapons", {}).get("shotgun", {})
             spread_angle = math.radians(shotgun_cfg.get("spread_angle", 30))
-            pellet_count = max(1, shotgun_cfg.get("pellet_count", 5))
+            pellet_count = max(1, int(shotgun_cfg.get("pellet_count", 5)))
             shotgun_damage = max(1, damage // 2)
             for i in range(pellet_count):
                 angle = base_angle + spread_angle * (i - (pellet_count - 1) / 2) / max(1, (pellet_count - 1) / 2)
@@ -1396,7 +1401,7 @@ def generate_xp_thresholds(max_level=None):
     """Generate XP thresholds for each level. Level n requires thresholds[n-1] XP."""
     xp_cfg = BALANCE.get("xp", {})
     if max_level is None:
-        max_level = xp_cfg.get("max_level", 50)
+        max_level = int(xp_cfg.get("max_level", 50))
     base = xp_cfg.get("base", 10)
     linear = xp_cfg.get("linear", 5)
     quadratic = xp_cfg.get("quadratic", 2)
@@ -2691,8 +2696,8 @@ def run():
                     pass
         if mx or my:
             length = math.hypot(mx, my)
-            player.x += mx / length * 3.5
-            player.y += my / length * 3.5
+            player.x += mx / length * player.SPEED
+            player.y += my / length * player.SPEED
             player.x = max(player.RADIUS, min(MAP_WIDTH - player.RADIUS, player.x))
             player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
             for obs in obstacles:
@@ -2926,7 +2931,7 @@ def run():
             enemies = surviving_after_explosion
         # Spawn mini enemies from dead splitters
         splitter_cfg = BALANCE.get("splitter", {})
-        mini_count = splitter_cfg.get("mini_count", 2)
+        mini_count = int(splitter_cfg.get("mini_count", 2))
         spawn_offset = splitter_cfg.get("spawn_offset", 12)
         for sx, sy in split_spawns:
             for i in range(mini_count):
