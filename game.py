@@ -828,14 +828,15 @@ ENEMY_TYPES = {
     "splitter": {"hp": 4, "speed": 1.0, "radius": 14, "color": (0, 255, 100), "xp_value": 3},
     "mini": {"hp": 2, "speed": 1.8, "radius": 7, "color": (0, 255, 100), "xp_value": 1},
     "elite": {"hp": 15, "speed": 1.8, "radius": 16, "color": (255, 0, 255), "xp_value": 12},
+    "shooter": {"hp": 5, "speed": 0.8, "radius": 13, "color": (255, 100, 50), "xp_value": 5},
 }
 
 # Wave-based spawn weight tables: maps wave thresholds to enemy type weights.
 # Checked in descending order; first matching threshold is used.
 WAVE_COMPOSITION = [
-    (12, {"runner": 10, "brute": 10, "shielded": 30, "splitter": 30, "elite": 20}),
-    (10, {"runner": 20, "brute": 20, "shielded": 25, "splitter": 25, "elite": 10}),
-    (8, {"runner": 25, "brute": 25, "shielded": 25, "splitter": 25}),
+    (12, {"runner": 10, "brute": 10, "shielded": 25, "splitter": 25, "elite": 15, "shooter": 15}),
+    (10, {"runner": 15, "brute": 15, "shielded": 20, "splitter": 25, "elite": 10, "shooter": 15}),
+    (8, {"runner": 20, "brute": 20, "shielded": 20, "splitter": 25, "shooter": 15}),
     (6, {"basic": 30, "runner": 25, "brute": 20, "shielded": 15, "splitter": 10}),
     (3, {"basic": 60, "runner": 25, "brute": 15}),
     (1, {"basic": 100}),
@@ -997,6 +998,7 @@ HEALTH_DROP_CHANCE = {
     "splitter": 0.06,
     "mini": 0.03,
     "elite": 0.15,
+    "shooter": 0.08,
 }
 
 

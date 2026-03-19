@@ -28,10 +28,10 @@ Add a "shooter" enemy type that fires projectiles at the player from a distance.
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add "shooter" entry to `ENEMY_TYPES` dict with hp=5, speed=0.8, radius=13, color=(255,100,50), xp_value=5
-- [ ] Add shooter to `WAVE_COMPOSITION` starting at wave 8 with increasing weight
-- [ ] Add shooter to `HEALTH_DROP_CHANCE` dict
-- [ ] Manual test: verify shooters spawn in waves 8+
+- [x] Add "shooter" entry to `ENEMY_TYPES` dict with hp=5, speed=0.8, radius=13, color=(255,100,50), xp_value=5
+- [x] Add shooter to `WAVE_COMPOSITION` starting at wave 8 with increasing weight
+- [x] Add shooter to `HEALTH_DROP_CHANCE` dict
+- [x] Manual test: verify shooters spawn in waves 8+
 
 ## Task 2 - Add enemy bullet support (EnemyBullet class and rendering)
 
