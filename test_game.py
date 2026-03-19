@@ -4496,6 +4496,9 @@ class TestConfigDrivenHealthPickups(unittest.TestCase):
 class TestMusicHelpers(unittest.TestCase):
     """Tests for _play_music and _stop_music helper functions."""
 
+    def setUp(self):
+        game._current_music = None
+
     def test_music_dir_matches_game_location(self):
         expected = os.path.dirname(os.path.abspath(game.__file__))
         self.assertEqual(MUSIC_DIR, expected)
@@ -4518,21 +4521,50 @@ class TestMusicHelpers(unittest.TestCase):
 
     @patch("game.os.path.exists", return_value=True)
     @patch("game.pygame.mixer.music")
-    def test_play_music_handles_mixer_error(self, mock_music, mock_exists):
+    def test_play_music_handles_load_error(self, mock_music, mock_exists):
         mock_music.load.side_effect = pygame.error("mixer not initialized")
-        # Should not raise
         _play_music("menu.wav")
+        mock_music.play.assert_not_called()
+        self.assertIsNone(game._current_music)
+
+    @patch("game.os.path.exists", return_value=True)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_handles_play_error(self, mock_music, mock_exists):
+        mock_music.play.side_effect = pygame.error("playback failed")
+        _play_music("menu.wav")
+        mock_music.load.assert_called_once()
+        self.assertIsNone(game._current_music)
+
+    @patch("game.os.path.exists", return_value=True)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_skips_reload_if_same_track(self, mock_music, mock_exists):
+        _play_music("menu.wav")
+        mock_music.load.reset_mock()
+        mock_music.play.reset_mock()
+        _play_music("menu.wav")
+        mock_music.load.assert_not_called()
+        mock_music.play.assert_not_called()
+
+    @patch("game.os.path.exists", return_value=True)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_switches_track(self, mock_music, mock_exists):
+        _play_music("menu.wav")
+        _play_music("game.wav")
+        self.assertEqual(mock_music.load.call_count, 2)
+        self.assertEqual(game._current_music, "game.wav")
 
     @patch("game.pygame.mixer.music")
     def test_stop_music(self, mock_music):
+        game._current_music = "menu.wav"
         _stop_music()
         mock_music.stop.assert_called_once()
+        self.assertIsNone(game._current_music)
 
     @patch("game.pygame.mixer.music")
     def test_stop_music_handles_mixer_error(self, mock_music):
         mock_music.stop.side_effect = pygame.error("mixer not initialized")
-        # Should not raise
         _stop_music()
+        mock_music.stop.assert_called_once()
 
 
 class TestMusicStateTransitions(unittest.TestCase):
@@ -4557,20 +4589,26 @@ class TestMusicStateTransitions(unittest.TestCase):
     def test_no_music_change_on_level_up(self):
         """STATE_LEVEL_UP should not trigger any music change (game.wav keeps playing)."""
         lines = self._get_run_source_lines()
+        found = 0
         for i, line in enumerate(lines):
             if 'state = STATE_LEVEL_UP' in line:
+                found += 1
                 context = '\n'.join(lines[i:i+3])
                 self.assertNotIn('_play_music', context,
                     "_play_music should not be called after state = STATE_LEVEL_UP transition")
+        self.assertGreater(found, 0, "state = STATE_LEVEL_UP not found in run()")
 
     def test_no_music_change_on_game_over(self):
         """STATE_GAME_OVER should not trigger any music change (game.wav keeps playing)."""
         lines = self._get_run_source_lines()
+        found = 0
         for i, line in enumerate(lines):
             if 'state = STATE_GAME_OVER' in line:
+                found += 1
                 context = '\n'.join(lines[i:i+3])
                 self.assertNotIn('_play_music', context,
                     "_play_music should not be called after state = STATE_GAME_OVER transition")
+        self.assertGreater(found, 0, "state = STATE_GAME_OVER not found in run()")
 
     def test_menu_music_on_all_menu_transitions(self):
         """Every state = STATE_MENU transition should be followed by _play_music('menu.wav')."""
@@ -4587,10 +4625,12 @@ class TestMusicStateTransitions(unittest.TestCase):
                 context = '\n'.join(lines[i:i+4])
                 self.assertIn("_play_music", context,
                     f"state = STATE_MENU at source line {i} should be followed by _play_music('menu.wav')")
+        self.assertTrue(found_initial, "state = STATE_MENU not found in run()")
 
     def test_game_music_on_playing_transitions_from_menu_or_gameover(self):
         """state = STATE_PLAYING from menu/game_over should have _play_music('game.wav')."""
         lines = self._get_run_source_lines()
+        checked = 0
         for i, line in enumerate(lines):
             stripped = line.strip()
             if 'state = STATE_PLAYING' in stripped:
@@ -4599,9 +4639,11 @@ class TestMusicStateTransitions(unittest.TestCase):
                 context_before = '\n'.join(lines[max(0, i-25):i+1])
                 if 'def apply_chosen_upgrade' in context_before:
                     continue
+                checked += 1
                 context_after = '\n'.join(lines[i:i+3])
                 self.assertIn('_play_music', context_after,
                     f"state = STATE_PLAYING at source line {i} should be followed by _play_music('game.wav')")
+        self.assertGreater(checked, 0, "No non-upgrade state = STATE_PLAYING found in run()")
 
 
 if __name__ == "__main__":

@@ -836,21 +836,27 @@ def default_weapon_inventory():
 STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats.json")
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
 MUSIC_DIR = os.path.dirname(os.path.abspath(__file__))
+_current_music = None
 
 
 def _play_music(filename):
     """Load and loop a music file.
 
     Silently does nothing if file missing or mixer unavailable.
+    Skips reload if the same file is already playing.
     """
+    global _current_music
+    if filename == _current_music:
+        return
     filepath = os.path.join(MUSIC_DIR, filename)
     if not os.path.exists(filepath):
         return
     try:
         pygame.mixer.music.load(filepath)
         pygame.mixer.music.play(-1)
+        _current_music = filename
     except pygame.error:
-        pass
+        _current_music = None
 
 
 def _stop_music():
@@ -858,8 +864,10 @@ def _stop_music():
 
     Silently does nothing if mixer unavailable.
     """
+    global _current_music
     try:
         pygame.mixer.music.stop()
+        _current_music = None
     except pygame.error:
         pass
 
@@ -3146,6 +3154,7 @@ def run():
         pygame.display.flip()
         clock.tick(FPS)
 
+    _stop_music()
     pygame.quit()
     sys.exit()
 
