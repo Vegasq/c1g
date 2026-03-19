@@ -2638,6 +2638,19 @@ def run():
                 surviving.append(e)
         enemies = surviving
 
+        # Enemy bullet-player collision
+        if player.hp > 0:
+            surviving_eb = []
+            bullet_damage = 1 + (wave - 1) // 5
+            for eb in enemy_bullets:
+                if math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
+                    player.hp -= bullet_damage
+                    run_stats["damage_taken"] += bullet_damage
+                    run_stats["wave_damage_taken"] += bullet_damage
+                else:
+                    surviving_eb.append(eb)
+            enemy_bullets = surviving_eb
+
         # Update health pickups
         for hp_pickup in health_pickups:
             hp_pickup.update(player)

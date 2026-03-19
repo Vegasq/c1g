@@ -60,9 +60,9 @@ Add a "shooter" enemy type that fires projectiles at the player from a distance.
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add collision detection between `enemy_bullets` and player in game loop (after existing bullet-enemy collision section)
-- [ ] On hit: deal damage to player (1 + wave scaling similar to contact damage), remove the bullet
-- [ ] Manual test: verify player takes damage from enemy projectiles, bullets are blocked by obstacles
+- [x] Add collision detection between `enemy_bullets` and player in game loop (after existing bullet-enemy collision section)
+- [x] On hit: deal damage to player (1 + wave scaling similar to contact damage), remove the bullet
+- [x] Manual test: verify player takes damage from enemy projectiles, bullets are blocked by obstacles
 
 ## Task 5 - Final integration and balance testing
 
