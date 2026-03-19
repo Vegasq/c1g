@@ -710,12 +710,13 @@ class EnemyBullet:
     LIFETIME = 120  # frames
     COLOR = (255, 120, 40)  # red/orange
 
-    def __init__(self, x, y, dx, dy):
+    def __init__(self, x, y, dx, dy, damage=1):
         self.x, self.y = x, y
         length = math.hypot(dx, dy) or 1
         self.vx = dx / length * self.SPEED
         self.vy = dy / length * self.SPEED
         self.life = self.LIFETIME
+        self.damage = damage
 
     def update(self):
         self.x += self.vx
@@ -858,8 +859,8 @@ ENEMY_TYPES = {
 # Wave-based spawn weight tables: maps wave thresholds to enemy type weights.
 # Checked in descending order; first matching threshold is used.
 WAVE_COMPOSITION = [
-    (12, {"runner": 10, "brute": 10, "shielded": 25, "splitter": 25, "elite": 15, "shooter": 15}),
-    (10, {"runner": 15, "brute": 15, "shielded": 20, "splitter": 25, "elite": 10, "shooter": 15}),
+    (12, {"runner": 10, "brute": 10, "shielded": 20, "splitter": 20, "elite": 15, "shooter": 25}),
+    (10, {"runner": 15, "brute": 15, "shielded": 20, "splitter": 20, "elite": 10, "shooter": 20}),
     (8, {"runner": 20, "brute": 20, "shielded": 20, "splitter": 25, "shooter": 15}),
     (6, {"basic": 30, "runner": 25, "brute": 20, "shielded": 15, "splitter": 10}),
     (3, {"basic": 60, "runner": 25, "brute": 15}),
@@ -901,9 +902,11 @@ class Enemy:
         if enemy_type == "shooter":
             self.shoot_cooldown = 90  # frames between shots (~1.5 seconds at 60fps)
             self.shoot_timer = random.randint(30, 90)  # stagger initial shots
+            self.strafe_dir = random.choice([-1, 1])  # randomize orbit direction
         else:
             self.shoot_cooldown = 0
             self.shoot_timer = 0
+            self.strafe_dir = 1
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
@@ -942,13 +945,13 @@ class Enemy:
                 self.x -= nx * self.speed
                 self.y -= ny * self.speed
             else:
-                # Strafe perpendicular to player
-                self.x += -ny * self.speed
-                self.y += nx * self.speed
+                # Strafe perpendicular to player (direction randomized per enemy)
+                self.x += -ny * self.speed * self.strafe_dir
+                self.y += nx * self.speed * self.strafe_dir
             # Shooting logic
             self.shoot_timer -= 1
             if self.shoot_timer <= 0 and dist <= 300 and enemy_bullets is not None:
-                enemy_bullets.append(EnemyBullet(self.x, self.y, dx, dy))
+                enemy_bullets.append(EnemyBullet(self.x, self.y, dx, dy, damage=self.contact_damage))
                 self.shoot_timer = self.shoot_cooldown
         else:
             self.x += dx / dist * self.speed
@@ -2641,12 +2644,11 @@ def run():
         # Enemy bullet-player collision
         if player.hp > 0:
             surviving_eb = []
-            bullet_damage = 1 + (wave - 1) // 5
             for eb in enemy_bullets:
-                if math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
-                    player.hp -= bullet_damage
-                    run_stats["damage_taken"] += bullet_damage
-                    run_stats["wave_damage_taken"] += bullet_damage
+                if player.hp > 0 and math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
+                    player.hp -= eb.damage
+                    run_stats["damage_taken"] += eb.damage
+                    run_stats["wave_damage_taken"] += eb.damage
                 else:
                     surviving_eb.append(eb)
             enemy_bullets = surviving_eb

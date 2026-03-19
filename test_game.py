@@ -3,7 +3,7 @@ import math
 import pygame
 from unittest.mock import MagicMock, patch
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, default_weapon_inventory,
-                  Bullet, Unit,
+                  Bullet, EnemyBullet, Unit,
                   generate_upgrade_options, apply_upgrade, get_scaled_amount, STAT_UPGRADES, WEAPON_TYPES,
                   draw_glow,
                   BG, PLAYER_COLOR, ENEMY_COLOR, GRID_COLOR, BORDER_COLOR,
@@ -2667,14 +2667,14 @@ class TestEnemyRebalance(unittest.TestCase):
 
     def test_buffed_hp_values(self):
         expected_hp = {"basic": 3, "runner": 2, "brute": 9, "shielded": 6,
-                       "splitter": 4, "mini": 2, "elite": 15}
+                       "splitter": 4, "mini": 2, "elite": 15, "shooter": 5}
         for etype, hp in expected_hp.items():
             self.assertEqual(ENEMY_TYPES[etype]["hp"], hp,
                              f"{etype} HP should be {hp}")
 
     def test_buffed_xp_values(self):
         expected_xp = {"basic": 2, "runner": 2, "brute": 5, "shielded": 6,
-                       "splitter": 3, "mini": 1, "elite": 12}
+                       "splitter": 3, "mini": 1, "elite": 12, "shooter": 5}
         for etype, xp in expected_xp.items():
             self.assertEqual(ENEMY_TYPES[etype]["xp_value"], xp,
                              f"{etype} xp_value should be {xp}")
@@ -3911,6 +3911,116 @@ class TestInitPygameSequence(unittest.TestCase):
         game.screen = pygame.Surface((800, 600))
         init_pygame()
         mock_set_mode.assert_not_called()
+
+
+class TestShooterEnemy(unittest.TestCase):
+    """Tests for the shooter enemy type and EnemyBullet."""
+
+    def setUp(self):
+        self.camera = Camera()
+
+    def test_shooter_type_config(self):
+        cfg = ENEMY_TYPES["shooter"]
+        self.assertEqual(cfg["hp"], 5)
+        self.assertAlmostEqual(cfg["speed"], 0.8)
+        self.assertEqual(cfg["radius"], 13)
+        self.assertEqual(cfg["xp_value"], 5)
+
+    def test_shooter_init_attributes(self):
+        e = Enemy(self.camera, enemy_type="shooter", wave=1)
+        self.assertEqual(e.shoot_cooldown, 90)
+        self.assertGreaterEqual(e.shoot_timer, 30)
+        self.assertLessEqual(e.shoot_timer, 90)
+        self.assertIn(e.strafe_dir, [-1, 1])
+
+    def test_non_shooter_has_zero_shoot_attrs(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=1)
+        self.assertEqual(e.shoot_cooldown, 0)
+        self.assertEqual(e.shoot_timer, 0)
+
+    def test_shooter_in_wave_composition(self):
+        # Shooter appears in wave 8+
+        types_seen = set()
+        for _ in range(500):
+            types_seen.add(get_enemy_type_for_wave(8))
+        self.assertIn("shooter", types_seen)
+
+    def test_shooter_not_in_early_waves(self):
+        for _ in range(200):
+            etype = get_enemy_type_for_wave(6)
+            self.assertNotEqual(etype, "shooter")
+
+    def test_shooter_weight_increases_with_wave(self):
+        # Wave 8: 15, Wave 10: 20, Wave 12: 25
+        w8 = dict(WAVE_COMPOSITION)[8]["shooter"]
+        w10 = dict(WAVE_COMPOSITION)[10]["shooter"]
+        w12 = dict(WAVE_COMPOSITION)[12]["shooter"]
+        self.assertLess(w8, w10)
+        self.assertLess(w10, w12)
+
+    def test_shooter_health_drop_chance(self):
+        self.assertEqual(get_health_drop_chance("shooter"), 0.08)
+
+    def test_enemy_bullet_creation(self):
+        eb = EnemyBullet(100, 200, 1, 0, damage=2)
+        self.assertEqual(eb.x, 100)
+        self.assertEqual(eb.y, 200)
+        self.assertAlmostEqual(eb.vx, EnemyBullet.SPEED)
+        self.assertAlmostEqual(eb.vy, 0)
+        self.assertEqual(eb.life, EnemyBullet.LIFETIME)
+        self.assertEqual(eb.damage, 2)
+
+    def test_enemy_bullet_direction_normalized(self):
+        eb = EnemyBullet(0, 0, 3, 4)
+        expected_vx = 3 / 5 * EnemyBullet.SPEED
+        expected_vy = 4 / 5 * EnemyBullet.SPEED
+        self.assertAlmostEqual(eb.vx, expected_vx)
+        self.assertAlmostEqual(eb.vy, expected_vy)
+
+    def test_enemy_bullet_zero_direction(self):
+        eb = EnemyBullet(0, 0, 0, 0)
+        # Should not crash; uses fallback length of 1
+        self.assertEqual(eb.life, EnemyBullet.LIFETIME)
+
+    def test_enemy_bullet_update(self):
+        eb = EnemyBullet(0, 0, 1, 0)
+        eb.update()
+        self.assertAlmostEqual(eb.x, EnemyBullet.SPEED)
+        self.assertEqual(eb.life, EnemyBullet.LIFETIME - 1)
+
+    def test_enemy_bullet_carries_damage(self):
+        eb = EnemyBullet(0, 0, 1, 0, damage=3)
+        self.assertEqual(eb.damage, 3)
+
+    def test_shooter_fires_bullet_with_contact_damage(self):
+        e = Enemy(self.camera, enemy_type="shooter", wave=6)
+        # Force timer to 0 so it fires
+        e.shoot_timer = 0
+        target = MagicMock()
+        target.x = e.x + 200  # within 300px range
+        target.y = e.y
+        enemy_bullets = []
+        e.update(target, enemy_bullets)
+        self.assertEqual(len(enemy_bullets), 1)
+        self.assertEqual(enemy_bullets[0].damage, e.contact_damage)
+
+    def test_shooter_does_not_fire_out_of_range(self):
+        e = Enemy(self.camera, enemy_type="shooter", wave=1)
+        e.shoot_timer = 0
+        target = MagicMock()
+        target.x = e.x + 400  # beyond 300px range
+        target.y = e.y
+        enemy_bullets = []
+        e.update(target, enemy_bullets)
+        self.assertEqual(len(enemy_bullets), 0)
+
+    def test_non_shooter_update_backward_compatible(self):
+        e = Enemy(self.camera, enemy_type="basic", wave=1)
+        target = MagicMock()
+        target.x = e.x + 100
+        target.y = e.y
+        # Should work without enemy_bullets parameter
+        e.update(target)
 
 
 if __name__ == "__main__":
