@@ -41,13 +41,13 @@ Extract all hardcoded balance values from game.py into a balance.toml config fil
 - Create: `balance.toml`
 - Modify: `game.py`
 
-- [ ] Create balance.toml with all default values organized into sections, with descriptive comments explaining each value
-- [ ] Add load_balance_config() function to game.py that reads balance.toml using tomllib (Python 3.11+) with tomli fallback
-- [ ] If balance.toml is missing, generate one with defaults and a note at the top
-- [ ] Store loaded config in a module-level BALANCE dict accessible throughout game.py
-- [ ] Call load_balance_config() early in game initialization (before init_pygame or at module level)
-- [ ] Write tests for config loading (valid file, missing file generates default)
-- [ ] Run project test suite - must pass before Task 2
+- [x] Create balance.toml with all default values organized into sections, with descriptive comments explaining each value
+- [x] Add load_balance_config() function to game.py that reads balance.toml using tomllib (Python 3.11+) with tomli fallback
+- [x] If balance.toml is missing, generate one with defaults and a note at the top
+- [x] Store loaded config in a module-level BALANCE dict accessible throughout game.py
+- [x] Call load_balance_config() early in game initialization (before init_pygame or at module level)
+- [x] Write tests for config loading (valid file, missing file generates default)
+- [x] Run project test suite - must pass before Task 2
 
 ## Task 2: Wire up enemy types and wave composition
 

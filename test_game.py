@@ -1,5 +1,6 @@
 import unittest
 import math
+import os
 import pygame
 from unittest.mock import MagicMock, patch
 from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, default_weapon_inventory,
@@ -22,7 +23,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats,
                   save_settings, load_settings, SETTINGS_FILE,
                   JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
-                  handle_joy_device_added, handle_joy_device_removed)
+                  handle_joy_device_added, handle_joy_device_removed,
+                  BALANCE, BALANCE_FILE, load_balance_config, _default_balance_toml)
 import game
 
 
@@ -4072,6 +4074,95 @@ class TestShooterEnemy(unittest.TestCase):
         if math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
             player.hp -= eb.damage
         self.assertEqual(player.hp, initial_hp - 2)
+
+
+class TestBalanceConfig(unittest.TestCase):
+    """Tests for balance.toml config loading system."""
+
+    def test_balance_loaded_at_import(self):
+        """BALANCE dict should be populated when game module is imported."""
+        self.assertIsInstance(BALANCE, dict)
+        self.assertIn("player", BALANCE)
+        self.assertIn("enemies", BALANCE)
+        self.assertIn("weapons", BALANCE)
+        self.assertIn("waves", BALANCE)
+        self.assertIn("difficulty", BALANCE)
+
+    def test_balance_has_all_sections(self):
+        """All expected top-level sections should exist."""
+        expected = ["player", "weapons", "bullets", "enemies", "splitter",
+                    "waves", "upgrades", "xp", "health_pickups", "difficulty"]
+        for section in expected:
+            self.assertIn(section, BALANCE, f"Missing section: {section}")
+
+    def test_player_values(self):
+        """Player section should have correct default values."""
+        p = BALANCE["player"]
+        self.assertEqual(p["hp"], 5)
+        self.assertAlmostEqual(p["speed"], 2.5)
+        self.assertEqual(p["shoot_cooldown"], 25)
+        self.assertEqual(p["radius"], 14)
+        self.assertEqual(p["ally"]["hp"], 3)
+        self.assertEqual(p["ally"]["lifetime"], 600)
+
+    def test_enemy_types_present(self):
+        """All enemy types should be in the config."""
+        enemies = BALANCE["enemies"]
+        for etype in ("basic", "runner", "brute", "shielded", "splitter",
+                      "mini", "elite", "shooter"):
+            self.assertIn(etype, enemies)
+            self.assertIn("hp", enemies[etype])
+            self.assertIn("speed", enemies[etype])
+            self.assertIn("radius", enemies[etype])
+
+    def test_wave_composition_sorted_descending(self):
+        """Wave composition entries should be in descending threshold order."""
+        comp = BALANCE["waves"]["composition"]
+        thresholds = [c["threshold"] for c in comp]
+        self.assertEqual(thresholds, sorted(thresholds, reverse=True))
+
+    def test_difficulty_values(self):
+        """Difficulty section should have correct defaults."""
+        d = BALANCE["difficulty"]
+        self.assertEqual(d["max_enemies_base"], 140)
+        self.assertEqual(d["max_enemies_cap"], 200)
+
+    def test_default_balance_toml_is_valid(self):
+        """The default TOML string should parse without errors."""
+        import tomllib as _tomllib
+        config = _tomllib.loads(_default_balance_toml())
+        self.assertIn("player", config)
+        self.assertIn("enemies", config)
+
+    def test_load_balance_config_reads_file(self):
+        """load_balance_config should read the file and populate BALANCE."""
+        result = load_balance_config()
+        self.assertIsInstance(result, dict)
+        self.assertIn("player", result)
+        # Module-level BALANCE should also be updated
+        self.assertEqual(game.BALANCE, result)
+
+    def test_missing_file_generates_default(self):
+        """If balance.toml is missing, load_balance_config should create it."""
+        import tempfile
+        import shutil
+        # Save original values
+        orig_file = game.BALANCE_FILE
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                fake_path = os.path.join(tmpdir, "balance.toml")
+                game.BALANCE_FILE = fake_path
+                self.assertFalse(os.path.exists(fake_path))
+                result = load_balance_config()
+                # File should now exist
+                self.assertTrue(os.path.exists(fake_path))
+                # And config should be valid
+                self.assertIn("player", result)
+                self.assertEqual(result["player"]["hp"], 5)
+        finally:
+            game.BALANCE_FILE = orig_file
+            # Reload original config
+            load_balance_config()
 
 
 if __name__ == "__main__":

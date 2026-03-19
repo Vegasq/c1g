@@ -6,6 +6,233 @@ import json
 import os
 import time
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+
+BALANCE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "balance.toml")
+BALANCE = {}
+
+
+def _default_balance_toml():
+    """Return the default balance.toml content as a string."""
+    return '''\
+# Squad Survivors - Balance Configuration
+# Edit values below to tweak game balance. Delete this file to regenerate defaults.
+
+[player]
+hp = 5                  # starting and base max HP
+speed = 2.5             # movement speed (pixels per frame)
+shoot_cooldown = 25     # frames between ally shots
+radius = 14             # collision/draw radius
+
+[player.ally]
+hp = 3                  # ally unit HP
+lifetime = 600          # ally lifespan in frames (~10 seconds at 60fps)
+
+[weapons.default]
+damage = 1              # base bullet damage
+fire_rate = 25          # frames between shots (lower = faster)
+bullet_speed = 8        # bullet travel speed (pixels per frame)
+range = 90              # bullet lifetime in frames (effective range = speed * range)
+
+[weapons.shotgun]
+pellet_count = 5        # number of pellets per shot
+spread_angle = 30       # total spread in degrees
+
+[weapons.explosive]
+radius = 60             # explosion area-of-effect radius in pixels
+
+[bullets.enemy]
+speed = 4               # enemy bullet travel speed
+radius = 5              # enemy bullet collision radius
+lifetime = 120          # enemy bullet lifespan in frames
+
+[enemies.basic]
+hp = 3
+speed = 1.4
+radius = 12
+color = [255, 30, 60]
+xp_value = 2
+
+[enemies.runner]
+hp = 2
+speed = 2.2
+radius = 8
+color = [230, 255, 0]
+xp_value = 2
+
+[enemies.brute]
+hp = 9
+speed = 0.9
+radius = 18
+color = [255, 140, 0]
+xp_value = 5
+
+[enemies.shielded]
+hp = 6
+speed = 1.0
+radius = 14
+color = [0, 255, 255]
+xp_value = 6
+shield = true
+
+[enemies.splitter]
+hp = 4
+speed = 1.0
+radius = 14
+color = [0, 255, 100]
+xp_value = 3
+
+[enemies.mini]
+hp = 2
+speed = 1.8
+radius = 7
+color = [0, 255, 100]
+xp_value = 1
+
+[enemies.elite]
+hp = 15
+speed = 1.8
+radius = 16
+color = [255, 0, 255]
+xp_value = 12
+
+[enemies.shooter]
+hp = 5
+speed = 0.8
+radius = 13
+color = [255, 100, 50]
+xp_value = 5
+
+[enemies.scaling]
+hp_linear = 0.12
+hp_compound = 1.06
+hp_compound_start = 20
+speed_linear = 0.02
+speed_cap = 2.0
+xp_wave_divisor = 5
+contact_damage_divisor = 5
+
+[enemies.shooter_behavior]
+shoot_cooldown = 90
+shoot_timer_min = 30
+shoot_timer_max = 90
+approach_distance = 250
+retreat_distance = 150
+firing_distance = 300
+
+[splitter]
+mini_count = 2
+spawn_offset = 12
+
+[waves]
+timer = 480
+spawn_interval_base = 110
+spawn_interval_reduction = 14
+spawn_interval_min = 10
+
+[[waves.composition]]
+threshold = 12
+weights = { runner = 10, brute = 10, shielded = 20, splitter = 20, elite = 15, shooter = 25 }
+
+[[waves.composition]]
+threshold = 10
+weights = { runner = 15, brute = 15, shielded = 20, splitter = 20, elite = 10, shooter = 20 }
+
+[[waves.composition]]
+threshold = 8
+weights = { runner = 20, brute = 20, shielded = 20, splitter = 25, shooter = 15 }
+
+[[waves.composition]]
+threshold = 6
+weights = { basic = 30, runner = 25, brute = 20, shielded = 15, splitter = 10 }
+
+[[waves.composition]]
+threshold = 3
+weights = { basic = 60, runner = 25, brute = 15 }
+
+[[waves.composition]]
+threshold = 1
+weights = { basic = 100 }
+
+[upgrades]
+damage_amount = 1
+fire_rate_amount = -3
+bullet_speed_amount = 2
+range_amount = 15
+max_hp_amount = 1
+min_fire_rate = 5
+
+[upgrades.scaling]
+damage_tier2_level = 10
+damage_tier3_level = 20
+damage_tier3_bonus = 1
+fire_rate_tier2_level = 15
+fire_rate_tier2_bonus = -2
+milestone_interval_early = 5
+milestone_interval_late = 4
+milestone_threshold = 15
+
+[xp]
+base = 10
+linear = 5
+quadratic = 2
+max_level = 50
+
+[health_pickups]
+radius = 8
+lifetime = 600
+attract_range = 100
+attract_speed = 4.0
+collect_range = 20
+
+[health_pickups.drop_chance]
+basic = 0.05
+runner = 0.05
+brute = 0.12
+shielded = 0.08
+splitter = 0.06
+mini = 0.03
+elite = 0.15
+shooter = 0.08
+default = 0.05
+
+[difficulty]
+max_enemies_base = 140
+max_enemies_cap = 200
+spawn_count_divisor = 4
+enemies_per_wave = 2
+'''
+
+
+def load_balance_config():
+    """Load balance configuration from balance.toml.
+
+    If the file is missing, generate a default one first.
+    Returns the parsed config dict and also stores it in the module-level BALANCE.
+    """
+    global BALANCE
+    if not os.path.exists(BALANCE_FILE):
+        try:
+            with open(BALANCE_FILE, "w") as f:
+                f.write(_default_balance_toml())
+        except OSError as e:
+            print(f"Warning: could not generate balance.toml: {e}")
+            BALANCE = tomllib.loads(_default_balance_toml())
+            return BALANCE
+    try:
+        with open(BALANCE_FILE, "rb") as f:
+            BALANCE = tomllib.load(f)
+    except (tomllib.TOMLDecodeError, OSError) as e:
+        print(f"Warning: could not read balance.toml, using defaults: {e}")
+        BALANCE = tomllib.loads(_default_balance_toml())
+    return BALANCE
+
+
+load_balance_config()
+
 WIDTH, HEIGHT = 1024, 768
 MAP_WIDTH, MAP_HEIGHT = 4096, 3072
 FPS = 60

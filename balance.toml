@@ -1,0 +1,198 @@
+# Squad Survivors - Balance Configuration
+# Edit values below to tweak game balance. Delete this file to regenerate defaults.
+
+[player]
+hp = 5                  # starting and base max HP
+speed = 2.5             # movement speed (pixels per frame)
+shoot_cooldown = 25     # frames between ally shots
+radius = 14             # collision/draw radius
+
+[player.ally]
+hp = 3                  # ally unit HP
+lifetime = 600          # ally lifespan in frames (~10 seconds at 60fps)
+
+[weapons.default]
+damage = 1              # base bullet damage
+fire_rate = 25          # frames between shots (lower = faster)
+bullet_speed = 8        # bullet travel speed (pixels per frame)
+range = 90              # bullet lifetime in frames (effective range = speed * range)
+
+[weapons.shotgun]
+pellet_count = 5        # number of pellets per shot
+spread_angle = 30       # total spread in degrees
+
+[weapons.explosive]
+radius = 60             # explosion area-of-effect radius in pixels
+
+[bullets.enemy]
+speed = 4               # enemy bullet travel speed
+radius = 5              # enemy bullet collision radius
+lifetime = 120          # enemy bullet lifespan in frames
+
+[enemies.basic]
+hp = 3
+speed = 1.4
+radius = 12
+color = [255, 30, 60]
+xp_value = 2
+
+[enemies.runner]
+hp = 2
+speed = 2.2
+radius = 8
+color = [230, 255, 0]
+xp_value = 2
+
+[enemies.brute]
+hp = 9
+speed = 0.9
+radius = 18
+color = [255, 140, 0]
+xp_value = 5
+
+[enemies.shielded]
+hp = 6
+speed = 1.0
+radius = 14
+color = [0, 255, 255]
+xp_value = 6
+shield = true
+
+[enemies.splitter]
+hp = 4
+speed = 1.0
+radius = 14
+color = [0, 255, 100]
+xp_value = 3
+
+[enemies.mini]
+hp = 2
+speed = 1.8
+radius = 7
+color = [0, 255, 100]
+xp_value = 1
+
+[enemies.elite]
+hp = 15
+speed = 1.8
+radius = 16
+color = [255, 0, 255]
+xp_value = 12
+
+[enemies.shooter]
+hp = 5
+speed = 0.8
+radius = 13
+color = [255, 100, 50]
+xp_value = 5
+
+[enemies.scaling]
+# HP scaling: base_hp * (1 + hp_linear * (wave-1)) * (hp_compound ^ max(0, wave - hp_compound_start))
+hp_linear = 0.12               # linear HP growth per wave
+hp_compound = 1.06              # compound HP growth factor
+hp_compound_start = 20          # wave at which compound scaling kicks in
+# Speed scaling: base_speed * min(speed_cap, 1 + speed_linear * (wave-1))
+speed_linear = 0.02             # linear speed growth per wave
+speed_cap = 2.0                 # maximum speed multiplier
+# XP scaling: base_xp + wave // xp_wave_divisor
+xp_wave_divisor = 5             # waves per bonus XP point
+# Contact damage: 1 + (wave-1) // contact_damage_divisor
+contact_damage_divisor = 5      # waves per bonus contact damage
+
+[enemies.shooter_behavior]
+shoot_cooldown = 90             # frames between shots (~1.5s at 60fps)
+shoot_timer_min = 30            # minimum initial shot delay (stagger)
+shoot_timer_max = 90            # maximum initial shot delay (stagger)
+approach_distance = 250         # move toward player when farther than this
+retreat_distance = 150          # retreat from player when closer than this
+firing_distance = 300           # maximum range to fire at player
+
+[splitter]
+mini_count = 2                  # number of mini enemies spawned on death
+spawn_offset = 12               # pixel offset from splitter death position
+
+[waves]
+timer = 480                     # frames per wave (~8 seconds at 60fps)
+spawn_interval_base = 110       # starting frames between spawn events
+spawn_interval_reduction = 14   # frames removed from spawn interval each wave
+spawn_interval_min = 10         # minimum spawn interval floor
+
+# Wave composition: enemy type weights per wave threshold
+# Checked in descending order; first matching threshold is used
+[[waves.composition]]
+threshold = 12
+weights = { runner = 10, brute = 10, shielded = 20, splitter = 20, elite = 15, shooter = 25 }
+
+[[waves.composition]]
+threshold = 10
+weights = { runner = 15, brute = 15, shielded = 20, splitter = 20, elite = 10, shooter = 20 }
+
+[[waves.composition]]
+threshold = 8
+weights = { runner = 20, brute = 20, shielded = 20, splitter = 25, shooter = 15 }
+
+[[waves.composition]]
+threshold = 6
+weights = { basic = 30, runner = 25, brute = 20, shielded = 15, splitter = 10 }
+
+[[waves.composition]]
+threshold = 3
+weights = { basic = 60, runner = 25, brute = 15 }
+
+[[waves.composition]]
+threshold = 1
+weights = { basic = 100 }
+
+[upgrades]
+damage_amount = 1               # base damage increase per upgrade
+fire_rate_amount = -3            # base fire rate change per upgrade (negative = faster)
+bullet_speed_amount = 2          # base bullet speed increase per upgrade
+range_amount = 15                # base range increase per upgrade
+max_hp_amount = 1                # HP increase per upgrade
+min_fire_rate = 5                # absolute minimum fire rate floor
+
+[upgrades.scaling]
+# Level thresholds for bonus scaling on damage upgrades
+damage_tier2_level = 10          # level at which damage stays at base
+damage_tier3_level = 20          # level at which damage gets +1 bonus
+damage_tier3_bonus = 1           # extra damage at tier 3
+# Level threshold for bonus scaling on fire rate upgrades
+fire_rate_tier2_level = 15       # level at which fire rate gets extra -2
+fire_rate_tier2_bonus = -2       # extra fire rate reduction at tier 2
+# Milestone intervals for weapon type upgrades
+milestone_interval_early = 5     # levels between weapon offers (level <= 15)
+milestone_interval_late = 4      # levels between weapon offers (level > 15)
+milestone_threshold = 15         # level at which interval switches
+
+[xp]
+# Formula: base + linear * i + quadratic * i^2 (where i = level - 1)
+base = 10                        # XP needed for level 2
+linear = 5                       # linear coefficient
+quadratic = 2                    # quadratic coefficient
+max_level = 50                   # maximum achievable level
+
+[health_pickups]
+radius = 8                       # pickup collision/draw radius
+lifetime = 600                   # frames before pickup disappears
+attract_range = 100              # distance at which pickup moves toward player
+attract_speed = 4.0              # speed of attraction movement
+collect_range = 20               # distance at which pickup is collected
+
+[health_pickups.drop_chance]
+basic = 0.05
+runner = 0.05
+brute = 0.12
+shielded = 0.08
+splitter = 0.06
+mini = 0.03
+elite = 0.15
+shooter = 0.08
+default = 0.05                   # fallback for unknown enemy types
+
+[difficulty]
+max_enemies_base = 140           # starting enemy cap
+max_enemies_cap = 200            # absolute maximum enemies
+# Spawn count formula: wave + wave // spawn_count_divisor
+spawn_count_divisor = 4          # divisor for bonus spawns per wave
+# Max enemies formula: min(cap, base + wave * enemies_per_wave)
+enemies_per_wave = 2             # extra enemy cap per wave
