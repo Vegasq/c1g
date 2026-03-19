@@ -61,4 +61,4 @@ Detect the native display resolution at startup using Pygame's display info API,
 
 ## Wrap-up
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
