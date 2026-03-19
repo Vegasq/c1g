@@ -50,6 +50,6 @@ Add optional background music support. The game will look for `menu.wav` and `ga
 
 ## Wrap-up
 
-- [ ] update README.md if user-facing changes
-- [ ] update CLAUDE.md if internal patterns changed
-- [ ] move this plan to `docs/plans/completed/`
+- [x] update README.md if user-facing changes
+- [x] update CLAUDE.md if internal patterns changed
+- [x] move this plan to `docs/plans/completed/`
