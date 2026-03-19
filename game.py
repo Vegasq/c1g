@@ -948,8 +948,12 @@ class Enemy:
                 # Strafe perpendicular to player (direction randomized per enemy)
                 self.x += -ny * self.speed * self.strafe_dir
                 self.y += nx * self.speed * self.strafe_dir
+            # Clamp to map bounds after movement
+            margin = 60
+            self.x = max(-margin, min(MAP_WIDTH + margin, self.x))
+            self.y = max(-margin, min(MAP_HEIGHT + margin, self.y))
             # Shooting logic
-            self.shoot_timer -= 1
+            self.shoot_timer = max(0, self.shoot_timer - 1)
             if self.shoot_timer <= 0 and dist <= 300 and enemy_bullets is not None:
                 enemy_bullets.append(EnemyBullet(self.x, self.y, dx, dy, damage=self.contact_damage))
                 self.shoot_timer = self.shoot_cooldown
@@ -2301,7 +2305,7 @@ def run():
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
-                            enemy_bullets=enemy_bullets)
+                            escape_flash_timer, enemy_bullets=enemy_bullets)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -2408,7 +2412,7 @@ def run():
                 camera, obstacles, bullets, enemies, allies,
                 player, score, wave, level, weapon_inventory,
                 xp, xp_thresholds, health_pickups,
-                heal_effects, escape_rooms,
+                heal_effects, escape_rooms, escape_flash_timer,
                 enemy_bullets=enemy_bullets)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
