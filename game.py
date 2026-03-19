@@ -856,7 +856,7 @@ def _play_music(filename):
         pygame.mixer.music.load(filepath)
         pygame.mixer.music.play(-1)
         _current_music = filename
-    except pygame.error:
+    except (pygame.error, OSError):
         _current_music = None
 
 
@@ -868,7 +868,7 @@ def _stop_music():
     global _current_music
     try:
         pygame.mixer.music.stop()
-    except pygame.error:
+    except (pygame.error, OSError):
         pass
     _current_music = None
 
@@ -2387,7 +2387,9 @@ def run():
     global options_selected_index, options_resolution_index, options_fullscreen
     global menu_selected_index, active_joystick
     global level_up_selected_index, _gamepad_nav_last_time, _last_levelup_mouse_pos
+    global _current_music
     init_pygame()
+    _current_music = None
     state = STATE_MENU
     _play_music("menu.wav")
     camera = Camera()

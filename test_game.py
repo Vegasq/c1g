@@ -4545,6 +4545,14 @@ class TestMusicHelpers(unittest.TestCase):
 
     @patch("game.os.path.exists", return_value=True)
     @patch("game.pygame.mixer.music")
+    def test_play_music_handles_os_error(self, mock_music, mock_exists):
+        mock_music.load.side_effect = OSError("file unreadable")
+        _play_music("menu.wav")
+        mock_music.play.assert_not_called()
+        self.assertIsNone(game._current_music)
+
+    @patch("game.os.path.exists", return_value=True)
+    @patch("game.pygame.mixer.music")
     def test_play_music_skips_reload_if_same_track(self, mock_music, mock_exists):
         _play_music("menu.wav")
         mock_music.load.reset_mock()
