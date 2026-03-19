@@ -251,6 +251,7 @@ def _rebuild_derived_constants():
     Unit.RADIUS = _pcfg.get("radius", 14)
     Unit.PLAYER_SPEED = _pcfg.get("speed", 3.5)
     Unit.SHOOT_COOLDOWN = _pcfg.get("shoot_cooldown", 25)
+    Unit.INVULNERABLE_DURATION = _pcfg.get("invulnerable_duration", 120)
     _ally_cfg = _pcfg.get("ally", {})
     Unit.SPEED = _ally_cfg.get("speed", 2.5)
     Unit.ALLY_LIFETIME = _ally_cfg.get("lifetime", 600)
@@ -2386,18 +2387,16 @@ def draw_game_over(score, level=1, killer_info=None):
     screen.blit(t1, (tx, ty))
     # Killed by info
     info_y = ty + t1.get_height() + 30
-    if killer_info and killer_info.get("killed_by"):
+    if killer_info:
         kb = font.render(f"Killed by: {killer_info['killed_by']}", True, (255, 100, 100))
         screen.blit(kb, (WIDTH // 2 - kb.get_width() // 2, info_y))
         info_y += 35
-        if "wave" in killer_info:
-            wt = font.render(f"Wave: {killer_info['wave']}", True, (200, 255, 255))
-            screen.blit(wt, (WIDTH // 2 - wt.get_width() // 2, info_y))
-            info_y += 30
-        if "survival_time" in killer_info:
-            st = font.render(f"Survived: {killer_info['survival_time']}s", True, (200, 255, 255))
-            screen.blit(st, (WIDTH // 2 - st.get_width() // 2, info_y))
-            info_y += 30
+        wt = font.render(f"Wave: {killer_info['wave']}", True, (200, 255, 255))
+        screen.blit(wt, (WIDTH // 2 - wt.get_width() // 2, info_y))
+        info_y += 30
+        st = font.render(f"Survived: {killer_info['survival_time']}s", True, (200, 255, 255))
+        screen.blit(st, (WIDTH // 2 - st.get_width() // 2, info_y))
+        info_y += 30
     t2 = font.render(f"Score: {score}   Level: {level}", True, (200, 255, 255))
     screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, info_y + 10))
     t3 = font.render("Press ENTER to Restart", True, (0, 180, 220))
@@ -3127,12 +3126,8 @@ def run():
             for er in escape_rooms:
                 e.x, e.y = er.push_circle_out(e.x, e.y, e.radius)
 
-        # Decrement invulnerability timer
-        if player.invulnerable_timer > 0:
-            player.invulnerable_timer -= 1
-
         # Enemy-player collision (damage player)
-        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+        invuln_duration = Unit.INVULNERABLE_DURATION
         surviving = []
         for e in enemies:
             if player.hp > 0 and player.invulnerable_timer <= 0 and math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
@@ -3159,6 +3154,10 @@ def run():
                     surviving_eb.append(eb)
             enemy_bullets = surviving_eb
 
+        # Decrement invulnerability timer (after collision checks)
+        if player.invulnerable_timer > 0:
+            player.invulnerable_timer -= 1
+
         # Update health pickups
         for hp_pickup in health_pickups:
             hp_pickup.update(player)
@@ -3172,6 +3171,7 @@ def run():
         heal_effects = [(x, y, t - 1) for x, y, t in heal_effects if t > 0]
 
         if player.hp <= 0:
+            player.invulnerable_timer = 0
             survival_time = time.time() - run_start_time
             killer_info = {
                 "killed_by": last_damage_source or "Unknown",
