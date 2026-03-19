@@ -40,8 +40,10 @@ _last_levelup_mouse_pos = (-1, -1)  # track mouse to avoid overriding gamepad se
 
 def init_pygame():
     global screen, clock, font, title_font, menu_font, active_joystick, WIDTH, HEIGHT
+    global options_fullscreen
     if screen is not None:
         return
+    # Step 1: Initialize pygame
     pygame.init()
     # Grab the first connected joystick, if any
     try:
@@ -50,15 +52,18 @@ def init_pygame():
             active_joystick.init()
     except pygame.error:
         active_joystick = None
-    # Detect native resolution before creating the display
-    native_res = detect_native_resolution()
-    # Load saved settings (overrides detected defaults if valid)
+    # Step 2: Detect native display resolution
+    detect_native_resolution()
+    # Step 3: Load saved settings or use detected defaults
     load_settings()
+    # Step 4: Create window with correct flags
     WIDTH, HEIGHT = SUPPORTED_RESOLUTIONS[options_resolution_index]
     flags = pygame.FULLSCREEN if options_fullscreen else 0
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
     except pygame.error:
+        # Fallback to windowed mode if fullscreen fails
+        options_fullscreen = False
         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
     pygame.display.set_caption("Squad Survivors")
     clock = pygame.time.Clock()

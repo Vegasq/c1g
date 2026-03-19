@@ -3702,5 +3702,153 @@ class TestDisplaySettings(unittest.TestCase):
                 os.unlink(tmp)
 
 
+class TestInitPygameSequence(unittest.TestCase):
+    """Tests for the init_pygame() initialization sequence."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_joystick = game.active_joystick
+        self._saved_resolutions = list(game.SUPPORTED_RESOLUTIONS)
+        self._orig_res_index = game.options_resolution_index
+        self._orig_fullscreen = game.options_fullscreen
+        game.screen = None
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.active_joystick = self._orig_joystick
+        game.SUPPORTED_RESOLUTIONS[:] = self._saved_resolutions
+        game.options_resolution_index = self._orig_res_index
+        game.options_fullscreen = self._orig_fullscreen
+
+    @patch('game.load_settings')
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.set_mode', return_value=pygame.Surface((1920, 1080)))
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_sequence_fullscreen_flag(self, mock_count, mock_info,
+                                           mock_set_mode, mock_caption, mock_font,
+                                           mock_load):
+        """init_pygame uses FULLSCREEN flag when options_fullscreen is True."""
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
+        game.options_fullscreen = True
+        game.screen = None
+        init_pygame()
+        # set_mode should have been called with FULLSCREEN flag
+        args, kwargs = mock_set_mode.call_args
+        self.assertEqual(args[1], pygame.FULLSCREEN)
+
+    @patch('game.load_settings')
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.set_mode', return_value=pygame.Surface((1024, 768)))
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_sequence_windowed_flag(self, mock_count, mock_info,
+                                         mock_set_mode, mock_caption, mock_font,
+                                         mock_load):
+        """init_pygame uses no flags when options_fullscreen is False."""
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
+        game.options_fullscreen = False
+        game.screen = None
+        init_pygame()
+        args, kwargs = mock_set_mode.call_args
+        self.assertEqual(args[1], 0)
+
+    @patch('game.load_settings')
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_fullscreen_fallback_updates_flag(self, mock_count, mock_info,
+                                                    mock_caption, mock_font,
+                                                    mock_load):
+        """When fullscreen fails on startup, options_fullscreen is set to False."""
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
+        game.options_fullscreen = True
+        game.screen = None
+        # First call (fullscreen) raises, second call (windowed) succeeds
+        with patch('pygame.display.set_mode',
+                   side_effect=[pygame.error("fullscreen failed"),
+                                pygame.Surface((1920, 1080))]) as mock_set_mode:
+            init_pygame()
+        self.assertFalse(game.options_fullscreen)
+        self.assertIsNotNone(game.screen)
+
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.set_mode', return_value=pygame.Surface((1920, 1080)))
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_detects_display_before_settings(self, mock_count, mock_info,
+                                                   mock_set_mode, mock_caption,
+                                                   mock_font):
+        """init_pygame detects native resolution before loading settings."""
+        mock_info.return_value = MagicMock(current_w=2560, current_h=1440)
+        game.screen = None
+        game.SUPPORTED_RESOLUTIONS[:] = [(800, 600), (1024, 768)]
+        # No settings file - should use detected defaults
+        old_sf = game.SETTINGS_FILE
+        game.SETTINGS_FILE = "/tmp/nonexistent_init_test.json"
+        try:
+            init_pygame()
+            # Native resolution should have been added
+            self.assertIn((2560, 1440), game.SUPPORTED_RESOLUTIONS)
+        finally:
+            game.SETTINGS_FILE = old_sf
+
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.set_mode', return_value=pygame.Surface((1024, 768)))
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_loads_saved_settings(self, mock_count, mock_info,
+                                       mock_set_mode, mock_caption, mock_font):
+        """init_pygame loads saved settings and uses them for window creation."""
+        import tempfile
+        import json
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
+        game.screen = None
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            json.dump({
+                "resolution_index": 0,
+                "fullscreen": False,
+                "resolution": [800, 600],
+            }, f)
+            tmp = f.name
+        old_sf = game.SETTINGS_FILE
+        game.SETTINGS_FILE = tmp
+        try:
+            init_pygame()
+            self.assertFalse(game.options_fullscreen)
+            self.assertEqual(SUPPORTED_RESOLUTIONS[game.options_resolution_index], (800, 600))
+        finally:
+            game.SETTINGS_FILE = old_sf
+            import os
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+    @patch('pygame.font.SysFont', return_value=MagicMock())
+    @patch('pygame.display.set_caption')
+    @patch('pygame.display.set_mode', return_value=pygame.Surface((1920, 1080)))
+    @patch('pygame.display.Info')
+    @patch('pygame.joystick.get_count', return_value=0)
+    def test_init_skips_if_already_initialized(self, mock_count, mock_info,
+                                                mock_set_mode, mock_caption,
+                                                mock_font):
+        """init_pygame returns early if screen is already set."""
+        game.screen = pygame.Surface((800, 600))
+        init_pygame()
+        mock_set_mode.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
