@@ -2923,7 +2923,10 @@ def run():
                 if len(enemies) >= get_max_enemies(wave):
                     break
                 mini = Enemy(camera, enemy_type="mini", wave=wave)
-                mini.x = sx + spawn_offset * (-1 if i % 2 == 0 else 1)
+                if mini_count <= 1:
+                    mini.x = sx
+                else:
+                    mini.x = sx + spawn_offset * (2 * i / (mini_count - 1) - 1)
                 mini.y = sy
                 enemies.append(mini)
 
