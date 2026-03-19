@@ -84,10 +84,10 @@ Extract all hardcoded balance values from game.py into a balance.toml config fil
 **Files:**
 - Modify: `test_game.py`
 
-- [ ] Ensure all existing tests pass with the config system
-- [ ] Add test that game works with default balance.toml
-- [ ] Add test that missing balance.toml generates a default file
-- [ ] Run full test suite
+- [x] Ensure all existing tests pass with the config system
+- [x] Add test that game works with default balance.toml
+- [x] Add test that missing balance.toml generates a default file
+- [x] Run full test suite
 
 ## Verification
 

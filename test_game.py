@@ -4164,6 +4164,49 @@ class TestBalanceConfig(unittest.TestCase):
             # Reload original config
             load_balance_config()
 
+    def test_generated_file_matches_defaults(self):
+        """Generated balance.toml should parse to the same config as _default_balance_toml()."""
+        import tempfile
+        import tomllib as _tomllib
+        orig_file = game.BALANCE_FILE
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                fake_path = os.path.join(tmpdir, "balance.toml")
+                game.BALANCE_FILE = fake_path
+                result = load_balance_config()
+                # Re-read generated file and compare to defaults
+                with open(fake_path, "rb") as f:
+                    from_file = _tomllib.load(f)
+                from_default = _tomllib.loads(_default_balance_toml())
+                self.assertEqual(from_file, from_default)
+        finally:
+            game.BALANCE_FILE = orig_file
+            load_balance_config()
+
+    def test_game_works_with_default_config(self):
+        """Game objects can be created and core functions work with default balance.toml."""
+        # Verify player creation uses config values
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        self.assertEqual(player.max_hp, BALANCE["player"]["hp"])
+        self.assertEqual(player.hp, player.max_hp)
+        # Verify enemy creation works for all config types
+        camera = Camera()
+        for etype in BALANCE["enemies"]:
+            if etype in ("scaling", "shooter_behavior"):
+                continue
+            if etype in ENEMY_TYPES:
+                e = Enemy(camera, enemy_type=etype, wave=1)
+                cfg = BALANCE["enemies"][etype]
+                self.assertEqual(e.radius, cfg["radius"])
+        # Verify weapon stats are populated from config
+        stats = default_weapon_stats()
+        wcfg = BALANCE["weapons"]["default"]
+        self.assertEqual(stats["damage"], wcfg["damage"])
+        self.assertEqual(stats["fire_rate"], wcfg["fire_rate"])
+        # Verify XP thresholds are generated
+        thresholds = generate_xp_thresholds()
+        self.assertEqual(len(thresholds), BALANCE["xp"]["max_level"])
+
 
 class TestConfigDrivenEnemies(unittest.TestCase):
     """Tests that ENEMY_TYPES, WAVE_COMPOSITION, and HEALTH_DROP_CHANCE are built from BALANCE config."""
