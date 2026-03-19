@@ -20,12 +20,12 @@ Detect the native display resolution at startup using Pygame's display info API,
 **Files:**
 - Modify: `game.py`
 
-- [ ] In `init_pygame()`, before calling `pygame.display.set_mode()`, use `pygame.display.Info()` (called before `set_mode` to get desktop resolution) to detect the native monitor resolution
-- [ ] Add the native resolution to `SUPPORTED_RESOLUTIONS` if not already present, and set it as the default selection
-- [ ] Change `options_fullscreen` default to `True` so the game starts in fullscreen
-- [ ] Update `apply_resolution()` to handle the dynamically added native resolution
-- [ ] Write tests verifying resolution detection logic and that native resolution is added to the supported list
-- [ ] Run project test suite - must pass before task 2
+- [x] In `init_pygame()`, before calling `pygame.display.set_mode()`, use `pygame.display.Info()` (called before `set_mode` to get desktop resolution) to detect the native monitor resolution
+- [x] Add the native resolution to `SUPPORTED_RESOLUTIONS` if not already present, and set it as the default selection
+- [x] Change `options_fullscreen` default to `True` so the game starts in fullscreen
+- [x] Update `apply_resolution()` to handle the dynamically added native resolution
+- [x] Write tests verifying resolution detection logic and that native resolution is added to the supported list
+- [x] Run project test suite - must pass before task 2
 
 ## Task 2 - Persist display settings between sessions
 

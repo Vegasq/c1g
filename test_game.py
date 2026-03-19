@@ -14,7 +14,7 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   HEALTH_DROP_CHANCE, get_health_drop_chance,
                   STATE_MENU, STATE_PLAYING, STATE_GAME_OVER, STATE_LEVEL_UP, STATE_OPTIONS,
                   MENU_ITEMS,
-                  SUPPORTED_RESOLUTIONS, apply_resolution,
+                  SUPPORTED_RESOLUTIONS, apply_resolution, detect_native_resolution,
                   EscapeRoom,
                   MAP_WIDTH, MAP_HEIGHT, MAX_ENEMIES_BASE, MAX_ENEMIES_CAP, get_max_enemies,
                   get_spawn_count, snapshot_weapon_power,
@@ -1698,16 +1698,27 @@ class TestOptionsMenu(unittest.TestCase):
         pygame.quit()
 
     def setUp(self):
+        self._saved_resolutions = list(SUPPORTED_RESOLUTIONS)
+        self._orig_fullscreen = game.options_fullscreen
+        self._orig_res_index = game.options_resolution_index
+        # Reset to known base state
+        game.SUPPORTED_RESOLUTIONS[:] = [
+            (800, 600), (1024, 768), (1280, 720), (1920, 1080)]
         game.options_selected_index = 0
         game.options_resolution_index = 1
         game.options_fullscreen = False
         game.WIDTH, game.HEIGHT = 1024, 768
 
+    def tearDown(self):
+        game.SUPPORTED_RESOLUTIONS[:] = self._saved_resolutions
+        game.options_fullscreen = self._orig_fullscreen
+        game.options_resolution_index = self._orig_res_index
+
     def test_state_options_constant(self):
         self.assertEqual(STATE_OPTIONS, 4)
 
     def test_supported_resolutions(self):
-        self.assertEqual(len(SUPPORTED_RESOLUTIONS), 4)
+        self.assertGreaterEqual(len(SUPPORTED_RESOLUTIONS), 4)
         self.assertIn((1024, 768), SUPPORTED_RESOLUTIONS)
         self.assertIn((1920, 1080), SUPPORTED_RESOLUTIONS)
 
@@ -1720,7 +1731,8 @@ class TestOptionsMenu(unittest.TestCase):
 
     def test_apply_resolution_cycles(self):
         game.screen = pygame.display.set_mode((1024, 768))
-        game.options_resolution_index = 3
+        idx_1920 = SUPPORTED_RESOLUTIONS.index((1920, 1080))
+        game.options_resolution_index = idx_1920
         apply_resolution()
         self.assertEqual(game.WIDTH, 1920)
         self.assertEqual(game.HEIGHT, 1080)
@@ -1748,13 +1760,85 @@ class TestOptionsMenu(unittest.TestCase):
         """Verify options menu has exactly 3 items: resolution, fullscreen, back."""
         # The draw function uses a hardcoded items list with 3 entries
         # and navigation wraps at % 3, so verify consistency
-        self.assertEqual(len(SUPPORTED_RESOLUTIONS), 4)
+        self.assertGreaterEqual(len(SUPPORTED_RESOLUTIONS), 4)
         for idx in range(len(SUPPORTED_RESOLUTIONS)):
             game.options_resolution_index = idx
             res = SUPPORTED_RESOLUTIONS[idx]
             self.assertEqual(len(res), 2)
             self.assertGreater(res[0], 0)
             self.assertGreater(res[1], 0)
+
+
+class TestDetectNativeResolution(unittest.TestCase):
+    """Tests for detect_native_resolution() and native resolution integration."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def setUp(self):
+        self._saved_resolutions = list(game.SUPPORTED_RESOLUTIONS)
+        self._orig_res_index = game.options_resolution_index
+        self._orig_fullscreen = game.options_fullscreen
+        # Reset to known base state
+        game.SUPPORTED_RESOLUTIONS[:] = [
+            (800, 600), (1024, 768), (1280, 720), (1920, 1080)]
+
+    def tearDown(self):
+        game.SUPPORTED_RESOLUTIONS[:] = self._saved_resolutions
+        game.options_resolution_index = self._orig_res_index
+        game.options_fullscreen = self._orig_fullscreen
+
+    @patch('pygame.display.Info')
+    def test_detect_existing_resolution(self, mock_info):
+        """If native resolution is already in the list, don't duplicate it."""
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
+        result = detect_native_resolution()
+        self.assertEqual(result, (1920, 1080))
+        self.assertEqual(game.SUPPORTED_RESOLUTIONS.count((1920, 1080)), 1)
+
+    @patch('pygame.display.Info')
+    def test_detect_new_resolution_added(self, mock_info):
+        """If native resolution is not in the list, it gets added."""
+        mock_info.return_value = MagicMock(current_w=2560, current_h=1440)
+        result = detect_native_resolution()
+        self.assertEqual(result, (2560, 1440))
+        self.assertIn((2560, 1440), game.SUPPORTED_RESOLUTIONS)
+
+    @patch('pygame.display.Info')
+    def test_detect_sets_resolution_index(self, mock_info):
+        """options_resolution_index is set to the native resolution."""
+        mock_info.return_value = MagicMock(current_w=1280, current_h=720)
+        detect_native_resolution()
+        idx = game.options_resolution_index
+        self.assertEqual(game.SUPPORTED_RESOLUTIONS[idx], (1280, 720))
+
+    @patch('pygame.display.Info')
+    def test_detect_new_resolution_sorted(self, mock_info):
+        """Added resolutions maintain sorted order by pixel count."""
+        mock_info.return_value = MagicMock(current_w=1366, current_h=768)
+        detect_native_resolution()
+        pixel_counts = [w * h for w, h in game.SUPPORTED_RESOLUTIONS]
+        self.assertEqual(pixel_counts, sorted(pixel_counts))
+
+    @patch('pygame.display.Info')
+    def test_detect_returns_native_tuple(self, mock_info):
+        """detect_native_resolution returns a (width, height) tuple."""
+        mock_info.return_value = MagicMock(current_w=3840, current_h=2160)
+        result = detect_native_resolution()
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], 3840)
+        self.assertEqual(result[1], 2160)
+
+    def test_fullscreen_default_is_true(self):
+        """options_fullscreen defaults to True for fullscreen startup."""
+        # Re-import to check the default
+        self.assertTrue(game.options_fullscreen)
 
 
 class TestHealthPickup(unittest.TestCase):
@@ -2736,12 +2820,18 @@ class TestGamepadInitialization(unittest.TestCase):
     def setUp(self):
         self._orig_screen = game.screen
         self._orig_joystick = game.active_joystick
+        self._saved_resolutions = list(game.SUPPORTED_RESOLUTIONS)
+        self._orig_res_index = game.options_resolution_index
+        self._orig_fullscreen = game.options_fullscreen
         # Prevent init_pygame from early-returning due to existing screen
         game.screen = None
 
     def tearDown(self):
         game.screen = self._orig_screen
         game.active_joystick = self._orig_joystick
+        game.SUPPORTED_RESOLUTIONS[:] = self._saved_resolutions
+        game.options_resolution_index = self._orig_res_index
+        game.options_fullscreen = self._orig_fullscreen
 
     def test_deadzone_constant_exists_and_reasonable(self):
         self.assertIsInstance(JOYSTICK_DEADZONE, float)
@@ -2754,12 +2844,14 @@ class TestGamepadInitialization(unittest.TestCase):
 
     @patch('pygame.joystick.init')
     @patch('pygame.joystick.get_count', return_value=0)
+    @patch('pygame.display.Info')
     @patch('pygame.display.set_mode', return_value=pygame.Surface((1024, 768)))
     @patch('pygame.display.set_caption')
     @patch('pygame.font.SysFont', return_value=MagicMock())
     def test_init_pygame_calls_joystick_init(self, mock_sysfont, mock_caption,
-                                             mock_set_mode, mock_get_count,
-                                             mock_joy_init):
+                                             mock_set_mode, mock_info,
+                                             mock_get_count, mock_joy_init):
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
         game.screen = None
         game.active_joystick = None
         init_pygame()
@@ -2771,12 +2863,15 @@ class TestGamepadInitialization(unittest.TestCase):
     @patch('pygame.joystick.Joystick')
     @patch('pygame.joystick.init')
     @patch('pygame.joystick.get_count', return_value=1)
+    @patch('pygame.display.Info')
     @patch('pygame.display.set_mode', return_value=pygame.Surface((1024, 768)))
     @patch('pygame.display.set_caption')
     @patch('pygame.font.SysFont', return_value=MagicMock())
     def test_init_pygame_grabs_first_joystick(self, mock_sysfont, mock_caption,
-                                              mock_set_mode, mock_get_count,
+                                              mock_set_mode, mock_info,
+                                              mock_get_count,
                                               mock_joy_init, mock_joystick_cls):
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
         mock_joy = MagicMock()
         mock_joystick_cls.return_value = mock_joy
         game.screen = None
@@ -2828,13 +2923,16 @@ class TestGamepadInitialization(unittest.TestCase):
     @patch('pygame.joystick.Joystick', side_effect=pygame.error("no joystick"))
     @patch('pygame.joystick.init')
     @patch('pygame.joystick.get_count', return_value=1)
+    @patch('pygame.display.Info')
     @patch('pygame.display.set_mode', return_value=pygame.Surface((1024, 768)))
     @patch('pygame.display.set_caption')
     @patch('pygame.font.SysFont', return_value=MagicMock())
     def test_init_pygame_joystick_error_sets_none(self, mock_sysfont, mock_caption,
-                                                  mock_set_mode, mock_get_count,
+                                                  mock_set_mode, mock_info,
+                                                  mock_get_count,
                                                   mock_joy_init, mock_joystick_cls):
         """init_pygame() catches pygame.error during joystick probe and leaves active_joystick as None."""
+        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
         game.screen = None
         game.active_joystick = None
         init_pygame()

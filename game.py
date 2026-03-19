@@ -39,7 +39,7 @@ _last_levelup_mouse_pos = (-1, -1)  # track mouse to avoid overriding gamepad se
 
 
 def init_pygame():
-    global screen, clock, font, title_font, menu_font, active_joystick
+    global screen, clock, font, title_font, menu_font, active_joystick, WIDTH, HEIGHT
     if screen is not None:
         return
     pygame.init()
@@ -50,7 +50,14 @@ def init_pygame():
             active_joystick.init()
     except pygame.error:
         active_joystick = None
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    # Detect native resolution before creating the display
+    native_res = detect_native_resolution()
+    WIDTH, HEIGHT = native_res
+    flags = pygame.FULLSCREEN if options_fullscreen else 0
+    try:
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
+    except pygame.error:
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
     pygame.display.set_caption("Squad Survivors")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
@@ -105,7 +112,24 @@ SUPPORTED_RESOLUTIONS = [
 
 options_selected_index = 0  # 0=resolution, 1=fullscreen, 2=back
 options_resolution_index = 1  # default 1024x768
-options_fullscreen = False
+options_fullscreen = True
+
+
+def detect_native_resolution():
+    """Detect native display resolution and add it to SUPPORTED_RESOLUTIONS.
+
+    Must be called after pygame.init() but before pygame.display.set_mode().
+    Returns the (width, height) tuple of the native resolution.
+    Updates options_resolution_index to point to the native resolution.
+    """
+    global options_resolution_index
+    info = pygame.display.Info()
+    native_res = (info.current_w, info.current_h)
+    if native_res not in SUPPORTED_RESOLUTIONS:
+        SUPPORTED_RESOLUTIONS.append(native_res)
+        SUPPORTED_RESOLUTIONS.sort(key=lambda r: r[0] * r[1])
+    options_resolution_index = SUPPORTED_RESOLUTIONS.index(native_res)
+    return native_res
 
 # Menu configuration
 MENU_ITEMS = ["NEW GAME", "OPTIONS", "QUIT"]
