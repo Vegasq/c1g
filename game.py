@@ -107,32 +107,38 @@ color = [255, 100, 50]
 xp_value = 5
 
 [enemies.scaling]
-hp_linear = 0.12
-hp_compound = 1.06
-hp_compound_start = 20
-speed_linear = 0.02
-speed_cap = 2.0
-xp_wave_divisor = 5
-contact_damage_divisor = 5
+# HP scaling: base_hp * (1 + hp_linear * (wave-1)) * (hp_compound ^ max(0, wave - hp_compound_start))
+hp_linear = 0.12               # linear HP growth per wave
+hp_compound = 1.06              # compound HP growth factor
+hp_compound_start = 20          # wave at which compound scaling kicks in
+# Speed scaling: base_speed * min(speed_cap, 1 + speed_linear * (wave-1))
+speed_linear = 0.02             # linear speed growth per wave
+speed_cap = 2.0                 # maximum speed multiplier
+# XP scaling: base_xp + wave // xp_wave_divisor
+xp_wave_divisor = 5             # waves per bonus XP point
+# Contact damage: 1 + (wave-1) // contact_damage_divisor
+contact_damage_divisor = 5      # waves per bonus contact damage
 
 [enemies.shooter_behavior]
-shoot_cooldown = 90
-shoot_timer_min = 30
-shoot_timer_max = 90
-approach_distance = 250
-retreat_distance = 150
-firing_distance = 300
+shoot_cooldown = 90             # frames between shots (~1.5s at 60fps)
+shoot_timer_min = 30            # minimum initial shot delay (stagger)
+shoot_timer_max = 90            # maximum initial shot delay (stagger)
+approach_distance = 250         # move toward player when farther than this
+retreat_distance = 150          # retreat from player when closer than this
+firing_distance = 300           # maximum range to fire at player
 
 [splitter]
-mini_count = 2
-spawn_offset = 12
+mini_count = 2                  # number of mini enemies spawned on death
+spawn_offset = 12               # pixel offset from splitter death position
 
 [waves]
-timer = 480
-spawn_interval_base = 110
-spawn_interval_reduction = 14
-spawn_interval_min = 10
+timer = 480                     # frames per wave (~8 seconds at 60fps)
+spawn_interval_base = 110       # starting frames between spawn events
+spawn_interval_reduction = 14   # frames removed from spawn interval each wave
+spawn_interval_min = 10         # minimum spawn interval floor
 
+# Wave composition: enemy type weights per wave threshold
+# Checked in descending order; first matching threshold is used
 [[waves.composition]]
 threshold = 12
 weights = { runner = 10, brute = 10, shielded = 20, splitter = 20, elite = 15, shooter = 25 }
@@ -158,35 +164,39 @@ threshold = 1
 weights = { basic = 100 }
 
 [upgrades]
-damage_amount = 1
-fire_rate_amount = -3
-bullet_speed_amount = 2
-range_amount = 15
-max_hp_amount = 1
-min_fire_rate = 5
+damage_amount = 1               # base damage increase per upgrade
+fire_rate_amount = -3            # base fire rate change per upgrade (negative = faster)
+bullet_speed_amount = 2          # base bullet speed increase per upgrade
+range_amount = 15                # base range increase per upgrade
+max_hp_amount = 1                # HP increase per upgrade
+min_fire_rate = 5                # absolute minimum fire rate floor
 
 [upgrades.scaling]
-damage_tier2_level = 10
-damage_tier3_level = 20
-damage_tier3_bonus = 1
-fire_rate_tier2_level = 15
-fire_rate_tier2_bonus = -2
-milestone_interval_early = 5
-milestone_interval_late = 4
-milestone_threshold = 15
+# Level thresholds for bonus scaling on damage upgrades
+damage_tier2_level = 10          # level at which damage stays at base
+damage_tier3_level = 20          # level at which damage gets +1 bonus
+damage_tier3_bonus = 1           # extra damage at tier 3
+# Level threshold for bonus scaling on fire rate upgrades
+fire_rate_tier2_level = 15       # level at which fire rate gets extra -2
+fire_rate_tier2_bonus = -2       # extra fire rate reduction at tier 2
+# Milestone intervals for weapon type upgrades
+milestone_interval_early = 5     # levels between weapon offers (level <= 15)
+milestone_interval_late = 4      # levels between weapon offers (level > 15)
+milestone_threshold = 15         # level at which interval switches
 
 [xp]
-base = 10
-linear = 5
-quadratic = 2
-max_level = 50
+# Formula: base + linear * i + quadratic * i^2 (where i = level - 1)
+base = 10                        # XP needed for level 2
+linear = 5                       # linear coefficient
+quadratic = 2                    # quadratic coefficient
+max_level = 50                   # maximum achievable level
 
 [health_pickups]
-radius = 8
-lifetime = 600
-attract_range = 100
-attract_speed = 4.0
-collect_range = 20
+radius = 8                       # pickup collision/draw radius
+lifetime = 600                   # frames before pickup disappears
+attract_range = 100              # distance at which pickup moves toward player
+attract_speed = 4.0              # speed of attraction movement
+collect_range = 20               # distance at which pickup is collected
 
 [health_pickups.drop_chance]
 basic = 0.05
@@ -197,13 +207,15 @@ splitter = 0.06
 mini = 0.03
 elite = 0.15
 shooter = 0.08
-default = 0.05
+default = 0.05                   # fallback for unknown enemy types
 
 [difficulty]
-max_enemies_base = 140
-max_enemies_cap = 200
-spawn_count_divisor = 4
-enemies_per_wave = 2
+max_enemies_base = 140           # starting enemy cap
+max_enemies_cap = 200            # absolute maximum enemies
+# Spawn count formula: wave + wave // spawn_count_divisor
+spawn_count_divisor = 4          # divisor for bonus spawns per wave
+# Max enemies formula: min(cap, base + wave * enemies_per_wave)
+enemies_per_wave = 2             # extra enemy cap per wave
 '''
 
 
@@ -250,6 +262,8 @@ def get_max_enemies(wave):
 def get_spawn_count(wave):
     """Return the number of enemies to spawn per spawn event."""
     divisor = BALANCE.get("difficulty", {}).get("spawn_count_divisor", 4)
+    if divisor <= 0:
+        divisor = 4
     return wave + wave // divisor
 
 
@@ -1158,9 +1172,13 @@ class Enemy:
         self.color = type_cfg["color"]
         base_xp = type_cfg["xp_value"]
         xp_wave_divisor = scaling.get("xp_wave_divisor", 5)
+        if xp_wave_divisor <= 0:
+            xp_wave_divisor = 5
         self.xp_value = base_xp + wave // xp_wave_divisor
         self.shield = type_cfg.get("shield", False)
         contact_damage_divisor = scaling.get("contact_damage_divisor", 5)
+        if contact_damage_divisor <= 0:
+            contact_damage_divisor = 5
         self.contact_damage = 1 + (wave - 1) // contact_damage_divisor
         # Shooter-specific attributes
         shooter_cfg = BALANCE.get("enemies", {}).get("shooter_behavior", {})
@@ -1168,12 +1186,20 @@ class Enemy:
             self.shoot_cooldown = shooter_cfg.get("shoot_cooldown", 90)
             timer_min = shooter_cfg.get("shoot_timer_min", 30)
             timer_max = shooter_cfg.get("shoot_timer_max", 90)
+            if timer_min > timer_max:
+                timer_min, timer_max = timer_max, timer_min
             self.shoot_timer = random.randint(timer_min, timer_max)
             self.strafe_dir = random.choice([-1, 1])
+            self.approach_dist = shooter_cfg.get("approach_distance", 250)
+            self.retreat_dist = shooter_cfg.get("retreat_distance", 150)
+            self.firing_dist = shooter_cfg.get("firing_distance", 300)
         else:
             self.shoot_cooldown = 0
             self.shoot_timer = 0
             self.strafe_dir = 1
+            self.approach_dist = 0
+            self.retreat_dist = 0
+            self.firing_dist = 0
         # Spawn at edges of camera view
         cam_left = camera.x
         cam_top = camera.y
@@ -1201,17 +1227,13 @@ class Enemy:
         dx, dy = target.x - self.x, target.y - self.y
         dist = math.hypot(dx, dy) or 1
         if self.enemy_type == "shooter":
-            shooter_cfg = BALANCE.get("enemies", {}).get("shooter_behavior", {})
-            approach_dist = shooter_cfg.get("approach_distance", 250)
-            retreat_dist = shooter_cfg.get("retreat_distance", 150)
-            firing_dist = shooter_cfg.get("firing_distance", 300)
             # Distance-keeping: approach if far, retreat if close, strafe otherwise
             nx, ny = dx / dist, dy / dist
-            if dist > approach_dist:
+            if dist > self.approach_dist:
                 # Move toward player
                 self.x += nx * self.speed
                 self.y += ny * self.speed
-            elif dist < retreat_dist:
+            elif dist < self.retreat_dist:
                 # Retreat away from player
                 self.x -= nx * self.speed
                 self.y -= ny * self.speed
@@ -1225,7 +1247,7 @@ class Enemy:
             self.y = max(-margin, min(MAP_HEIGHT + margin, self.y))
             # Shooting logic
             self.shoot_timer = max(0, self.shoot_timer - 1)
-            if self.shoot_timer <= 0 and dist <= firing_dist and enemy_bullets is not None:
+            if self.shoot_timer <= 0 and dist <= self.firing_dist and enemy_bullets is not None:
                 enemy_bullets.append(EnemyBullet(self.x, self.y, dx, dy, damage=self.contact_damage))
                 self.shoot_timer = self.shoot_cooldown
         else:
