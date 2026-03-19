@@ -19,7 +19,7 @@ range = 90              # bullet lifetime in frames (effective range = speed * r
 
 [weapons.shotgun]
 pellet_count = 5        # number of pellets per shot
-spread_angle = 30       # total spread in degrees
+spread_angle = 30       # half-spread angle in degrees (pellets span ±this from center)
 
 [weapons.explosive]
 radius = 60             # explosion area-of-effect radius in pixels

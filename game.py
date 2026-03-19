@@ -39,7 +39,7 @@ range = 90              # bullet lifetime in frames (effective range = speed * r
 
 [weapons.shotgun]
 pellet_count = 5        # number of pellets per shot
-spread_angle = 30       # total spread in degrees
+spread_angle = 30       # half-spread angle in degrees (pellets span ±this from center)
 
 [weapons.explosive]
 radius = 60             # explosion area-of-effect radius in pixels
@@ -1142,8 +1142,11 @@ def get_enemy_type_for_wave(wave):
     """Select a random enemy type based on the current wave's weight table."""
     for threshold, weights in WAVE_COMPOSITION:
         if wave >= threshold:
-            types = list(weights.keys())
-            cumulative = list(weights.values())
+            valid = {k: v for k, v in weights.items() if k in ENEMY_TYPES}
+            if not valid:
+                return "basic"
+            types = list(valid.keys())
+            cumulative = list(valid.values())
             return random.choices(types, weights=cumulative, k=1)[0]
     return "basic"
 
@@ -1455,6 +1458,8 @@ def generate_upgrade_options(level, weapon_stats):
     milestone_interval_late = scfg.get("milestone_interval_late", 4)
     milestone_interval_early = scfg.get("milestone_interval_early", 5)
     milestone_interval = milestone_interval_late if level > milestone_threshold else milestone_interval_early
+    if milestone_interval <= 0:
+        milestone_interval = 5
     is_milestone = level % milestone_interval == 0
     if is_milestone:
         owned_types = {w["weapon_type"] for w in weapon_stats}
