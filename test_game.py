@@ -4519,6 +4519,17 @@ class TestMusicHelpers(unittest.TestCase):
         mock_music.load.assert_not_called()
         mock_music.play.assert_not_called()
 
+    @patch("game.os.path.exists", return_value=False)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_stops_old_track_when_new_file_missing(
+        self, mock_music, mock_exists
+    ):
+        game._current_music = "game.wav"
+        _play_music("menu.wav")
+        mock_music.stop.assert_called_once()
+        self.assertIsNone(game._current_music)
+        mock_music.load.assert_not_called()
+
     @patch("game.os.path.exists", return_value=True)
     @patch("game.pygame.mixer.music")
     def test_play_music_handles_load_error(self, mock_music, mock_exists):
@@ -4562,9 +4573,11 @@ class TestMusicHelpers(unittest.TestCase):
 
     @patch("game.pygame.mixer.music")
     def test_stop_music_handles_mixer_error(self, mock_music):
+        game._current_music = "menu.wav"
         mock_music.stop.side_effect = pygame.error("mixer not initialized")
         _stop_music()
         mock_music.stop.assert_called_once()
+        self.assertIsNone(game._current_music)
 
 
 class TestMusicStateTransitions(unittest.TestCase):
