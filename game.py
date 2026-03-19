@@ -1071,6 +1071,8 @@ class Unit:
     PLAYER_SPEED = _pcfg.get("speed", 3.5)
     SHOOT_COOLDOWN = _pcfg.get("shoot_cooldown", 25)
 
+    INVULNERABLE_DURATION = _pcfg.get("invulnerable_duration", 120)
+
     _ally_cfg = BALANCE.get("player", {}).get("ally", {})
     SPEED = _ally_cfg.get("speed", 2.5)
     ALLY_LIFETIME = _ally_cfg.get("lifetime", 600)
@@ -3130,12 +3132,14 @@ def run():
         invuln_duration = Unit.INVULNERABLE_DURATION
         surviving = []
         for e in enemies:
-            if player.hp > 0 and player.invulnerable_timer <= 0 and math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
-                player.hp -= e.contact_damage
-                run_stats["damage_taken"] += e.contact_damage
-                run_stats["wave_damage_taken"] += e.contact_damage
-                player.invulnerable_timer = invuln_duration
-                last_damage_source = e.enemy_type
+            if player.hp > 0 and math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
+                if player.invulnerable_timer <= 0:
+                    player.hp -= e.contact_damage
+                    run_stats["damage_taken"] += e.contact_damage
+                    run_stats["wave_damage_taken"] += e.contact_damage
+                    player.invulnerable_timer = invuln_duration
+                    last_damage_source = e.enemy_type
+                # Enemy is destroyed on contact regardless of invulnerability
             else:
                 surviving.append(e)
         enemies = surviving
@@ -3144,12 +3148,14 @@ def run():
         if player.hp > 0:
             surviving_eb = []
             for eb in enemy_bullets:
-                if player.hp > 0 and player.invulnerable_timer <= 0 and math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
-                    player.hp -= eb.damage
-                    run_stats["damage_taken"] += eb.damage
-                    run_stats["wave_damage_taken"] += eb.damage
-                    player.invulnerable_timer = invuln_duration
-                    last_damage_source = "Enemy Bullet"
+                if math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
+                    if player.invulnerable_timer <= 0:
+                        player.hp -= eb.damage
+                        run_stats["damage_taken"] += eb.damage
+                        run_stats["wave_damage_taken"] += eb.damage
+                        player.invulnerable_timer = invuln_duration
+                        last_damage_source = "Enemy Bullet"
+                    # Bullet is consumed on contact regardless of invulnerability
                 else:
                     surviving_eb.append(eb)
             enemy_bullets = surviving_eb
