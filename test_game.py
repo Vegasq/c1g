@@ -4165,5 +4165,100 @@ class TestBalanceConfig(unittest.TestCase):
             load_balance_config()
 
 
+class TestConfigDrivenEnemies(unittest.TestCase):
+    """Tests that ENEMY_TYPES, WAVE_COMPOSITION, and HEALTH_DROP_CHANCE are built from BALANCE config."""
+
+    def test_enemy_types_match_config(self):
+        """ENEMY_TYPES values should match what's in BALANCE config."""
+        for etype in ("basic", "runner", "brute", "shielded", "splitter", "mini", "elite", "shooter"):
+            cfg = BALANCE["enemies"][etype]
+            self.assertEqual(ENEMY_TYPES[etype]["hp"], cfg["hp"])
+            self.assertAlmostEqual(ENEMY_TYPES[etype]["speed"], cfg["speed"])
+            self.assertEqual(ENEMY_TYPES[etype]["radius"], cfg["radius"])
+            self.assertEqual(ENEMY_TYPES[etype]["xp_value"], cfg["xp_value"])
+            self.assertEqual(ENEMY_TYPES[etype]["color"], tuple(cfg["color"]))
+
+    def test_shielded_has_shield_from_config(self):
+        """Shielded enemy type should have shield=True from config."""
+        self.assertTrue(ENEMY_TYPES["shielded"].get("shield", False))
+        self.assertFalse(ENEMY_TYPES["basic"].get("shield", False))
+
+    def test_wave_composition_matches_config(self):
+        """WAVE_COMPOSITION should be built from BALANCE config."""
+        config_comp = BALANCE["waves"]["composition"]
+        self.assertEqual(len(WAVE_COMPOSITION), len(config_comp))
+        for (threshold, weights), cfg_entry in zip(WAVE_COMPOSITION, config_comp):
+            self.assertEqual(threshold, cfg_entry["threshold"])
+            self.assertEqual(weights, dict(cfg_entry["weights"]))
+
+    def test_health_drop_chance_matches_config(self):
+        """HEALTH_DROP_CHANCE should be built from BALANCE config."""
+        drop_cfg = BALANCE["health_pickups"]["drop_chance"]
+        for etype in ("basic", "runner", "brute", "shielded", "splitter", "mini", "elite", "shooter"):
+            self.assertAlmostEqual(HEALTH_DROP_CHANCE[etype], drop_cfg[etype])
+
+    def test_health_drop_default_from_config(self):
+        """Unknown enemy types should use the default drop chance from config."""
+        default = BALANCE["health_pickups"]["drop_chance"]["default"]
+        self.assertAlmostEqual(get_health_drop_chance("unknown_type"), default)
+
+
+class TestConfigDrivenScaling(unittest.TestCase):
+    """Tests that enemy scaling uses config values from BALANCE."""
+
+    def setUp(self):
+        self.camera = Camera()
+
+    def test_hp_scaling_uses_config(self):
+        """Enemy HP scaling should use config parameters."""
+        scaling = BALANCE["enemies"]["scaling"]
+        e = Enemy(self.camera, enemy_type="basic", wave=10)
+        base_hp = BALANCE["enemies"]["basic"]["hp"]
+        linear = 1 + scaling["hp_linear"] * 9
+        compound = scaling["hp_compound"] ** max(0, 10 - scaling["hp_compound_start"])
+        expected = max(base_hp, int(base_hp * linear * compound))
+        self.assertEqual(e.hp, expected)
+
+    def test_speed_scaling_uses_config(self):
+        """Enemy speed scaling should use config parameters."""
+        scaling = BALANCE["enemies"]["scaling"]
+        e = Enemy(self.camera, enemy_type="basic", wave=10)
+        base_speed = BALANCE["enemies"]["basic"]["speed"]
+        expected = base_speed * min(scaling["speed_cap"], 1 + scaling["speed_linear"] * 9)
+        self.assertAlmostEqual(e.speed, expected)
+
+    def test_xp_scaling_uses_config(self):
+        """Enemy XP scaling should use config parameters."""
+        scaling = BALANCE["enemies"]["scaling"]
+        e = Enemy(self.camera, enemy_type="basic", wave=10)
+        base_xp = BALANCE["enemies"]["basic"]["xp_value"]
+        expected = base_xp + 10 // scaling["xp_wave_divisor"]
+        self.assertEqual(e.xp_value, expected)
+
+    def test_contact_damage_uses_config(self):
+        """Contact damage scaling should use config parameters."""
+        scaling = BALANCE["enemies"]["scaling"]
+        divisor = scaling["contact_damage_divisor"]
+        e = Enemy(self.camera, enemy_type="basic", wave=16)
+        expected = 1 + (16 - 1) // divisor
+        self.assertEqual(e.contact_damage, expected)
+
+    def test_shooter_cooldown_from_config(self):
+        """Shooter enemy should use cooldown from config."""
+        shooter_cfg = BALANCE["enemies"]["shooter_behavior"]
+        e = Enemy(self.camera, enemy_type="shooter", wave=1)
+        self.assertEqual(e.shoot_cooldown, shooter_cfg["shoot_cooldown"])
+
+    def test_shooter_timer_range_from_config(self):
+        """Shooter initial timer should be within config range."""
+        shooter_cfg = BALANCE["enemies"]["shooter_behavior"]
+        timer_min = shooter_cfg["shoot_timer_min"]
+        timer_max = shooter_cfg["shoot_timer_max"]
+        for _ in range(50):
+            e = Enemy(self.camera, enemy_type="shooter", wave=1)
+            self.assertGreaterEqual(e.shoot_timer, timer_min)
+            self.assertLessEqual(e.shoot_timer, timer_max)
+
+
 if __name__ == "__main__":
     unittest.main()

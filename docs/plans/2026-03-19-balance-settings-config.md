@@ -54,14 +54,14 @@ Extract all hardcoded balance values from game.py into a balance.toml config fil
 **Files:**
 - Modify: `game.py`
 
-- [ ] Replace ENEMY_TYPES dict with values loaded from BALANCE config
-- [ ] Replace WAVE_COMPOSITION dict with values from config
-- [ ] Replace enemy scaling formulas (HP, speed, damage, XP) with config-driven parameters
-- [ ] Replace shooter behavior constants (cooldown, distances) with config values
-- [ ] Replace splitter spawn constants with config values
-- [ ] Replace HEALTH_DROP_CHANCE with config values
-- [ ] Update tests for enemy/wave config usage
-- [ ] Run project test suite - must pass before Task 3
+- [x] Replace ENEMY_TYPES dict with values loaded from BALANCE config
+- [x] Replace WAVE_COMPOSITION dict with values from config
+- [x] Replace enemy scaling formulas (HP, speed, damage, XP) with config-driven parameters
+- [x] Replace shooter behavior constants (cooldown, distances) with config values
+- [x] Replace splitter spawn constants with config values
+- [x] Replace HEALTH_DROP_CHANCE with config values
+- [x] Update tests for enemy/wave config usage
+- [x] Run project test suite - must pass before Task 3
 
 ## Task 3: Wire up weapons, upgrades, player stats, and difficulty
 

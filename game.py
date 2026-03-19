@@ -1072,27 +1072,44 @@ class Unit:
             pygame.draw.rect(screen, (100, 180, 255), (bx, by2, int(life_filled), 3))
 
 
-ENEMY_TYPES = {
-    "basic": {"hp": 3, "speed": 1.4, "radius": 12, "color": (255, 30, 60), "xp_value": 2},
-    "runner": {"hp": 2, "speed": 2.2, "radius": 8, "color": (230, 255, 0), "xp_value": 2},
-    "brute": {"hp": 9, "speed": 0.9, "radius": 18, "color": (255, 140, 0), "xp_value": 5},
-    "shielded": {"hp": 6, "speed": 1.0, "radius": 14, "color": (0, 255, 255), "xp_value": 6, "shield": True},
-    "splitter": {"hp": 4, "speed": 1.0, "radius": 14, "color": (0, 255, 100), "xp_value": 3},
-    "mini": {"hp": 2, "speed": 1.8, "radius": 7, "color": (0, 255, 100), "xp_value": 1},
-    "elite": {"hp": 15, "speed": 1.8, "radius": 16, "color": (255, 0, 255), "xp_value": 12},
-    "shooter": {"hp": 5, "speed": 0.8, "radius": 13, "color": (255, 100, 50), "xp_value": 5},
-}
+def _build_enemy_types():
+    """Build ENEMY_TYPES dict from BALANCE config."""
+    enemies_cfg = BALANCE.get("enemies", {})
+    types = {}
+    for etype in ("basic", "runner", "brute", "shielded", "splitter", "mini", "elite", "shooter"):
+        cfg = enemies_cfg.get(etype, {})
+        entry = {
+            "hp": cfg.get("hp", 3),
+            "speed": cfg.get("speed", 1.0),
+            "radius": cfg.get("radius", 12),
+            "color": tuple(cfg.get("color", [255, 30, 60])),
+            "xp_value": cfg.get("xp_value", 2),
+        }
+        if cfg.get("shield", False):
+            entry["shield"] = True
+        types[etype] = entry
+    return types
+
+
+ENEMY_TYPES = _build_enemy_types()
+
+def _build_wave_composition():
+    """Build WAVE_COMPOSITION list from BALANCE config."""
+    waves_cfg = BALANCE.get("waves", {})
+    comp_list = waves_cfg.get("composition", [])
+    result = []
+    for entry in comp_list:
+        threshold = entry.get("threshold", 1)
+        weights = dict(entry.get("weights", {}))
+        result.append((threshold, weights))
+    # Sort descending by threshold (config may already be sorted, but ensure it)
+    result.sort(key=lambda x: x[0], reverse=True)
+    return result
+
 
 # Wave-based spawn weight tables: maps wave thresholds to enemy type weights.
 # Checked in descending order; first matching threshold is used.
-WAVE_COMPOSITION = [
-    (12, {"runner": 10, "brute": 10, "shielded": 20, "splitter": 20, "elite": 15, "shooter": 25}),
-    (10, {"runner": 15, "brute": 15, "shielded": 20, "splitter": 20, "elite": 10, "shooter": 20}),
-    (8, {"runner": 20, "brute": 20, "shielded": 20, "splitter": 25, "shooter": 15}),
-    (6, {"basic": 30, "runner": 25, "brute": 20, "shielded": 15, "splitter": 10}),
-    (3, {"basic": 60, "runner": 25, "brute": 15}),
-    (1, {"basic": 100}),
-]
+WAVE_COMPOSITION = _build_wave_composition()
 
 
 def get_enemy_type_for_wave(wave):
@@ -1113,23 +1130,34 @@ class Enemy:
         self.uid = Enemy._next_id
         self.enemy_type = enemy_type
         type_cfg = ENEMY_TYPES[enemy_type]
+        scaling = BALANCE.get("enemies", {}).get("scaling", {})
         base_hp = type_cfg["hp"]
-        linear = 1 + 0.12 * (wave - 1)
-        compound = 1.06 ** max(0, wave - 20)
+        hp_linear = scaling.get("hp_linear", 0.12)
+        hp_compound = scaling.get("hp_compound", 1.06)
+        hp_compound_start = scaling.get("hp_compound_start", 20)
+        linear = 1 + hp_linear * (wave - 1)
+        compound = hp_compound ** max(0, wave - hp_compound_start)
         self.hp = max(base_hp, int(base_hp * linear * compound))
         base_speed = type_cfg["speed"]
-        self.speed = base_speed * min(2.0, 1 + 0.02 * (wave - 1))
+        speed_linear = scaling.get("speed_linear", 0.02)
+        speed_cap = scaling.get("speed_cap", 2.0)
+        self.speed = base_speed * min(speed_cap, 1 + speed_linear * (wave - 1))
         self.radius = type_cfg["radius"]
         self.color = type_cfg["color"]
         base_xp = type_cfg["xp_value"]
-        self.xp_value = base_xp + wave // 5
+        xp_wave_divisor = scaling.get("xp_wave_divisor", 5)
+        self.xp_value = base_xp + wave // xp_wave_divisor
         self.shield = type_cfg.get("shield", False)
-        self.contact_damage = 1 + (wave - 1) // 5
+        contact_damage_divisor = scaling.get("contact_damage_divisor", 5)
+        self.contact_damage = 1 + (wave - 1) // contact_damage_divisor
         # Shooter-specific attributes
+        shooter_cfg = BALANCE.get("enemies", {}).get("shooter_behavior", {})
         if enemy_type == "shooter":
-            self.shoot_cooldown = 90  # frames between shots (~1.5 seconds at 60fps)
-            self.shoot_timer = random.randint(30, 90)  # stagger initial shots
-            self.strafe_dir = random.choice([-1, 1])  # randomize orbit direction
+            self.shoot_cooldown = shooter_cfg.get("shoot_cooldown", 90)
+            timer_min = shooter_cfg.get("shoot_timer_min", 30)
+            timer_max = shooter_cfg.get("shoot_timer_max", 90)
+            self.shoot_timer = random.randint(timer_min, timer_max)
+            self.strafe_dir = random.choice([-1, 1])
         else:
             self.shoot_cooldown = 0
             self.shoot_timer = 0
@@ -1161,13 +1189,17 @@ class Enemy:
         dx, dy = target.x - self.x, target.y - self.y
         dist = math.hypot(dx, dy) or 1
         if self.enemy_type == "shooter":
-            # Distance-keeping: approach if >250px, retreat if <150px, strafe otherwise
+            shooter_cfg = BALANCE.get("enemies", {}).get("shooter_behavior", {})
+            approach_dist = shooter_cfg.get("approach_distance", 250)
+            retreat_dist = shooter_cfg.get("retreat_distance", 150)
+            firing_dist = shooter_cfg.get("firing_distance", 300)
+            # Distance-keeping: approach if far, retreat if close, strafe otherwise
             nx, ny = dx / dist, dy / dist
-            if dist > 250:
+            if dist > approach_dist:
                 # Move toward player
                 self.x += nx * self.speed
                 self.y += ny * self.speed
-            elif dist < 150:
+            elif dist < retreat_dist:
                 # Retreat away from player
                 self.x -= nx * self.speed
                 self.y -= ny * self.speed
@@ -1181,7 +1213,7 @@ class Enemy:
             self.y = max(-margin, min(MAP_HEIGHT + margin, self.y))
             # Shooting logic
             self.shoot_timer = max(0, self.shoot_timer - 1)
-            if self.shoot_timer <= 0 and dist <= 300 and enemy_bullets is not None:
+            if self.shoot_timer <= 0 and dist <= firing_dist and enemy_bullets is not None:
                 enemy_bullets.append(EnemyBullet(self.x, self.y, dx, dy, damage=self.contact_damage))
                 self.shoot_timer = self.shoot_cooldown
         else:
@@ -1288,21 +1320,28 @@ class HealthPickup:
         pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
 
 
-HEALTH_DROP_CHANCE = {
-    "basic": 0.05,
-    "runner": 0.05,
-    "brute": 0.12,
-    "shielded": 0.08,
-    "splitter": 0.06,
-    "mini": 0.03,
-    "elite": 0.15,
-    "shooter": 0.08,
-}
+def _build_health_drop_chance():
+    """Build HEALTH_DROP_CHANCE dict from BALANCE config."""
+    drop_cfg = BALANCE.get("health_pickups", {}).get("drop_chance", {})
+    return {
+        "basic": drop_cfg.get("basic", 0.05),
+        "runner": drop_cfg.get("runner", 0.05),
+        "brute": drop_cfg.get("brute", 0.12),
+        "shielded": drop_cfg.get("shielded", 0.08),
+        "splitter": drop_cfg.get("splitter", 0.06),
+        "mini": drop_cfg.get("mini", 0.03),
+        "elite": drop_cfg.get("elite", 0.15),
+        "shooter": drop_cfg.get("shooter", 0.08),
+    }
+
+
+HEALTH_DROP_CHANCE = _build_health_drop_chance()
 
 
 def get_health_drop_chance(enemy_type):
     """Return the probability of dropping a health pickup for a given enemy type."""
-    return HEALTH_DROP_CHANCE.get(enemy_type, 0.05)
+    default_chance = BALANCE.get("health_pickups", {}).get("drop_chance", {}).get("default", 0.05)
+    return HEALTH_DROP_CHANCE.get(enemy_type, default_chance)
 
 
 def generate_xp_thresholds(max_level=50):
@@ -2808,12 +2847,15 @@ def run():
                 surviving_after_explosion.append(e)
             enemies = surviving_after_explosion
         # Spawn mini enemies from dead splitters
+        splitter_cfg = BALANCE.get("splitter", {})
+        mini_count = splitter_cfg.get("mini_count", 2)
+        spawn_offset = splitter_cfg.get("spawn_offset", 12)
         for sx, sy in split_spawns:
-            for offset in (-12, 12):
+            for i in range(mini_count):
                 if len(enemies) >= get_max_enemies(wave):
                     break
                 mini = Enemy(camera, enemy_type="mini", wave=wave)
-                mini.x = sx + offset
+                mini.x = sx + spawn_offset * (-1 if i % 2 == 0 else 1)
                 mini.y = sy
                 enemies.append(mini)
 
