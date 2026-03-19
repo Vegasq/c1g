@@ -839,7 +839,10 @@ MUSIC_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def _play_music(filename):
-    """Load and loop a music file. Silently does nothing if file missing or mixer unavailable."""
+    """Load and loop a music file.
+
+    Silently does nothing if file missing or mixer unavailable.
+    """
     filepath = os.path.join(MUSIC_DIR, filename)
     if not os.path.exists(filepath):
         return
@@ -851,7 +854,10 @@ def _play_music(filename):
 
 
 def _stop_music():
-    """Stop current music playback. Silently does nothing if mixer unavailable."""
+    """Stop current music playback.
+
+    Silently does nothing if mixer unavailable.
+    """
     try:
         pygame.mixer.music.stop()
     except pygame.error:

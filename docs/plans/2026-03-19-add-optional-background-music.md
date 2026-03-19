@@ -42,11 +42,11 @@ Add optional background music support. The game will look for `menu.wav` and `ga
 
 ## Verification
 
-- [ ] manual test: drop `menu.wav` and `game.wav` next to `game.py`, verify music loops in menu and switches on game start
-- [ ] manual test: remove wav files, verify game runs without errors
-- [ ] run full test suite: `python -m pytest test_game.py`
-- [ ] run linter if configured
-- [ ] verify test coverage meets 80%+
+- [x] manual test: drop `menu.wav` and `game.wav` next to `game.py`, verify music loops in menu and switches on game start
+- [x] manual test: remove wav files, verify game runs without errors
+- [x] run full test suite: `python -m pytest test_game.py`
+- [x] run linter if configured
+- [x] verify test coverage meets 80%+
 
 ## Wrap-up
 
