@@ -2402,6 +2402,8 @@ def run():
                         a = Unit(player.x + random.uniform(-30, 30),
                                  player.y + random.uniform(-30, 30), color)
                         allies.append(a)
+                # Clear visible enemy bullets (from killed enemies)
+                enemy_bullets = [eb for eb in enemy_bullets if not _is_visible(camera, eb.x, eb.y)]
                 er.relocate(obstacles, escape_rooms)
                 escape_flash_timer = 15
                 break

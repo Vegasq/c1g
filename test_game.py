@@ -4022,6 +4022,57 @@ class TestShooterEnemy(unittest.TestCase):
         # Should work without enemy_bullets parameter
         e.update(target)
 
+    def test_shooter_approaches_when_far(self):
+        e = Enemy(self.camera, enemy_type="shooter", wave=1)
+        e.x, e.y = 500, 500
+        target = MagicMock()
+        target.x = 500 + 300  # >250px away
+        target.y = 500
+        initial_x = e.x
+        e.shoot_timer = 999  # prevent firing
+        e.update(target, [])
+        self.assertGreater(e.x, initial_x)  # moved toward target
+
+    def test_shooter_retreats_when_close(self):
+        e = Enemy(self.camera, enemy_type="shooter", wave=1)
+        e.x, e.y = 500, 500
+        target = MagicMock()
+        target.x = 500 + 100  # <150px away
+        target.y = 500
+        initial_x = e.x
+        e.shoot_timer = 999
+        e.update(target, [])
+        self.assertLess(e.x, initial_x)  # moved away from target
+
+    def test_shooter_strafes_in_mid_range(self):
+        e = Enemy(self.camera, enemy_type="shooter", wave=1)
+        e.x, e.y = 500, 500
+        target = MagicMock()
+        target.x = 500 + 200  # between 150-250px
+        target.y = 500
+        initial_y = e.y
+        e.shoot_timer = 999
+        e.update(target, [])
+        # Should move perpendicular (y changes), not toward/away (x stays ~same)
+        self.assertNotAlmostEqual(e.y, initial_y)
+
+    def test_enemy_bullet_obstacle_collision(self):
+        obs = Obstacle(100, 100, 50, 50)
+        eb = EnemyBullet(97, 125, 1, 0, damage=1)  # within RADIUS (5) of obstacle edge
+        # Simulate the obstacle collision check from the game loop
+        if obs.collides_circle(eb.x, eb.y, eb.RADIUS):
+            eb.life = 0
+        self.assertEqual(eb.life, 0)
+
+    def test_enemy_bullet_player_collision(self):
+        player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
+        initial_hp = player.hp
+        eb = EnemyBullet(player.x + 1, player.y, 1, 0, damage=2)
+        # Simulate collision check from game loop
+        if math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
+            player.hp -= eb.damage
+        self.assertEqual(player.hp, initial_hp - 2)
+
 
 if __name__ == "__main__":
     unittest.main()
