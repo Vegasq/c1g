@@ -99,4 +99,4 @@ Extract all hardcoded balance values from game.py into a balance.toml config fil
 
 ## Wrap-up
 
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Move this plan to `docs/plans/completed/`
