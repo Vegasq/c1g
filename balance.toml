@@ -9,6 +9,7 @@ radius = 14             # collision/draw radius
 
 [player.ally]
 hp = 3                  # ally unit HP
+speed = 2.5             # ally movement speed (pixels per frame)
 lifetime = 600          # ally lifespan in frames (~10 seconds at 60fps)
 
 [weapons.default]

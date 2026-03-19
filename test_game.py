@@ -4417,7 +4417,10 @@ class TestConfigDrivenPlayerStats(unittest.TestCase):
         self.assertEqual(Unit.RADIUS, BALANCE["player"]["radius"])
 
     def test_unit_speed_from_config(self):
-        self.assertAlmostEqual(Unit.SPEED, BALANCE["player"]["speed"])
+        self.assertAlmostEqual(Unit.SPEED, BALANCE["player"]["ally"]["speed"])
+
+    def test_player_speed_from_config(self):
+        self.assertAlmostEqual(Unit.PLAYER_SPEED, BALANCE["player"]["speed"])
 
     def test_unit_shoot_cooldown_from_config(self):
         self.assertEqual(Unit.SHOOT_COOLDOWN, BALANCE["player"]["shoot_cooldown"])

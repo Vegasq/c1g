@@ -34,6 +34,7 @@ radius = 14             # collision/draw radius
 
 [player.ally]
 hp = 3                  # ally unit HP
+speed = 2.5             # ally movement speed (pixels per frame)
 lifetime = 600          # ally lifespan in frames (~10 seconds at 60fps)
 
 [weapons.default]
@@ -224,11 +225,55 @@ enemies_per_wave = 2             # extra enemy cap per wave
 '''
 
 
+_balance_initialized = False
+
+
+def _rebuild_derived_constants():
+    """Rebuild all module-level constants derived from BALANCE.
+
+    Must be called after BALANCE is updated to keep derived state in sync.
+    Safe to call before classes are defined (will skip class updates).
+    """
+    global MAX_ENEMIES_BASE, MAX_ENEMIES_CAP, ENEMY_TYPES, WAVE_COMPOSITION
+    global HEALTH_DROP_CHANCE, STAT_UPGRADES
+    if not _balance_initialized:
+        return
+    _diff_cfg = BALANCE.get("difficulty", {})
+    MAX_ENEMIES_BASE = _diff_cfg.get("max_enemies_base", 140)
+    MAX_ENEMIES_CAP = _diff_cfg.get("max_enemies_cap", 200)
+    ENEMY_TYPES = _build_enemy_types()
+    WAVE_COMPOSITION = _build_wave_composition()
+    HEALTH_DROP_CHANCE = _build_health_drop_chance()
+    STAT_UPGRADES = _build_stat_upgrades()
+    # Update class-level attributes
+    _pcfg = BALANCE.get("player", {})
+    Unit.RADIUS = _pcfg.get("radius", 14)
+    Unit.PLAYER_SPEED = _pcfg.get("speed", 3.5)
+    Unit.SHOOT_COOLDOWN = _pcfg.get("shoot_cooldown", 25)
+    _ally_cfg = _pcfg.get("ally", {})
+    Unit.SPEED = _ally_cfg.get("speed", 2.5)
+    Unit.ALLY_LIFETIME = _ally_cfg.get("lifetime", 600)
+    _eb_cfg = BALANCE.get("bullets", {}).get("enemy", {})
+    EnemyBullet.SPEED = _eb_cfg.get("speed", 4)
+    EnemyBullet.RADIUS = _eb_cfg.get("radius", 5)
+    EnemyBullet.LIFETIME = _eb_cfg.get("lifetime", 120)
+    _wcfg = BALANCE.get("weapons", {}).get("default", {})
+    Bullet.SPEED = _wcfg.get("bullet_speed", 8)
+    Bullet.LIFETIME = _wcfg.get("range", 90)
+    _hp_cfg = BALANCE.get("health_pickups", {})
+    HealthPickup.RADIUS = _hp_cfg.get("radius", 8)
+    HealthPickup.LIFETIME = _hp_cfg.get("lifetime", 600)
+    HealthPickup.ATTRACT_RANGE = _hp_cfg.get("attract_range", 100)
+    HealthPickup.ATTRACT_SPEED = _hp_cfg.get("attract_speed", 4.0)
+    HealthPickup.COLLECT_RANGE = _hp_cfg.get("collect_range", 20)
+
+
 def load_balance_config():
     """Load balance configuration from balance.toml.
 
     If the file is missing, generate a default one first.
     Returns the parsed config dict and also stores it in the module-level BALANCE.
+    Also rebuilds all derived module-level constants.
     """
     global BALANCE
     if not os.path.exists(BALANCE_FILE):
@@ -245,6 +290,7 @@ def load_balance_config():
     except (tomllib.TOMLDecodeError, OSError) as e:
         print(f"Warning: could not read balance.toml, using defaults: {e}")
         BALANCE = tomllib.loads(_default_balance_toml())
+    _rebuild_derived_constants()
     return BALANCE
 
 
@@ -927,9 +973,10 @@ def load_settings():
 
 
 class Bullet:
-    SPEED = 8
+    _wcfg = BALANCE.get("weapons", {}).get("default", {})
+    SPEED = _wcfg.get("bullet_speed", 8)
     RADIUS = 4
-    LIFETIME = 90  # frames
+    LIFETIME = _wcfg.get("range", 90)  # frames
 
     def __init__(self, x, y, dx, dy, damage=1, speed=None, lifetime=None, weapon_type="normal"):
         self.x, self.y = x, y
@@ -983,10 +1030,11 @@ class EnemyBullet:
 class Unit:
     _pcfg = BALANCE.get("player", {})
     RADIUS = _pcfg.get("radius", 14)
-    SPEED = _pcfg.get("speed", 3.5)
+    PLAYER_SPEED = _pcfg.get("speed", 3.5)
     SHOOT_COOLDOWN = _pcfg.get("shoot_cooldown", 25)
 
     _ally_cfg = BALANCE.get("player", {}).get("ally", {})
+    SPEED = _ally_cfg.get("speed", 2.5)
     ALLY_LIFETIME = _ally_cfg.get("lifetime", 600)
 
     def __init__(self, x, y, color, is_player=False):
@@ -1434,6 +1482,8 @@ def _build_stat_upgrades():
 
 
 STAT_UPGRADES = _build_stat_upgrades()
+
+_balance_initialized = True
 
 WEAPON_TYPES = ["shotgun", "piercing", "explosive"]
 
@@ -2696,8 +2746,8 @@ def run():
                     pass
         if mx or my:
             length = math.hypot(mx, my)
-            player.x += mx / length * player.SPEED
-            player.y += my / length * player.SPEED
+            player.x += mx / length * player.PLAYER_SPEED
+            player.y += my / length * player.PLAYER_SPEED
             player.x = max(player.RADIUS, min(MAP_WIDTH - player.RADIUS, player.x))
             player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
             for obs in obstacles:
