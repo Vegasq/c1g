@@ -4632,11 +4632,11 @@ class TestMusicStateTransitions(unittest.TestCase):
                 if not found_initial:
                     found_initial = True
                     context = '\n'.join(lines[i:i+3])
-                    self.assertIn('_play_music', context,
+                    self.assertIn('_play_music("menu.wav")', context,
                         "Initial state = STATE_MENU should be followed by _play_music('menu.wav')")
                     continue
                 context = '\n'.join(lines[i:i+4])
-                self.assertIn("_play_music", context,
+                self.assertIn('_play_music("menu.wav")', context,
                     f"state = STATE_MENU at source line {i} should be followed by _play_music('menu.wav')")
         self.assertTrue(found_initial, "state = STATE_MENU not found in run()")
 
@@ -4654,7 +4654,7 @@ class TestMusicStateTransitions(unittest.TestCase):
                     continue
                 checked += 1
                 context_after = '\n'.join(lines[i:i+3])
-                self.assertIn('_play_music', context_after,
+                self.assertIn('_play_music("game.wav")', context_after,
                     f"state = STATE_PLAYING at source line {i} should be followed by _play_music('game.wav')")
         self.assertGreater(checked, 0, "No non-upgrade state = STATE_PLAYING found in run()")
 
