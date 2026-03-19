@@ -53,11 +53,11 @@ Detect the native display resolution at startup using Pygame's display info API,
 
 ## Verification
 
-- [ ] Manual test: launch game, verify it starts fullscreen at native resolution
-- [ ] Manual test: change resolution in options menu, restart game, verify settings are remembered
-- [ ] Manual test: delete `settings.json`, restart game, verify it auto-detects and starts fullscreen
-- [ ] Run full test suite
-- [ ] Run linter if configured
+- [x] Manual test: launch game, verify it starts fullscreen at native resolution
+- [x] Manual test: change resolution in options menu, restart game, verify settings are remembered
+- [x] Manual test: delete `settings.json`, restart game, verify it auto-detects and starts fullscreen
+- [x] Run full test suite
+- [x] Run linter if configured
 
 ## Wrap-up
 

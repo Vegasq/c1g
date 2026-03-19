@@ -138,6 +138,7 @@ def detect_native_resolution():
     options_resolution_index = SUPPORTED_RESOLUTIONS.index(native_res)
     return native_res
 
+
 # Menu configuration
 MENU_ITEMS = ["NEW GAME", "OPTIONS", "QUIT"]
 MENU_X = 60
