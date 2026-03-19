@@ -91,11 +91,11 @@ Extract all hardcoded balance values from game.py into a balance.toml config fil
 
 ## Verification
 
-- [ ] Manual test: start the game, verify gameplay is identical to before
-- [ ] Manual test: modify a value in balance.toml, restart, verify it takes effect
-- [ ] Manual test: delete balance.toml, verify it regenerates with defaults
-- [ ] Run full test suite
-- [ ] Run linter if available
+- [x] Manual test: start the game, verify gameplay is identical to before
+- [x] Manual test: modify a value in balance.toml, restart, verify it takes effect
+- [x] Manual test: delete balance.toml, verify it regenerates with defaults
+- [x] Run full test suite
+- [x] Run linter if available
 
 ## Wrap-up
 

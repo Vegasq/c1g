@@ -1104,6 +1104,7 @@ def _build_enemy_types():
 
 ENEMY_TYPES = _build_enemy_types()
 
+
 def _build_wave_composition():
     """Build WAVE_COMPOSITION list from BALANCE config."""
     waves_cfg = BALANCE.get("waves", {})
@@ -2289,7 +2290,8 @@ def run():
     total_xp_earned = 0
 
     def reset_game():
-        nonlocal camera, player, obstacles, escape_rooms, allies, enemies, bullets, enemy_bullets, health_pickups, heal_effects, score
+        nonlocal camera, player, obstacles, escape_rooms, allies, enemies
+        nonlocal bullets, enemy_bullets, health_pickups, heal_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
