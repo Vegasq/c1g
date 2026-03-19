@@ -848,10 +848,10 @@ def _play_music(filename):
     global _current_music
     if filename == _current_music:
         return
-    _stop_music()
     filepath = os.path.join(MUSIC_DIR, filename)
     if not os.path.exists(filepath):
         return
+    _stop_music()
     try:
         pygame.mixer.music.load(filepath)
         pygame.mixer.music.play(-1)

@@ -4521,13 +4521,13 @@ class TestMusicHelpers(unittest.TestCase):
 
     @patch("game.os.path.exists", return_value=False)
     @patch("game.pygame.mixer.music")
-    def test_play_music_stops_old_track_when_new_file_missing(
+    def test_play_music_keeps_old_track_when_new_file_missing(
         self, mock_music, mock_exists
     ):
         game._current_music = "game.wav"
         _play_music("menu.wav")
-        mock_music.stop.assert_called_once()
-        self.assertIsNone(game._current_music)
+        mock_music.stop.assert_not_called()
+        self.assertEqual(game._current_music, "game.wav")
         mock_music.load.assert_not_called()
 
     @patch("game.os.path.exists", return_value=True)
