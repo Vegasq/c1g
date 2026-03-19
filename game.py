@@ -31,6 +31,7 @@ hp = 5                  # starting and base max HP
 speed = 3.5             # movement speed (pixels per frame)
 shoot_cooldown = 25     # frames between ally shots
 radius = 14             # collision/draw radius
+invulnerable_duration = 120  # frames of invulnerability after taking damage (~2s at 60fps)
 
 [player.ally]
 hp = 3                  # ally unit HP
@@ -1083,6 +1084,7 @@ class Unit:
         self.max_hp = pcfg.get("hp", 5) if is_player else ally_cfg.get("hp", 3)
         self.hp = self.max_hp
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
+        self.invulnerable_timer = 0
 
     def move_towards(self, tx, ty, allies, obstacles=()):
         dx, dy = tx - self.x, ty - self.y
@@ -1160,6 +1162,9 @@ class Unit:
                                   lifetime=bullet_range, weapon_type=weapon_type))
 
     def draw(self, camera):
+        # Blink effect: skip drawing on odd 6-frame cycles during invulnerability
+        if self.invulnerable_timer > 0 and (self.invulnerable_timer // 6) % 2 == 1:
+            return
         sx, sy = camera.apply(self.x, self.y)
         # Fade ally color based on remaining lifetime
         draw_color = self.color
@@ -3096,13 +3101,19 @@ def run():
             for er in escape_rooms:
                 e.x, e.y = er.push_circle_out(e.x, e.y, e.radius)
 
+        # Decrement invulnerability timer
+        if player.invulnerable_timer > 0:
+            player.invulnerable_timer -= 1
+
         # Enemy-player collision (damage player)
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
         surviving = []
         for e in enemies:
-            if player.hp > 0 and math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
+            if player.hp > 0 and player.invulnerable_timer <= 0 and math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.RADIUS:
                 player.hp -= e.contact_damage
                 run_stats["damage_taken"] += e.contact_damage
                 run_stats["wave_damage_taken"] += e.contact_damage
+                player.invulnerable_timer = invuln_duration
             else:
                 surviving.append(e)
         enemies = surviving
@@ -3111,10 +3122,11 @@ def run():
         if player.hp > 0:
             surviving_eb = []
             for eb in enemy_bullets:
-                if player.hp > 0 and math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
+                if player.hp > 0 and player.invulnerable_timer <= 0 and math.hypot(eb.x - player.x, eb.y - player.y) < eb.RADIUS + player.RADIUS:
                     player.hp -= eb.damage
                     run_stats["damage_taken"] += eb.damage
                     run_stats["wave_damage_taken"] += eb.damage
+                    player.invulnerable_timer = invuln_duration
                 else:
                     surviving_eb.append(eb)
             enemy_bullets = surviving_eb

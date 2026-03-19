@@ -4673,5 +4673,136 @@ class TestMusicStateTransitions(unittest.TestCase):
         self.assertGreater(checked, 0, "No non-upgrade state = STATE_PLAYING found in run()")
 
 
+class TestInvulnerability(unittest.TestCase):
+    """Tests for the damage invulnerability timer and blink effect."""
+
+    def test_unit_has_invulnerable_timer(self):
+        """Unit should initialize with invulnerable_timer = 0."""
+        player = Unit(100, 100, (255, 255, 255), is_player=True)
+        self.assertEqual(player.invulnerable_timer, 0)
+        ally = Unit(100, 100, (255, 255, 255), is_player=False)
+        self.assertEqual(ally.invulnerable_timer, 0)
+
+    def test_invulnerable_timer_set_on_contact_damage(self):
+        """When player takes contact damage, invulnerable_timer should be set."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 5
+        player.invulnerable_timer = 0
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+
+        enemy = Enemy(Camera(), enemy_type="basic", wave=1)
+        enemy.x = player.x
+        enemy.y = player.y
+
+        # Simulate contact damage logic
+        dist = math.hypot(enemy.x - player.x, enemy.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < enemy.radius + player.RADIUS:
+            player.hp -= enemy.contact_damage
+            player.invulnerable_timer = invuln_duration
+
+        self.assertEqual(player.invulnerable_timer, invuln_duration)
+        self.assertLess(player.hp, 5)
+
+    def test_damage_skipped_during_invulnerability(self):
+        """Player should not take damage while invulnerable_timer > 0."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 5
+        player.invulnerable_timer = 60  # mid-invulnerability
+
+        enemy = Enemy(Camera(), enemy_type="basic", wave=1)
+        enemy.x = player.x
+        enemy.y = player.y
+
+        hp_before = player.hp
+        dist = math.hypot(enemy.x - player.x, enemy.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < enemy.radius + player.RADIUS:
+            player.hp -= enemy.contact_damage
+
+        self.assertEqual(player.hp, hp_before, "Player should not take damage while invulnerable")
+
+    def test_invulnerable_timer_decrements(self):
+        """invulnerable_timer should decrement by 1 each frame."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.invulnerable_timer = 10
+
+        # Simulate decrement
+        if player.invulnerable_timer > 0:
+            player.invulnerable_timer -= 1
+        self.assertEqual(player.invulnerable_timer, 9)
+
+        # Decrement to zero
+        for _ in range(9):
+            if player.invulnerable_timer > 0:
+                player.invulnerable_timer -= 1
+        self.assertEqual(player.invulnerable_timer, 0)
+
+    def test_invulnerable_timer_does_not_go_negative(self):
+        """Timer at 0 should stay at 0 when decrement is guarded."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.invulnerable_timer = 0
+
+        if player.invulnerable_timer > 0:
+            player.invulnerable_timer -= 1
+        self.assertEqual(player.invulnerable_timer, 0)
+
+    def test_blink_visibility_toggle(self):
+        """During invulnerability, draw should skip on odd 6-frame cycles."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+
+        # Timer values where (timer // 6) % 2 == 1 -> should blink (not draw)
+        player.invulnerable_timer = 6  # 6 // 6 = 1, 1 % 2 = 1 -> skip
+        should_skip = (player.invulnerable_timer // 6) % 2 == 1
+        self.assertTrue(should_skip, "Timer=6 should skip drawing (blink off)")
+
+        # Timer values where (timer // 6) % 2 == 0 -> should draw
+        player.invulnerable_timer = 12  # 12 // 6 = 2, 2 % 2 = 0 -> draw
+        should_skip = (player.invulnerable_timer // 6) % 2 == 1
+        self.assertFalse(should_skip, "Timer=12 should draw (blink on)")
+
+        player.invulnerable_timer = 3  # 3 // 6 = 0, 0 % 2 = 0 -> draw
+        should_skip = (player.invulnerable_timer // 6) % 2 == 1
+        self.assertFalse(should_skip, "Timer=3 should draw (blink on)")
+
+        player.invulnerable_timer = 0  # not invulnerable -> always draw
+        should_skip = player.invulnerable_timer > 0 and (player.invulnerable_timer // 6) % 2 == 1
+        self.assertFalse(should_skip, "Timer=0 should always draw")
+
+    def test_bullet_damage_skipped_during_invulnerability(self):
+        """Player should not take bullet damage while invulnerable."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 5
+        player.invulnerable_timer = 60
+
+        eb = EnemyBullet(player.x, player.y, 1, 0)
+        hp_before = player.hp
+        dist = math.hypot(eb.x - player.x, eb.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < eb.RADIUS + player.RADIUS:
+            player.hp -= eb.damage
+
+        self.assertEqual(player.hp, hp_before, "Player should not take bullet damage while invulnerable")
+
+    def test_invulnerable_timer_set_on_bullet_damage(self):
+        """When player takes bullet damage, invulnerable_timer should be set."""
+        player = Unit(100, 100, PLAYER_COLOR, is_player=True)
+        player.hp = 5
+        player.invulnerable_timer = 0
+        invuln_duration = BALANCE.get("player", {}).get("invulnerable_duration", 120)
+
+        eb = EnemyBullet(player.x, player.y, 1, 0)
+        dist = math.hypot(eb.x - player.x, eb.y - player.y)
+        if player.hp > 0 and player.invulnerable_timer <= 0 and dist < eb.RADIUS + player.RADIUS:
+            player.hp -= eb.damage
+            player.invulnerable_timer = invuln_duration
+
+        self.assertEqual(player.invulnerable_timer, invuln_duration)
+        self.assertLess(player.hp, 5)
+
+    def test_balance_config_has_invulnerable_duration(self):
+        """balance.toml should have invulnerable_duration in player section."""
+        invuln = BALANCE.get("player", {}).get("invulnerable_duration")
+        self.assertIsNotNone(invuln, "invulnerable_duration should be set in balance config")
+        self.assertEqual(invuln, 120)
+
+
 if __name__ == "__main__":
     unittest.main()

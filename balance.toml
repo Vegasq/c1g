@@ -7,6 +7,8 @@ speed = 3.5             # movement speed (pixels per frame)
 shoot_cooldown = 25     # frames between ally shots
 radius = 14             # collision/draw radius
 
+invulnerable_duration = 120  # frames of invulnerability after taking damage (~2s at 60fps)
+
 [player.ally]
 hp = 3                  # ally unit HP
 speed = 2.5             # ally movement speed (pixels per frame)
