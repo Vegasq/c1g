@@ -1056,7 +1056,7 @@ class Unit:
             base_angle = math.atan2(dy, dx)
             shotgun_cfg = BALANCE.get("weapons", {}).get("shotgun", {})
             spread_angle = math.radians(shotgun_cfg.get("spread_angle", 30))
-            pellet_count = shotgun_cfg.get("pellet_count", 5)
+            pellet_count = max(1, shotgun_cfg.get("pellet_count", 5))
             shotgun_damage = max(1, damage // 2)
             for i in range(pellet_count):
                 angle = base_angle + spread_angle * (i - (pellet_count - 1) / 2) / max(1, (pellet_count - 1) / 2)
@@ -1097,20 +1097,32 @@ class Unit:
             pygame.draw.rect(screen, (100, 180, 255), (bx, by2, int(life_filled), 3))
 
 
+_ENEMY_TYPE_DEFAULTS = {
+    "basic":    {"hp": 3,  "speed": 1.4, "radius": 12, "color": [255, 30, 60],  "xp_value": 2},
+    "runner":   {"hp": 2,  "speed": 2.2, "radius": 8,  "color": [230, 255, 0],  "xp_value": 2},
+    "brute":    {"hp": 9,  "speed": 0.9, "radius": 18, "color": [255, 140, 0],  "xp_value": 5},
+    "shielded": {"hp": 6,  "speed": 1.0, "radius": 14, "color": [0, 255, 255],  "xp_value": 6, "shield": True},
+    "splitter": {"hp": 4,  "speed": 1.0, "radius": 14, "color": [0, 255, 100],  "xp_value": 3},
+    "mini":     {"hp": 2,  "speed": 1.8, "radius": 7,  "color": [0, 255, 100],  "xp_value": 1},
+    "elite":    {"hp": 15, "speed": 1.8, "radius": 16, "color": [255, 0, 255],  "xp_value": 12},
+    "shooter":  {"hp": 5,  "speed": 0.8, "radius": 13, "color": [255, 100, 50], "xp_value": 5},
+}
+
+
 def _build_enemy_types():
     """Build ENEMY_TYPES dict from BALANCE config."""
     enemies_cfg = BALANCE.get("enemies", {})
     types = {}
-    for etype in ("basic", "runner", "brute", "shielded", "splitter", "mini", "elite", "shooter"):
+    for etype, defaults in _ENEMY_TYPE_DEFAULTS.items():
         cfg = enemies_cfg.get(etype, {})
         entry = {
-            "hp": cfg.get("hp", 3),
-            "speed": cfg.get("speed", 1.0),
-            "radius": cfg.get("radius", 12),
-            "color": tuple(cfg.get("color", [255, 30, 60])),
-            "xp_value": cfg.get("xp_value", 2),
+            "hp": cfg.get("hp", defaults["hp"]),
+            "speed": cfg.get("speed", defaults["speed"]),
+            "radius": cfg.get("radius", defaults["radius"]),
+            "color": tuple(cfg.get("color", defaults["color"])),
+            "xp_value": cfg.get("xp_value", defaults["xp_value"]),
         }
-        if cfg.get("shield", False):
+        if cfg.get("shield", defaults.get("shield", False)):
             entry["shield"] = True
         types[etype] = entry
     return types
@@ -1187,8 +1199,8 @@ class Enemy:
         shooter_cfg = BALANCE.get("enemies", {}).get("shooter_behavior", {})
         if enemy_type == "shooter":
             self.shoot_cooldown = shooter_cfg.get("shoot_cooldown", 90)
-            timer_min = shooter_cfg.get("shoot_timer_min", 30)
-            timer_max = shooter_cfg.get("shoot_timer_max", 90)
+            timer_min = int(shooter_cfg.get("shoot_timer_min", 30))
+            timer_max = int(shooter_cfg.get("shoot_timer_max", 90))
             if timer_min > timer_max:
                 timer_min, timer_max = timer_max, timer_min
             self.shoot_timer = random.randint(timer_min, timer_max)
@@ -1358,19 +1370,17 @@ class HealthPickup:
         pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
 
 
+_HEALTH_DROP_DEFAULTS = {
+    "basic": 0.05, "runner": 0.05, "brute": 0.12, "shielded": 0.08,
+    "splitter": 0.06, "mini": 0.03, "elite": 0.15, "shooter": 0.08,
+}
+
+
 def _build_health_drop_chance():
     """Build HEALTH_DROP_CHANCE dict from BALANCE config."""
     drop_cfg = BALANCE.get("health_pickups", {}).get("drop_chance", {})
-    return {
-        "basic": drop_cfg.get("basic", 0.05),
-        "runner": drop_cfg.get("runner", 0.05),
-        "brute": drop_cfg.get("brute", 0.12),
-        "shielded": drop_cfg.get("shielded", 0.08),
-        "splitter": drop_cfg.get("splitter", 0.06),
-        "mini": drop_cfg.get("mini", 0.03),
-        "elite": drop_cfg.get("elite", 0.15),
-        "shooter": drop_cfg.get("shooter", 0.08),
-    }
+    return {etype: drop_cfg.get(etype, default)
+            for etype, default in _HEALTH_DROP_DEFAULTS.items()}
 
 
 HEALTH_DROP_CHANCE = _build_health_drop_chance()
