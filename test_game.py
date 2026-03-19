@@ -24,7 +24,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   save_settings, load_settings, SETTINGS_FILE,
                   JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
                   handle_joy_device_added, handle_joy_device_removed,
-                  BALANCE, BALANCE_FILE, load_balance_config, _default_balance_toml)
+                  BALANCE, BALANCE_FILE, load_balance_config, _default_balance_toml,
+                  MUSIC_DIR, _play_music, _stop_music)
 import game
 
 
@@ -4490,6 +4491,48 @@ class TestConfigDrivenHealthPickups(unittest.TestCase):
 
     def test_pickup_collect_range_from_config(self):
         self.assertEqual(HealthPickup.COLLECT_RANGE, BALANCE["health_pickups"]["collect_range"])
+
+
+class TestMusicHelpers(unittest.TestCase):
+    """Tests for _play_music and _stop_music helper functions."""
+
+    def test_music_dir_matches_game_location(self):
+        expected = os.path.dirname(os.path.abspath(game.__file__))
+        self.assertEqual(MUSIC_DIR, expected)
+
+    @patch("game.os.path.exists", return_value=True)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_loads_and_loops_when_file_exists(self, mock_music, mock_exists):
+        _play_music("menu.wav")
+        expected_path = os.path.join(MUSIC_DIR, "menu.wav")
+        mock_exists.assert_called_once_with(expected_path)
+        mock_music.load.assert_called_once_with(expected_path)
+        mock_music.play.assert_called_once_with(-1)
+
+    @patch("game.os.path.exists", return_value=False)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_does_nothing_when_file_missing(self, mock_music, mock_exists):
+        _play_music("missing.wav")
+        mock_music.load.assert_not_called()
+        mock_music.play.assert_not_called()
+
+    @patch("game.os.path.exists", return_value=True)
+    @patch("game.pygame.mixer.music")
+    def test_play_music_handles_mixer_error(self, mock_music, mock_exists):
+        mock_music.load.side_effect = pygame.error("mixer not initialized")
+        # Should not raise
+        _play_music("menu.wav")
+
+    @patch("game.pygame.mixer.music")
+    def test_stop_music(self, mock_music):
+        _stop_music()
+        mock_music.stop.assert_called_once()
+
+    @patch("game.pygame.mixer.music")
+    def test_stop_music_handles_mixer_error(self, mock_music):
+        mock_music.stop.side_effect = pygame.error("mixer not initialized")
+        # Should not raise
+        _stop_music()
 
 
 if __name__ == "__main__":

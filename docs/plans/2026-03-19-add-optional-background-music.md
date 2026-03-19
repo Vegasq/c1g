@@ -21,11 +21,11 @@ Add optional background music support. The game will look for `menu.wav` and `ga
 **Files:**
 - Modify: `game.py`
 
-- [ ] Add `MUSIC_DIR` constant using `os.path.dirname` pattern (same as `BALANCE_FILE`)
-- [ ] Add a helper function (e.g. `_play_music(filename)`) that checks if the wav file exists, and if so loads and loops it via `pygame.mixer.music`. If the file does not exist or mixer is not available, silently do nothing.
-- [ ] Add a helper function (e.g. `_stop_music()`) to stop current playback
-- [ ] Write tests for the new helper functions (file exists/missing, mixer available/unavailable)
-- [ ] Run project test suite - must pass before task 2
+- [x] Add `MUSIC_DIR` constant using `os.path.dirname` pattern (same as `BALANCE_FILE`)
+- [x] Add a helper function (e.g. `_play_music(filename)`) that checks if the wav file exists, and if so loads and loops it via `pygame.mixer.music`. If the file does not exist or mixer is not available, silently do nothing.
+- [x] Add a helper function (e.g. `_stop_music()`) to stop current playback
+- [x] Write tests for the new helper functions (file exists/missing, mixer available/unavailable)
+- [x] Run project test suite - must pass before task 2
 
 ## Task 2: Integrate music with game state transitions
 
