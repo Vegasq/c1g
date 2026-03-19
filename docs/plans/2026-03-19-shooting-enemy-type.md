@@ -69,7 +69,7 @@ Add a "shooter" enemy type that fires projectiles at the player from a distance.
 **Files:**
 - Modify: `game.py`
 
-- [ ] Playtest waves 1-7 to confirm no shooters appear
-- [ ] Playtest waves 8-15 to verify shooter behavior, projectile dodgeability, and damage balance
-- [ ] Verify shooters interact correctly with obstacles (bullets blocked, enemy pushed out)
-- [ ] Verify game over, pause, and escape room still work correctly with enemy bullets active
+- [x] Playtest waves 1-7 to confirm no shooters appear
+- [x] Playtest waves 8-15 to verify shooter behavior, projectile dodgeability, and damage balance
+- [x] Verify shooters interact correctly with obstacles (bullets blocked, enemy pushed out)
+- [x] Verify game over, pause, and escape room still work correctly with enemy bullets active
