@@ -38,11 +38,11 @@ Add a "shooter" enemy type that fires projectiles at the player from a distance.
 **Files:**
 - Modify: `game.py`
 
-- [ ] Create `EnemyBullet` class (similar to `Bullet` but with slower speed ~4, larger radius ~5, red/orange color, lifetime ~120 frames)
-- [ ] Add `enemy_bullets` list initialization alongside existing bullets list
-- [ ] Add `EnemyBullet` update logic in game loop (movement, obstacle collision, lifetime, out-of-bounds removal)
-- [ ] Add `EnemyBullet` drawing in the draw section
-- [ ] Manual test: verify enemy bullets render and move correctly
+- [x] Create `EnemyBullet` class (similar to `Bullet` but with slower speed ~4, larger radius ~5, red/orange color, lifetime ~120 frames)
+- [x] Add `enemy_bullets` list initialization alongside existing bullets list
+- [x] Add `EnemyBullet` update logic in game loop (movement, obstacle collision, lifetime, out-of-bounds removal)
+- [x] Add `EnemyBullet` drawing in the draw section
+- [x] Manual test: verify enemy bullets render and move correctly
 
 ## Task 3 - Implement shooter AI behavior (distance-keeping and firing)
 

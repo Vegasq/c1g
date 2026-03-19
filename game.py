@@ -704,6 +704,30 @@ class Bullet:
         pygame.draw.circle(screen, BULLET_COLOR, (sx, sy), self.RADIUS)
 
 
+class EnemyBullet:
+    SPEED = 4
+    RADIUS = 5
+    LIFETIME = 120  # frames
+    COLOR = (255, 120, 40)  # red/orange
+
+    def __init__(self, x, y, dx, dy):
+        self.x, self.y = x, y
+        length = math.hypot(dx, dy) or 1
+        self.vx = dx / length * self.SPEED
+        self.vy = dy / length * self.SPEED
+        self.life = self.LIFETIME
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.life -= 1
+
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        draw_glow(screen, self.COLOR, (sx, sy), self.RADIUS, intensity=80, layers=3)
+        pygame.draw.circle(screen, self.COLOR, (sx, sy), self.RADIUS)
+
+
 class Unit:
     RADIUS = 14
     SPEED = 2.5
@@ -1373,7 +1397,8 @@ def draw_hud_minimap(camera, player, allies, enemies, obstacles, escape_rooms=No
 def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
-                    escape_rooms=None, escape_flash_timer=0):
+                    escape_rooms=None, escape_flash_timer=0,
+                    enemy_bullets=None):
     """Draw the full game scene (background, entities, HUD)."""
     screen.fill(BG)
     draw_grid(camera)
@@ -1387,6 +1412,10 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     for b in bullets:
         if _is_visible(camera, b.x, b.y):
             b.draw(camera)
+    if enemy_bullets:
+        for eb in enemy_bullets:
+            if _is_visible(camera, eb.x, eb.y):
+                eb.draw(camera)
     for e in enemies:
         if _is_visible(camera, e.x, e.y):
             e.draw(camera)
@@ -1890,6 +1919,7 @@ def run():
     allies = []
     enemies = []
     bullets = []
+    enemy_bullets = []
     health_pickups = []
     heal_effects = []
     escape_flash_timer = 0
@@ -1910,7 +1940,7 @@ def run():
     total_xp_earned = 0
 
     def reset_game():
-        nonlocal camera, player, obstacles, escape_rooms, allies, enemies, bullets, health_pickups, heal_effects, score
+        nonlocal camera, player, obstacles, escape_rooms, allies, enemies, bullets, enemy_bullets, health_pickups, heal_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
@@ -1923,6 +1953,7 @@ def run():
         allies = []
         enemies = []
         bullets = []
+        enemy_bullets = []
         health_pickups = []
         heal_effects = []
         escape_flash_timer = 0
@@ -2226,7 +2257,8 @@ def run():
         if state == STATE_LEVEL_UP:
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
-                            health_pickups, heal_effects, escape_rooms)
+                            health_pickups, heal_effects, escape_rooms,
+                            enemy_bullets=enemy_bullets)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -2333,7 +2365,8 @@ def run():
                 camera, obstacles, bullets, enemies, allies,
                 player, score, wave, level, weapon_inventory,
                 xp, xp_thresholds, health_pickups,
-                heal_effects, escape_rooms)
+                heal_effects, escape_rooms,
+                enemy_bullets=enemy_bullets)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -2405,6 +2438,17 @@ def run():
                     break
         bullets = [b for b in bullets if b.life > 0 and
                    -50 <= b.x <= MAP_WIDTH + 50 and -50 <= b.y <= MAP_HEIGHT + 50]
+
+        # Update enemy bullets
+        for eb in enemy_bullets:
+            eb.update()
+        for eb in enemy_bullets:
+            for obs in obstacles:
+                if obs.collides_circle(eb.x, eb.y, eb.RADIUS):
+                    eb.life = 0
+                    break
+        enemy_bullets = [eb for eb in enemy_bullets if eb.life > 0 and
+                         -50 <= eb.x <= MAP_WIDTH + 50 and -50 <= eb.y <= MAP_HEIGHT + 50]
 
         # Bullet-enemy collision
         new_enemies = []
@@ -2586,7 +2630,8 @@ def run():
         draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                         score, wave, level, weapon_inventory, xp, xp_thresholds,
                         health_pickups, heal_effects,
-                        escape_rooms, escape_flash_timer)
+                        escape_rooms, escape_flash_timer,
+                        enemy_bullets=enemy_bullets)
 
         pygame.display.flip()
         clock.tick(FPS)
