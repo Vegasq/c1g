@@ -21,10 +21,10 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   get_spawn_count, snapshot_weapon_power,
                   _is_visible,
                   default_run_stats, collect_run_stats, collect_weapon_stats, save_stats,
-                  save_settings, load_settings, SETTINGS_FILE,
+                  save_settings, load_settings,
                   JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
                   handle_joy_device_added, handle_joy_device_removed,
-                  BALANCE, BALANCE_FILE, load_balance_config, _default_balance_toml,
+                  BALANCE, load_balance_config, _default_balance_toml,
                   MUSIC_DIR, _play_music, _stop_music)
 import game
 
@@ -3581,7 +3581,6 @@ class TestDisplaySettings(unittest.TestCase):
                 os.unlink(tmp)
 
     def test_load_settings_missing_file(self):
-        import tempfile
         import os
         old = game.SETTINGS_FILE
         game.SETTINGS_FILE = "/tmp/nonexistent_settings_test.json"
@@ -3815,8 +3814,8 @@ class TestInitPygameSequence(unittest.TestCase):
     @patch('pygame.display.Info')
     @patch('pygame.joystick.get_count', return_value=0)
     def test_init_fullscreen_fallback_updates_flag(self, mock_count, mock_info,
-                                                    mock_caption, mock_font,
-                                                    mock_load):
+                                                   mock_caption, mock_font,
+                                                   mock_load):
         """When fullscreen fails on startup, options_fullscreen is set to False."""
         mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
         game.options_fullscreen = True
@@ -3824,7 +3823,7 @@ class TestInitPygameSequence(unittest.TestCase):
         # First call (fullscreen) raises, second call (windowed) succeeds
         with patch('pygame.display.set_mode',
                    side_effect=[pygame.error("fullscreen failed"),
-                                pygame.Surface((1920, 1080))]) as mock_set_mode:
+                                pygame.Surface((1920, 1080))]):
             init_pygame()
         self.assertFalse(game.options_fullscreen)
         self.assertIsNotNone(game.screen)
@@ -3835,15 +3834,15 @@ class TestInitPygameSequence(unittest.TestCase):
     @patch('pygame.display.Info')
     @patch('pygame.joystick.get_count', return_value=0)
     def test_init_fullscreen_fallback_persists_settings(self, mock_count, mock_info,
-                                                         mock_caption, mock_font,
-                                                         mock_load):
+                                                        mock_caption, mock_font,
+                                                        mock_load):
         """When fullscreen fails on startup, corrected state is saved to settings."""
         mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
         game.options_fullscreen = True
         game.screen = None
         with patch('pygame.display.set_mode',
                    side_effect=[pygame.error("fullscreen failed"),
-                                pygame.Surface((1920, 1080))]) as mock_set_mode, \
+                                pygame.Surface((1920, 1080))]), \
              patch('game.save_settings') as mock_save:
             init_pygame()
         mock_save.assert_called_once()
@@ -3855,8 +3854,8 @@ class TestInitPygameSequence(unittest.TestCase):
     @patch('pygame.display.Info')
     @patch('pygame.joystick.get_count', return_value=0)
     def test_init_detects_display_before_settings(self, mock_count, mock_info,
-                                                   mock_set_mode, mock_caption,
-                                                   mock_font):
+                                                  mock_set_mode, mock_caption,
+                                                  mock_font):
         """init_pygame detects native resolution before loading settings."""
         mock_info.return_value = MagicMock(current_w=2560, current_h=1440)
         game.screen = None
@@ -3908,8 +3907,8 @@ class TestInitPygameSequence(unittest.TestCase):
     @patch('pygame.display.Info')
     @patch('pygame.joystick.get_count', return_value=0)
     def test_init_skips_if_already_initialized(self, mock_count, mock_info,
-                                                mock_set_mode, mock_caption,
-                                                mock_font):
+                                               mock_set_mode, mock_caption,
+                                               mock_font):
         """init_pygame returns early if screen is already set."""
         game.screen = pygame.Surface((800, 600))
         init_pygame()
@@ -4149,7 +4148,6 @@ class TestBalanceConfig(unittest.TestCase):
     def test_missing_file_generates_default(self):
         """If balance.toml is missing, load_balance_config should create it."""
         import tempfile
-        import shutil
         # Save original values
         orig_file = game.BALANCE_FILE
         try:
@@ -4180,7 +4178,7 @@ class TestBalanceConfig(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 fake_path = os.path.join(tmpdir, "balance.toml")
                 game.BALANCE_FILE = fake_path
-                result = load_balance_config()
+                load_balance_config()
                 # Re-read generated file and compare to defaults
                 with open(fake_path, "rb") as f:
                     from_file = _tomllib.load(f)
@@ -4388,7 +4386,6 @@ class TestConfigDrivenUpgrades(unittest.TestCase):
         """Milestone intervals should come from config."""
         scfg = BALANCE["upgrades"]["scaling"]
         early = scfg["milestone_interval_early"]
-        late = scfg["milestone_interval_late"]
         threshold = scfg["milestone_threshold"]
         # At a level <= threshold that's a multiple of early interval, should offer weapon
         test_level = early
@@ -4521,13 +4518,13 @@ class TestMusicHelpers(unittest.TestCase):
 
     @patch("game.os.path.exists", return_value=False)
     @patch("game.pygame.mixer.music")
-    def test_play_music_keeps_old_track_when_new_file_missing(
+    def test_play_music_stops_old_track_when_new_file_missing(
         self, mock_music, mock_exists
     ):
         game._current_music = "game.wav"
         _play_music("menu.wav")
-        mock_music.stop.assert_not_called()
-        self.assertEqual(game._current_music, "game.wav")
+        mock_music.stop.assert_called_once()
+        self.assertIsNone(game._current_music)
         mock_music.load.assert_not_called()
 
     @patch("game.os.path.exists", return_value=True)
@@ -4594,7 +4591,8 @@ class TestMusicStateTransitions(unittest.TestCase):
             if 'init_pygame()' in line:
                 # Check within next 5 lines for _play_music("menu.wav")
                 context = '\n'.join(lines[i:i+5])
-                self.assertIn('_play_music("menu.wav")', context,
+                self.assertIn(
+                    '_play_music("menu.wav")', context,
                     "run() should call _play_music('menu.wav') shortly after init_pygame()")
                 return
         self.fail("init_pygame() not found in run()")
@@ -4607,7 +4605,8 @@ class TestMusicStateTransitions(unittest.TestCase):
             if 'state = STATE_LEVEL_UP' in line:
                 found += 1
                 context = '\n'.join(lines[i:i+3])
-                self.assertNotIn('_play_music', context,
+                self.assertNotIn(
+                    '_play_music', context,
                     "_play_music should not be called after state = STATE_LEVEL_UP transition")
         self.assertGreater(found, 0, "state = STATE_LEVEL_UP not found in run()")
 
@@ -4619,7 +4618,8 @@ class TestMusicStateTransitions(unittest.TestCase):
             if 'state = STATE_GAME_OVER' in line:
                 found += 1
                 context = '\n'.join(lines[i:i+3])
-                self.assertNotIn('_play_music', context,
+                self.assertNotIn(
+                    '_play_music', context,
                     "_play_music should not be called after state = STATE_GAME_OVER transition")
         self.assertGreater(found, 0, "state = STATE_GAME_OVER not found in run()")
 
@@ -4632,12 +4632,16 @@ class TestMusicStateTransitions(unittest.TestCase):
                 if not found_initial:
                     found_initial = True
                     context = '\n'.join(lines[i:i+3])
-                    self.assertIn('_play_music("menu.wav")', context,
-                        "Initial state = STATE_MENU should be followed by _play_music('menu.wav')")
+                    self.assertIn(
+                        '_play_music("menu.wav")', context,
+                        "Initial state = STATE_MENU should be followed by"
+                        " _play_music('menu.wav')")
                     continue
                 context = '\n'.join(lines[i:i+4])
-                self.assertIn('_play_music("menu.wav")', context,
-                    f"state = STATE_MENU at source line {i} should be followed by _play_music('menu.wav')")
+                self.assertIn(
+                    '_play_music("menu.wav")', context,
+                    f"state = STATE_MENU at source line {i} should be"
+                    f" followed by _play_music('menu.wav')")
         self.assertTrue(found_initial, "state = STATE_MENU not found in run()")
 
     def test_game_music_on_playing_transitions_from_menu_or_gameover(self):
@@ -4654,8 +4658,10 @@ class TestMusicStateTransitions(unittest.TestCase):
                     continue
                 checked += 1
                 context_after = '\n'.join(lines[i:i+3])
-                self.assertIn('_play_music("game.wav")', context_after,
-                    f"state = STATE_PLAYING at source line {i} should be followed by _play_music('game.wav')")
+                self.assertIn(
+                    '_play_music("game.wav")', context_after,
+                    f"state = STATE_PLAYING at source line {i} should be"
+                    f" followed by _play_music('game.wav')")
         self.assertGreater(checked, 0, "No non-upgrade state = STATE_PLAYING found in run()")
 
 
