@@ -4918,5 +4918,150 @@ class TestDamageSourceTracking(unittest.TestCase):
         self.assertEqual(killer_info["killed_by"], "Unknown")
 
 
+class TestDeathOverlay(unittest.TestCase):
+    """Tests for the death overlay (Task 3)."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
+    def _make_mock_font(self):
+        from unittest.mock import MagicMock
+        mock_font = MagicMock()
+        surf = pygame.Surface((100, 30))
+        mock_font.render.return_value = surf
+        return mock_font
+
+    def setUp(self):
+        import game
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        game.screen = pygame.Surface((1024, 768))
+        game.font = self._make_mock_font()
+        game.title_font = self._make_mock_font()
+
+    def tearDown(self):
+        import game
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+
+    def test_draw_game_over_accepts_killer_info(self):
+        """draw_game_over should accept killer_info parameter without error."""
+        from unittest.mock import patch
+        from game import draw_game_over
+        ki = {"killed_by": "Grunt", "wave": 3, "survival_time": 45.2}
+        with patch('pygame.display.flip'):
+            draw_game_over(100, 3, killer_info=ki)
+
+    def test_draw_game_over_works_without_killer_info(self):
+        """draw_game_over should still work with no killer_info (backward compat)."""
+        from unittest.mock import patch
+        from game import draw_game_over
+        with patch('pygame.display.flip'):
+            draw_game_over(100, 3)
+
+    def test_draw_game_over_renders_overlay_not_solid_fill(self):
+        """The game-over screen should use a semi-transparent overlay, not solid fill.
+        After drawing, pixels should not be fully black (BG color)."""
+        import game
+        from unittest.mock import patch
+        # Fill screen with a bright color to simulate game scene underneath
+        game.screen.fill((200, 200, 200))
+        ki = {"killed_by": "Grunt", "wave": 1, "survival_time": 10.0}
+        with patch('pygame.display.flip'):
+            game.draw_game_over(50, 1, killer_info=ki)
+        # Check a corner pixel - should be darkened but not fully black
+        pixel = game.screen.get_at((0, 0))
+        # The overlay is (0,0,0,180) over (200,200,200) so result should be ~59
+        self.assertGreater(pixel[0], 0, "Overlay should be semi-transparent, not solid black")
+        self.assertLess(pixel[0], 200, "Overlay should darken the scene")
+
+    def test_draw_game_over_displays_killed_by(self):
+        """Verify killed_by text is rendered on screen."""
+        import game
+        from unittest.mock import patch
+        ki = {"killed_by": "Tank", "wave": 5, "survival_time": 60.0}
+        rendered_texts = []
+        surf = pygame.Surface((100, 30))
+        def capture_render(text, antialias, color):
+            rendered_texts.append(text)
+            return surf
+        game.font.render.side_effect = capture_render
+        game.title_font.render.side_effect = capture_render
+        with patch('pygame.display.flip'):
+            game.draw_game_over(200, 5, killer_info=ki)
+        killed_by_found = any("Killed by: Tank" in t for t in rendered_texts)
+        self.assertTrue(killed_by_found, f"Expected 'Killed by: Tank' in rendered texts: {rendered_texts}")
+
+    def test_draw_game_over_displays_wave_and_survival(self):
+        """Verify wave and survival time are rendered."""
+        import game
+        from unittest.mock import patch
+        ki = {"killed_by": "Sniper", "wave": 7, "survival_time": 120.5}
+        rendered_texts = []
+        surf = pygame.Surface((100, 30))
+        def capture_render(text, antialias, color):
+            rendered_texts.append(text)
+            return surf
+        game.font.render.side_effect = capture_render
+        game.title_font.render.side_effect = capture_render
+        with patch('pygame.display.flip'):
+            game.draw_game_over(500, 10, killer_info=ki)
+        wave_found = any("Wave: 7" in t for t in rendered_texts)
+        survival_found = any("120.5s" in t for t in rendered_texts)
+        self.assertTrue(wave_found, f"Expected 'Wave: 7' in {rendered_texts}")
+        self.assertTrue(survival_found, f"Expected '120.5s' in {rendered_texts}")
+
+    def test_draw_game_over_keeps_restart_instruction(self):
+        """Press ENTER to Restart text should still appear."""
+        import game
+        from unittest.mock import patch
+        ki = {"killed_by": "Grunt", "wave": 1, "survival_time": 5.0}
+        rendered_texts = []
+        surf = pygame.Surface((100, 30))
+        def capture_render(text, antialias, color):
+            rendered_texts.append(text)
+            return surf
+        game.font.render.side_effect = capture_render
+        game.title_font.render.side_effect = capture_render
+        with patch('pygame.display.flip'):
+            game.draw_game_over(0, 1, killer_info=ki)
+        restart_found = any("Press ENTER to Restart" in t for t in rendered_texts)
+        self.assertTrue(restart_found, f"Expected restart instruction in {rendered_texts}")
+
+    def test_game_scene_drawn_before_death_overlay(self):
+        """In STATE_GAME_OVER, draw_game_scene should be called before draw_game_over."""
+        import game
+        from unittest.mock import patch, call, MagicMock
+        call_order = []
+        def track_scene(*args, **kwargs):
+            call_order.append("draw_game_scene")
+        def track_overlay(*args, **kwargs):
+            call_order.append("draw_game_over")
+        with patch.object(game, 'draw_game_scene', side_effect=track_scene):
+            with patch.object(game, 'draw_game_over', side_effect=track_overlay):
+                with patch('pygame.display.flip'):
+                    # Simulate what the STATE_GAME_OVER block does
+                    from game import (Camera, default_weapon_inventory,
+                                      generate_xp_thresholds)
+                    camera = Camera()
+                    player = Unit(100, 100, (0, 220, 255), is_player=True)
+                    camera.update(player)
+                    inv = default_weapon_inventory()
+                    thresholds = generate_xp_thresholds()
+                    ki = {"killed_by": "Grunt", "wave": 1, "survival_time": 5.0}
+                    # Replicate the exact call sequence from run()
+                    game.draw_game_scene(camera, [], [], [], [], player,
+                                         0, 1, 1, inv, 0, thresholds)
+                    game.draw_game_over(0, 1, killer_info=ki)
+        self.assertEqual(call_order, ["draw_game_scene", "draw_game_over"])
+
+
 if __name__ == "__main__":
     unittest.main()

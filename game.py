@@ -2371,20 +2371,37 @@ def draw_menu():
     pygame.display.flip()
 
 
-def draw_game_over(score, level=1):
-    screen.fill(BG)
+def draw_game_over(score, level=1, killer_info=None):
+    # Semi-transparent dark overlay instead of solid fill
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    screen.blit(overlay, (0, 0))
     # Neon red glow on GAME OVER
     t1 = title_font.render("GAME OVER", True, ENEMY_COLOR)
     t1_glow = title_font.render("GAME OVER", True, (140, 10, 30))
     tx = WIDTH // 2 - t1.get_width() // 2
-    ty = HEIGHT // 3
+    ty = HEIGHT // 4
     screen.blit(t1_glow, (tx - 2, ty - 2))
     screen.blit(t1_glow, (tx + 2, ty + 2))
     screen.blit(t1, (tx, ty))
+    # Killed by info
+    info_y = ty + t1.get_height() + 30
+    if killer_info and killer_info.get("killed_by"):
+        kb = font.render(f"Killed by: {killer_info['killed_by']}", True, (255, 100, 100))
+        screen.blit(kb, (WIDTH // 2 - kb.get_width() // 2, info_y))
+        info_y += 35
+        if "wave" in killer_info:
+            wt = font.render(f"Wave: {killer_info['wave']}", True, (200, 255, 255))
+            screen.blit(wt, (WIDTH // 2 - wt.get_width() // 2, info_y))
+            info_y += 30
+        if "survival_time" in killer_info:
+            st = font.render(f"Survived: {killer_info['survival_time']}s", True, (200, 255, 255))
+            screen.blit(st, (WIDTH // 2 - st.get_width() // 2, info_y))
+            info_y += 30
     t2 = font.render(f"Score: {score}   Level: {level}", True, (200, 255, 255))
-    screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, HEIGHT // 2 + 20))
+    screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, info_y + 10))
     t3 = font.render("Press ENTER to Restart", True, (0, 180, 220))
-    screen.blit(t3, (WIDTH // 2 - t3.get_width() // 2, HEIGHT // 2 + 60))
+    screen.blit(t3, (WIDTH // 2 - t3.get_width() // 2, info_y + 50))
     pygame.display.flip()
 
 
@@ -2758,7 +2775,11 @@ def run():
             continue
 
         if state == STATE_GAME_OVER:
-            draw_game_over(score, level)
+            draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
+                            score, wave, level, weapon_inventory, xp, xp_thresholds,
+                            health_pickups, heal_effects, escape_rooms,
+                            escape_flash_timer, enemy_bullets=enemy_bullets)
+            draw_game_over(score, level, killer_info=killer_info)
             clock.tick(FPS)
             continue
 
