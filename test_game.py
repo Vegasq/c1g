@@ -1798,52 +1798,46 @@ class TestDetectNativeResolution(unittest.TestCase):
         game.options_resolution_index = self._orig_res_index
         game.options_fullscreen = self._orig_fullscreen
 
-    @patch('pygame.display.Info')
-    def test_detect_existing_resolution(self, mock_info):
+    @patch('pygame.display.get_desktop_sizes', return_value=[(1920, 1080)])
+    def test_detect_existing_resolution(self, mock_desktop):
         """If native resolution is already in the list, don't duplicate it."""
-        mock_info.return_value = MagicMock(current_w=1920, current_h=1080)
         result = detect_native_resolution()
         self.assertEqual(result, (1920, 1080))
         self.assertEqual(game.SUPPORTED_RESOLUTIONS.count((1920, 1080)), 1)
 
-    @patch('pygame.display.Info')
-    def test_detect_new_resolution_added(self, mock_info):
+    @patch('pygame.display.get_desktop_sizes', return_value=[(2560, 1440)])
+    def test_detect_new_resolution_added(self, mock_desktop):
         """If native resolution is not in the list, it gets added."""
-        mock_info.return_value = MagicMock(current_w=2560, current_h=1440)
         result = detect_native_resolution()
         self.assertEqual(result, (2560, 1440))
         self.assertIn((2560, 1440), game.SUPPORTED_RESOLUTIONS)
 
-    @patch('pygame.display.Info')
-    def test_detect_sets_resolution_index(self, mock_info):
+    @patch('pygame.display.get_desktop_sizes', return_value=[(1280, 720)])
+    def test_detect_sets_resolution_index(self, mock_desktop):
         """options_resolution_index is set to the native resolution."""
-        mock_info.return_value = MagicMock(current_w=1280, current_h=720)
         detect_native_resolution()
         idx = game.options_resolution_index
         self.assertEqual(game.SUPPORTED_RESOLUTIONS[idx], (1280, 720))
 
-    @patch('pygame.display.Info')
-    def test_detect_new_resolution_sorted(self, mock_info):
+    @patch('pygame.display.get_desktop_sizes', return_value=[(1366, 768)])
+    def test_detect_new_resolution_sorted(self, mock_desktop):
         """Added resolutions maintain sorted order by pixel count."""
-        mock_info.return_value = MagicMock(current_w=1366, current_h=768)
         detect_native_resolution()
         pixel_counts = [w * h for w, h in game.SUPPORTED_RESOLUTIONS]
         self.assertEqual(pixel_counts, sorted(pixel_counts))
 
-    @patch('pygame.display.Info')
-    def test_detect_returns_native_tuple(self, mock_info):
+    @patch('pygame.display.get_desktop_sizes', return_value=[(3840, 2160)])
+    def test_detect_returns_native_tuple(self, mock_desktop):
         """detect_native_resolution returns a (width, height) tuple."""
-        mock_info.return_value = MagicMock(current_w=3840, current_h=2160)
         result = detect_native_resolution()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 3840)
         self.assertEqual(result[1], 2160)
 
-    @patch('pygame.display.Info')
-    def test_detect_invalid_resolution_zero(self, mock_info):
-        """If display.Info returns (0, 0), detection is skipped."""
-        mock_info.return_value = MagicMock(current_w=0, current_h=0)
+    @patch('pygame.display.get_desktop_sizes', return_value=[(0, 0)])
+    def test_detect_invalid_resolution_zero(self, mock_desktop):
+        """If desktop sizes returns (0, 0), detection is skipped."""
         orig_index = game.options_resolution_index
         orig_resolutions = list(game.SUPPORTED_RESOLUTIONS)
         result = detect_native_resolution()
@@ -1851,17 +1845,17 @@ class TestDetectNativeResolution(unittest.TestCase):
         self.assertEqual(game.options_resolution_index, orig_index)
         self.assertEqual(game.SUPPORTED_RESOLUTIONS, orig_resolutions)
 
-    @patch('pygame.display.Info')
-    def test_detect_invalid_resolution_negative(self, mock_info):
-        """If display.Info returns (-1, -1), detection is skipped."""
-        mock_info.return_value = MagicMock(current_w=-1, current_h=-1)
+    @patch('pygame.display.get_desktop_sizes', return_value=[(-1, -1)])
+    def test_detect_invalid_resolution_negative(self, mock_desktop):
+        """If desktop sizes returns (-1, -1), detection is skipped."""
         result = detect_native_resolution()
         self.assertIsNone(result)
         self.assertNotIn((-1, -1), game.SUPPORTED_RESOLUTIONS)
 
     @patch('pygame.display.Info', side_effect=pygame.error("no video device"))
-    def test_detect_display_info_exception(self, mock_info):
-        """If pygame.display.Info() raises, detection returns None gracefully."""
+    @patch('pygame.display.get_desktop_sizes', side_effect=pygame.error("no video device"))
+    def test_detect_display_info_exception(self, mock_desktop, mock_info):
+        """If display APIs raise, detection returns None gracefully."""
         orig_index = game.options_resolution_index
         orig_resolutions = list(game.SUPPORTED_RESOLUTIONS)
         result = detect_native_resolution()

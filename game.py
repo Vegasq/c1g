@@ -368,13 +368,13 @@ def init_pygame():
     load_settings()
     # Step 4: Create window with correct flags
     WIDTH, HEIGHT = SUPPORTED_RESOLUTIONS[options_resolution_index]
-    flags = pygame.FULLSCREEN if options_fullscreen else 0
+    flags = pygame.FULLSCREEN | pygame.SCALED if options_fullscreen else pygame.SCALED
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
     except pygame.error:
         # Fallback to windowed mode if fullscreen fails
         options_fullscreen = False
-        screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
         save_settings()
     pygame.display.set_caption("Squad Survivors")
     clock = pygame.time.Clock()
@@ -449,15 +449,24 @@ def detect_native_resolution():
     """Detect native display resolution and add it to SUPPORTED_RESOLUTIONS.
 
     Must be called after pygame.init() but before pygame.display.set_mode().
+    Uses get_desktop_sizes() (recommended over display.Info()) for correct
+    resolution on macOS Retina/HiDPI displays.
     Returns the (width, height) tuple of the native resolution.
     Updates options_resolution_index to point to the native resolution.
     """
     global options_resolution_index
     try:
-        info = pygame.display.Info()
-    except pygame.error:
+        desktop_sizes = pygame.display.get_desktop_sizes()
+    except (pygame.error, AttributeError):
+        # Fallback for older pygame without get_desktop_sizes
+        try:
+            info = pygame.display.Info()
+            desktop_sizes = [(info.current_w, info.current_h)]
+        except pygame.error:
+            return None
+    if not desktop_sizes:
         return None
-    native_res = (info.current_w, info.current_h)
+    native_res = desktop_sizes[0]  # primary display
     if native_res[0] <= 0 or native_res[1] <= 0:
         return None
     if native_res not in SUPPORTED_RESOLUTIONS:
@@ -2213,13 +2222,13 @@ def apply_resolution():
     global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background, _fade_overlay, _dim_overlay
     res = SUPPORTED_RESOLUTIONS[options_resolution_index]
     WIDTH, HEIGHT = res
-    flags = pygame.FULLSCREEN if options_fullscreen else 0
+    flags = pygame.FULLSCREEN | pygame.SCALED if options_fullscreen else pygame.SCALED
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
     except pygame.error:
         # Fallback to windowed mode if fullscreen fails
         options_fullscreen = False
-        screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
+        screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
     _menu_background = None
     _fade_overlay = None
     _dim_overlay = None
