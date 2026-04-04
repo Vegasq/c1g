@@ -963,12 +963,13 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """Verify icons have non-transparent pixels drawn on them."""
         from game import create_upgrade_icon, ICON_SIZE
         test_options = [
-            {"name": "+Damage", "stat": "damage", "amount": 1},
-            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
+            {"category": "max_hp", "name": "Max HP"},
+            {"category": "weapon_shotgun", "name": "Shotgun"},
+            {"category": "move_speed", "name": "Move Speed"},
+            {"category": "ally_spawn", "name": "Ally Spawn Rate"},
         ]
         for opt in test_options:
             icon = create_upgrade_icon(opt)
-            # Check that at least some pixels are non-transparent
             has_pixel = False
             for x in range(ICON_SIZE):
                 for y in range(ICON_SIZE):

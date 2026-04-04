@@ -6,6 +6,14 @@ import json
 import os
 import time
 from assets_manager import AssetManager, TileRenderer, TiledMapRenderer
+from progression import (
+    load_profile, save_profile, default_profile,
+    generate_upgrade_options as gen_upgrade_options,
+    apply_upgrade as prog_apply_upgrade,
+    apply_profile_to_game, compute_run_earned_upgrades,
+    select_saved_upgrade, save_run_upgrade_to_profile,
+    UPGRADE_CATEGORIES, compute_weapon_stats,
+)
 
 try:
     import tomllib
@@ -423,6 +431,7 @@ STATE_PLAYING = 1
 STATE_GAME_OVER = 2
 STATE_LEVEL_UP = 3
 STATE_OPTIONS = 4
+STATE_DEATH_REVIEW = 5
 
 SUPPORTED_RESOLUTIONS = [
     (800, 600),
@@ -1097,6 +1106,7 @@ class Unit:
         self.hp = self.max_hp
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
         self.invulnerable_timer = 0
+        self.player_speed = self.PLAYER_SPEED  # instance attr, overridable by profile
         self.facing_angle = 0.0  # degrees, 0 = up
         self.anim_state = "idle"
         self._prev_x = float(x)
@@ -2060,64 +2070,49 @@ def create_upgrade_icon(option):
     """Create a 32x32 procedural icon for an upgrade option."""
     surf = pygame.Surface((ICON_SIZE, ICON_SIZE), pygame.SRCALPHA)
     cx, cy = ICON_SIZE // 2, ICON_SIZE // 2
+    cat = option.get("category", "")
 
-    if "weapon_type" in option:
-        wt = option["weapon_type"]
-        if wt == "shotgun":
-            # Spread pattern: three diverging lines
-            color = (255, 100, 0)
-            pygame.draw.line(surf, color, (4, cy), (28, 6), 2)
-            pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
-            pygame.draw.line(surf, color, (4, cy), (28, 26), 2)
-        elif wt == "piercing":
-            # Arrow line going through
-            color = (0, 255, 255)
-            pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
-            pygame.draw.line(surf, color, (20, 8), (28, cy), 2)
-            pygame.draw.line(surf, color, (20, 24), (28, cy), 2)
-            pygame.draw.circle(surf, color, (14, cy), 3, 1)
-        elif wt == "explosive":
-            # Explosion circle with rays
-            color = (255, 50, 50)
-            pygame.draw.circle(surf, color, (cx, cy), 8, 2)
-            for angle_pts in [((cx, 2), (cx, 8)), ((cx, 24), (cx, 30)),
-                              ((2, cy), (8, cy)), ((24, cy), (30, cy))]:
-                pygame.draw.line(surf, color, angle_pts[0], angle_pts[1], 1)
-    else:
-        stat = option.get("stat", "")
-        if stat == "damage":
-            # Sword shape
-            color = (255, 80, 80)
-            pygame.draw.line(surf, color, (cx, 4), (cx, 24), 3)
-            pygame.draw.line(surf, color, (cx - 8, 18), (cx + 8, 18), 2)
-            pygame.draw.rect(surf, color, (cx - 2, 24, 4, 4))
-        elif stat == "fire_rate":
-            # Lightning bolt
-            color = (255, 255, 0)
-            pygame.draw.polygon(surf, color, [
-                (18, 2), (10, 14), (16, 14), (12, 30), (22, 14), (16, 14), (18, 2)
-            ])
-        elif stat == "bullet_speed":
-            # Fast arrow
-            color = (0, 200, 255)
-            pygame.draw.line(surf, color, (4, cy), (26, cy), 2)
-            pygame.draw.polygon(surf, color, [(26, cy - 6), (26, cy + 6), (30, cy)])
-            pygame.draw.line(surf, color, (2, cy - 4), (8, cy), 1)
-            pygame.draw.line(surf, color, (2, cy + 4), (8, cy), 1)
-        elif stat == "range":
-            # Crosshair
-            color = (0, 255, 100)
-            pygame.draw.circle(surf, color, (cx, cy), 10, 1)
-            pygame.draw.circle(surf, color, (cx, cy), 5, 1)
-            pygame.draw.line(surf, color, (cx, 2), (cx, 30), 1)
-            pygame.draw.line(surf, color, (2, cy), (30, cy), 1)
-        elif stat == "max_hp":
-            # Heart shape
-            color = (255, 50, 100)
-            pygame.draw.polygon(surf, color, [
-                (cx, 28), (4, 14), (4, 8), (10, 4), (cx, 12),
-                (22, 4), (28, 8), (28, 14)
-            ])
+    if cat == "max_hp":
+        color = (255, 50, 100)
+        pygame.draw.polygon(surf, color, [
+            (cx, 28), (4, 14), (4, 8), (10, 4), (cx, 12),
+            (22, 4), (28, 8), (28, 14)
+        ])
+    elif cat == "move_speed":
+        color = (100, 200, 255)
+        pygame.draw.polygon(surf, color, [(4, 28), (16, 4), (28, 28)])
+        pygame.draw.line(surf, color, (8, 20), (24, 20), 2)
+    elif cat == "weapon_normal":
+        color = (200, 180, 100)
+        pygame.draw.line(surf, color, (cx, 4), (cx, 24), 3)
+        pygame.draw.line(surf, color, (cx - 8, 18), (cx + 8, 18), 2)
+        pygame.draw.rect(surf, color, (cx - 2, 24, 4, 4))
+    elif cat == "weapon_shotgun":
+        color = (220, 140, 40)
+        pygame.draw.line(surf, color, (4, cy), (28, 6), 2)
+        pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
+        pygame.draw.line(surf, color, (4, cy), (28, 26), 2)
+    elif cat == "weapon_piercing":
+        color = (140, 200, 220)
+        pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
+        pygame.draw.line(surf, color, (20, 8), (28, cy), 2)
+        pygame.draw.line(surf, color, (20, 24), (28, cy), 2)
+        pygame.draw.circle(surf, color, (14, cy), 3, 1)
+    elif cat == "weapon_explosive":
+        color = (220, 80, 40)
+        pygame.draw.circle(surf, color, (cx, cy), 8, 2)
+        for pts in [((cx, 2), (cx, 8)), ((cx, 24), (cx, 30)),
+                    ((2, cy), (8, cy)), ((24, cy), (30, cy))]:
+            pygame.draw.line(surf, color, pts[0], pts[1], 1)
+    elif cat == "ally_spawn":
+        color = (100, 180, 100)
+        pygame.draw.circle(surf, color, (10, 14), 6, 2)
+        pygame.draw.circle(surf, color, (22, 14), 6, 2)
+        pygame.draw.circle(surf, color, (16, 22), 4, 2)
+    elif cat == "heal_amount":
+        color = (200, 80, 80)
+        pygame.draw.rect(surf, color, (cx - 8, cy - 2, 16, 4))
+        pygame.draw.rect(surf, color, (cx - 2, cy - 8, 4, 16))
 
     return surf
 
@@ -2130,11 +2125,8 @@ def _panel_origin():
 def draw_upgrade_panel(level, upgrade_options):
     """Draw a centered floating panel for the upgrade selector."""
     panel_x, panel_y = _panel_origin()
-    # Panel background
     panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
     panel_surf.fill(PANEL_BG_COLOR)
-
-    # Solid border
     pygame.draw.rect(panel_surf, BORDER_COLOR,
                      pygame.Rect(0, 0, PANEL_WIDTH, PANEL_HEIGHT), 2, border_radius=6)
 
@@ -2146,20 +2138,18 @@ def draw_upgrade_panel(level, upgrade_options):
     panel_surf.blit(title_shadow, (tx + 2, ty + 2))
     panel_surf.blit(title, (tx, ty))
 
-    # Subtitle
     subtitle = font.render("Choose an upgrade:", True, (180, 160, 120))
     panel_surf.blit(subtitle, (PANEL_WIDTH // 2 - subtitle.get_width() // 2, 60))
 
-    # Upgrade option rows (level_up_selected_index is synced from mouse hover each frame)
     selected_idx = level_up_selected_index
+    hud_font, hud_font_small = _get_hud_fonts()
+
     for i, opt in enumerate(upgrade_options):
         row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
         row_rect = pygame.Rect(OPTION_PADDING, row_y,
                                PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
 
         hovered = (i == selected_idx)
-
-        # Row background
         if hovered:
             row_bg = pygame.Surface((row_rect.width, row_rect.height), pygame.SRCALPHA)
             row_bg.fill((BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], 40))
@@ -2168,17 +2158,38 @@ def draw_upgrade_panel(level, upgrade_options):
         else:
             pygame.draw.rect(panel_surf, (60, 50, 35, 120), row_rect, 1, border_radius=4)
 
-        # Icon (use cached if available)
+        # Icon
         icon = opt.get('_icon') or create_upgrade_icon(opt)
         icon_x = OPTION_PADDING + 10
         icon_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - ICON_SIZE // 2
         panel_surf.blit(icon, (icon_x, icon_y))
 
-        # Option text (shifted right to make room for icon)
-        color = (200, 170, 80) if "weapon_type" in opt else (180, 160, 120)
-        text = font.render(f"[{i+1}] {opt['name']}", True, color)
-        text_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - text.get_height() // 2
-        panel_surf.blit(text, (icon_x + ICON_SIZE + 10, text_y))
+        # Category name and level info
+        cur_lv = opt.get("current_level", 0)
+        is_unlock = opt.get("is_unlock", False)
+        text_x = icon_x + ICON_SIZE + 10
+
+        if is_unlock:
+            # Weapon unlock — show in green
+            label = font.render(f"[{i+1}] UNLOCK {opt['name']}", True, (80, 200, 80))
+            panel_surf.blit(label, (text_x, row_y + 8))
+            desc = hud_font_small.render(f"Adds {opt['name']} weapon", True, (150, 150, 130))
+            panel_surf.blit(desc, (text_x, row_y + 30))
+        else:
+            # Normal upgrade — show level transition and effect
+            color = (200, 170, 80) if opt.get("category", "").startswith("weapon_") else (180, 160, 120)
+            label = font.render(f"[{i+1}] {opt['name']}", True, color)
+            panel_surf.blit(label, (text_x, row_y + 8))
+            # Show level and stat preview
+            cat = UPGRADE_CATEGORIES.get(opt.get("category", ""))
+            if cat:
+                cur_val = cat["format_value"](cur_lv)
+                next_val = cat["format_value"](cur_lv + 1)
+                desc_text = f"Lv {cur_lv} -> {cur_lv + 1}  ({cur_val} -> {next_val})"
+            else:
+                desc_text = f"Lv {cur_lv} -> {cur_lv + 1}"
+            desc = hud_font_small.render(desc_text, True, (150, 150, 130))
+            panel_surf.blit(desc, (text_x, row_y + 30))
 
     screen.blit(panel_surf, (panel_x, panel_y))
 
@@ -2395,6 +2406,100 @@ def draw_game_over(score, level=1, killer_info=None):
     pygame.display.flip()
 
 
+def draw_death_review(data):
+    """Draw the death review screen showing earned upgrades and saved upgrade."""
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 200))
+    screen.blit(overlay, (0, 0))
+
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    # Title
+    t1 = title_font.render("RUN COMPLETE", True, (200, 160, 80))
+    t1_shadow = title_font.render("RUN COMPLETE", True, (50, 35, 15))
+    tx = WIDTH // 2 - t1.get_width() // 2
+    screen.blit(t1_shadow, (tx + 2, 22))
+    screen.blit(t1, (tx, 20))
+
+    # Stats line
+    ki = data.get("killer_info", {})
+    stats_text = f"Wave {data.get('wave', 0)}  |  Score {data.get('score', 0)}  |  Level {data.get('level', 1)}"
+    st = font.render(stats_text, True, (180, 160, 130))
+    screen.blit(st, (WIDTH // 2 - st.get_width() // 2, 80))
+
+    # Upgrade list
+    earned = data.get("earned", [])
+    saved_idx = data.get("saved_idx", -1)
+    scroll = data.get("scroll_offset", 0)
+
+    card_h = 40
+    list_top = 130
+    list_bottom = HEIGHT - 80
+    visible_h = list_bottom - list_top
+    max_scroll = max(0, len(earned) * card_h - visible_h)
+    scroll = max(0, min(scroll, max_scroll))
+    data["scroll_offset"] = scroll
+
+    # Clip region for the list
+    clip_surf = pygame.Surface((WIDTH - 80, visible_h), pygame.SRCALPHA)
+    clip_surf.fill((0, 0, 0, 0))
+
+    for i, upg in enumerate(earned):
+        card_y = i * card_h - scroll
+        if card_y + card_h < 0 or card_y > visible_h:
+            continue
+
+        is_saved = (i == saved_idx)
+        card_x = 20
+
+        # Card background
+        if is_saved:
+            bg_color = (60, 50, 20, 180)
+            border_color = (220, 180, 50)
+        else:
+            bg_color = (30, 28, 25, 120)
+            border_color = (80, 70, 50)
+
+        card_rect = pygame.Rect(card_x, card_y, WIDTH - 120, card_h - 4)
+        card_bg = pygame.Surface((card_rect.width, card_rect.height), pygame.SRCALPHA)
+        card_bg.fill(bg_color)
+        clip_surf.blit(card_bg, card_rect.topleft)
+        pygame.draw.rect(clip_surf, border_color, card_rect, 1, border_radius=3)
+
+        # Category name and level
+        name = upg.get("name", "?")
+        from_lv = upg.get("from_level", 0)
+        to_lv = upg.get("to_level", 1)
+
+        if is_saved:
+            label_color = (255, 220, 100)
+            badge = hud_font_small.render("SAVED", True, (255, 200, 50))
+            clip_surf.blit(badge, (card_rect.right - badge.get_width() - 8, card_y + 10))
+        else:
+            label_color = (180, 170, 150)
+
+        is_unlock = from_lv == 0 and upg.get("category", "") in ("weapon_shotgun", "weapon_piercing", "weapon_explosive")
+        if is_unlock:
+            text = hud_font.render(f"UNLOCK {name}", True, (80, 200, 80))
+        else:
+            text = hud_font.render(f"{name}  Lv {from_lv} -> {to_lv}", True, label_color)
+        clip_surf.blit(text, (card_x + 10, card_y + 8))
+
+    screen.blit(clip_surf, (40, list_top))
+
+    # Scroll indicator
+    if max_scroll > 0:
+        scroll_frac = scroll / max_scroll if max_scroll > 0 else 0
+        bar_h = max(20, int(visible_h * visible_h / (len(earned) * card_h)))
+        bar_y = list_top + int((visible_h - bar_h) * scroll_frac)
+        pygame.draw.rect(screen, (100, 90, 70), (WIDTH - 35, bar_y, 6, bar_h), border_radius=3)
+
+    # Footer
+    footer = font.render("Press ENTER to continue", True, (180, 160, 120))
+    screen.blit(footer, (WIDTH // 2 - footer.get_width() // 2, HEIGHT - 50))
+    pygame.display.flip()
+
+
 def run():
     global options_selected_index, options_resolution_index, options_fullscreen
     global menu_selected_index, active_joystick
@@ -2433,6 +2538,12 @@ def run():
     total_xp_earned = 0
     last_damage_source = ""
     killer_info = {}
+    # Roguelite progression variables
+    profile = default_profile()
+    game_vars = {"ally_spawn_chance": 0.10, "heal_restore_amount": 1, "player_speed": 3.5}
+    run_upgrade_levels = dict(profile["upgrades"])
+    profile_start_levels = dict(profile["upgrades"])
+    death_review_data = None
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies
@@ -2441,6 +2552,7 @@ def run():
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
         nonlocal last_damage_source, killer_info
+        nonlocal run_upgrade_levels, profile_start_levels, game_vars, profile
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -2470,6 +2582,11 @@ def run():
         total_xp_earned = 0
         last_damage_source = ""
         killer_info = {}
+        # Roguelite: load profile and apply saved upgrades
+        profile = load_profile()
+        game_vars = apply_profile_to_game(profile, player, weapon_inventory)
+        run_upgrade_levels = dict(profile["upgrades"])
+        profile_start_levels = dict(profile["upgrades"])
 
     def save_if_playing():
         """Save stats if a game is in progress (playing or level-up)."""
@@ -2485,17 +2602,20 @@ def run():
         """Apply the chosen upgrade and log it."""
         nonlocal upgrade_options, state
         weapon_snapshot = snapshot_weapon_power(weapon_inventory)
-        apply_upgrade(weapon_inventory, opt, player)
-        if "weapon_type" in opt:
-            wt = opt["weapon_type"]
+        prog_apply_upgrade(opt, run_upgrade_levels, weapon_inventory, player, game_vars)
+        cat = opt.get("category", "")
+        if cat.startswith("weapon_"):
+            wt = cat.replace("weapon_", "")
+            if wt == "normal":
+                wt = "normal"
             run_stats["weapons_used"].add(wt)
             run_stats["weapon_picks"][wt] = run_stats["weapon_picks"].get(wt, 0) + 1
         run_stats["level_logs"].append({
             "level": level,
             "wave": wave,
             "time": round(time.time() - run_start_time, 1),
-            "chosen": opt.get("name", opt.get("weapon_type", "?")),
-            "options": [o.get("name", o.get("weapon_type", "?")) for o in upgrade_options],
+            "chosen": opt.get("name", "?"),
+            "options": [o.get("name", "?") for o in upgrade_options],
             "weapons": weapon_snapshot,
             "player_hp": player.hp,
             "player_max_hp": player.max_hp,
@@ -2532,6 +2652,8 @@ def run():
                         state = STATE_MENU
                         _play_music("menu.wav")
                         _reset_menu_state()
+                    elif state == STATE_DEATH_REVIEW:
+                        state = STATE_GAME_OVER
                     elif state == STATE_GAME_OVER:
                         state = STATE_MENU
                         _play_music("menu.wav")
@@ -2583,7 +2705,9 @@ def run():
                         elif menu_selected_index == 2:  # QUIT
                             running = False
                 elif event.key == pygame.K_RETURN:
-                    if state == STATE_GAME_OVER:
+                    if state == STATE_DEATH_REVIEW:
+                        state = STATE_GAME_OVER
+                    elif state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
                         _play_music("game.wav")
@@ -2643,12 +2767,16 @@ def run():
                     elif state == STATE_LEVEL_UP and upgrade_options:
                         if 0 <= level_up_selected_index < len(upgrade_options):
                             apply_chosen_upgrade(upgrade_options[level_up_selected_index])
+                    elif state == STATE_DEATH_REVIEW:
+                        state = STATE_GAME_OVER
                     elif state == STATE_GAME_OVER:
                         reset_game()
                         state = STATE_PLAYING
                         _play_music("game.wav")
                 elif event.button == 1:  # B button - back/escape
-                    if state == STATE_OPTIONS:
+                    if state == STATE_DEATH_REVIEW:
+                        state = STATE_GAME_OVER
+                    elif state == STATE_OPTIONS:
                         state = STATE_MENU
                         _play_music("menu.wav")
                         _reset_menu_state()
@@ -2698,6 +2826,14 @@ def run():
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
                         apply_chosen_upgrade(upgrade_options[idx])
+                elif state == STATE_DEATH_REVIEW:
+                    state = STATE_GAME_OVER
+            # Mouse scroll for death review
+            if event.type == pygame.MOUSEBUTTONDOWN and state == STATE_DEATH_REVIEW and death_review_data:
+                if event.button == 4:  # scroll up
+                    death_review_data["scroll_offset"] = max(0, death_review_data["scroll_offset"] - 30)
+                elif event.button == 5:  # scroll down
+                    death_review_data["scroll_offset"] += 30
 
         # Gamepad D-pad/stick navigation for menu states (with repeat delay)
         if active_joystick is not None and state != STATE_PLAYING:
@@ -2764,6 +2900,16 @@ def run():
             clock.tick(FPS)
             continue
 
+        if state == STATE_DEATH_REVIEW:
+            draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
+                            score, wave, level, weapon_inventory, xp, xp_thresholds,
+                            health_pickups, heal_effects, escape_rooms,
+                            escape_flash_timer, enemy_bullets=enemy_bullets)
+            if death_review_data:
+                draw_death_review(death_review_data)
+            clock.tick(FPS)
+            continue
+
         if state == STATE_GAME_OVER:
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
@@ -2822,8 +2968,8 @@ def run():
                     pass
         if mx or my:
             length = math.hypot(mx, my)
-            player.x += mx / length * player.PLAYER_SPEED
-            player.y += my / length * player.PLAYER_SPEED
+            player.x += mx / length * player.player_speed
+            player.y += my / length * player.player_speed
             player.x = max(player.RADIUS, min(MAP_WIDTH - player.RADIUS, player.x))
             player.y = max(player.RADIUS, min(MAP_HEIGHT - player.RADIUS, player.y))
             for obs in obstacles:
@@ -2857,7 +3003,7 @@ def run():
                 run_stats["wave_xp_earned"] += er_xp
                 xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
                 if leveled_up:
-                    upgrade_options = generate_upgrade_options(level, weapon_inventory)
+                    upgrade_options = gen_upgrade_options(run_upgrade_levels)
                     for opt in upgrade_options:
                         opt['_icon'] = create_upgrade_icon(opt)
                     level_up_selected_index = 0
@@ -2866,10 +3012,10 @@ def run():
                 # Health pickup drops
                 for dx, dy, etype in er_dead:
                     if random.random() < get_health_drop_chance(etype):
-                        health_pickups.append(HealthPickup(dx, dy))
+                        health_pickups.append(HealthPickup(dx, dy, heal_amount=game_vars["heal_restore_amount"]))
                 # Ally spawns
                 for _ in range(er_killed):
-                    if random.random() < 0.1:
+                    if random.random() < game_vars["ally_spawn_chance"]:
                         color = random.choice(ALLY_COLORS)
                         a = Unit(player.x + random.uniform(-30, 30),
                                  player.y + random.uniform(-30, 30), color)
@@ -3076,7 +3222,7 @@ def run():
         # Spawn health pickups from dead enemies
         for dx, dy, etype in dead_enemies:
             if random.random() < get_health_drop_chance(etype):
-                health_pickups.append(HealthPickup(dx, dy))
+                health_pickups.append(HealthPickup(dx, dy, heal_amount=game_vars["heal_restore_amount"]))
 
         # Award XP and check level-up
         total_xp_earned += xp_earned
@@ -3084,7 +3230,7 @@ def run():
         xp += xp_earned
         xp, level, leveled_up = check_level_up(xp, level, xp_thresholds)
         if leveled_up:
-            upgrade_options = generate_upgrade_options(level, weapon_inventory)
+            upgrade_options = gen_upgrade_options(run_upgrade_levels)
             for opt in upgrade_options:
                 opt['_icon'] = create_upgrade_icon(opt)
             level_up_selected_index = 0
@@ -3092,7 +3238,7 @@ def run():
             state = STATE_LEVEL_UP
             # Spawn allies before pausing (reward kills even on level-up frame)
             for _ in range(killed):
-                if random.random() < 0.1:
+                if random.random() < game_vars["ally_spawn_chance"]:
                     color = random.choice(ALLY_COLORS)
                     a = Unit(player.x + random.uniform(-30, 30),
                              player.y + random.uniform(-30, 30), color)
@@ -3103,7 +3249,7 @@ def run():
 
         # Spawn allies for kills (1-in-10 chance per kill)
         for _ in range(killed):
-            if random.random() < 0.1:
+            if random.random() < game_vars["ally_spawn_chance"]:
                 color = random.choice(ALLY_COLORS)
                 a = Unit(player.x + random.uniform(-30, 30),
                          player.y + random.uniform(-30, 30), color)
@@ -3177,7 +3323,26 @@ def run():
                 run_stats, score, level, wave, total_xp_earned,
                 survival_time, weapon_inventory)
             save_stats(run_data)
-            state = STATE_GAME_OVER
+            # Roguelite: compute earned upgrades and save one to profile
+            earned = compute_run_earned_upgrades(profile_start_levels, run_upgrade_levels)
+            if earned:
+                saved_idx, saved_upgrade = select_saved_upgrade(earned)
+                save_run_upgrade_to_profile(profile, saved_upgrade, wave=wave)
+                death_review_data = {
+                    "earned": earned,
+                    "saved_idx": saved_idx,
+                    "saved_upgrade": saved_upgrade,
+                    "score": score,
+                    "wave": wave,
+                    "level": level,
+                    "killer_info": killer_info,
+                    "scroll_offset": 0,
+                }
+                state = STATE_DEATH_REVIEW
+            else:
+                profile["total_runs"] = profile.get("total_runs", 0) + 1
+                save_profile(profile)
+                state = STATE_GAME_OVER
 
         # Tick escape room pulse timers
         for er in escape_rooms:
