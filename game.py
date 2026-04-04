@@ -2256,6 +2256,7 @@ def draw_options_menu():
          f"{SUPPORTED_RESOLUTIONS[options_resolution_index][0]}x"
          f"{SUPPORTED_RESOLUTIONS[options_resolution_index][1]}"),
         ("Fullscreen", "On" if options_fullscreen else "Off"),
+        ("Reset Profile", ""),
         ("Back", ""),
     ]
 
@@ -2305,7 +2306,7 @@ def get_hovered_menu_index(mx, my):
 
 def get_hovered_options_index(mx, my):
     """Return options menu item index under mouse position, or -1 if none."""
-    for i in range(3):  # Resolution, Fullscreen, Back
+    for i in range(4):  # Resolution, Fullscreen, Reset Profile, Back
         if get_menu_item_rect(i).collidepoint(mx, my):
             return i
     return -1
@@ -2357,6 +2358,30 @@ def draw_menu():
         if i < len(MENU_ITEMS) - 1:
             sep_y = y + MENU_ITEM_HEIGHT - 10
             draw_menu_separator(screen, MENU_X, sep_y, 200, ticks)
+
+    # Profile summary — show saved upgrades in bottom-right
+    try:
+        _menu_profile = load_profile()
+        upgrades = _menu_profile.get("upgrades", {})
+        total_upgrades = sum(upgrades.values())
+        if total_upgrades > 0:
+            hud_font, hud_font_small = _get_hud_fonts()
+            runs = _menu_profile.get("total_runs", 0)
+            best = _menu_profile.get("best_wave", 0)
+            # Summary line
+            summary = hud_font_small.render(
+                f"Profile: {total_upgrades} upgrades | {runs} runs | Best wave: {best}",
+                True, (140, 130, 110))
+            screen.blit(summary, (MENU_X, HEIGHT - 60))
+            # Active upgrades
+            active = [f"{UPGRADE_CATEGORIES[k]['name']} Lv{v}"
+                      for k, v in upgrades.items() if v > 0]
+            if active:
+                line = hud_font_small.render(
+                    "  ".join(active[:6]), True, (120, 110, 90))
+                screen.blit(line, (MENU_X, HEIGHT - 38))
+    except Exception:
+        pass
 
     # Fade-in overlay
     if menu_fade_active:
@@ -2667,9 +2692,9 @@ def run():
                         running = False
                 elif state == STATE_OPTIONS:
                     if event.key in (pygame.K_UP, pygame.K_w):
-                        options_selected_index = (options_selected_index - 1) % 3
+                        options_selected_index = (options_selected_index - 1) % 4
                     elif event.key in (pygame.K_DOWN, pygame.K_s):
-                        options_selected_index = (options_selected_index + 1) % 3
+                        options_selected_index = (options_selected_index + 1) % 4
                     elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                         direction = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
                         if options_selected_index == 0:
@@ -2681,7 +2706,9 @@ def run():
                             options_fullscreen = not options_fullscreen
                             apply_resolution()
                     elif event.key == pygame.K_RETURN:
-                        if options_selected_index == 2:
+                        if options_selected_index == 2:  # Reset Profile
+                            save_profile(default_profile())
+                        elif options_selected_index == 3:  # Back
                             state = STATE_MENU
                             _play_music("menu.wav")
                             _reset_menu_state()
@@ -2760,7 +2787,9 @@ def run():
                         elif options_selected_index == 1:  # Fullscreen - toggle
                             options_fullscreen = not options_fullscreen
                             apply_resolution()
-                        elif options_selected_index == 2:  # Back
+                        elif options_selected_index == 2:  # Reset Profile
+                            save_profile(default_profile())
+                        elif options_selected_index == 3:  # Back
                             state = STATE_MENU
                             _play_music("menu.wav")
                             _reset_menu_state()
@@ -2807,7 +2836,9 @@ def run():
                     elif idx == 1:  # Fullscreen - toggle
                         options_fullscreen = not options_fullscreen
                         apply_resolution()
-                    elif idx == 2:  # Back
+                    elif idx == 2:  # Reset Profile
+                        save_profile(default_profile())
+                    elif idx == 3:  # Back
                         state = STATE_MENU
                         _play_music("menu.wav")
                         _reset_menu_state()
