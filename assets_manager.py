@@ -77,9 +77,15 @@ ASSET_CONFIG = {
     "tile_ground": os.path.join(_TILE_BASE, "Tiles&Details", "PNG", "Ground_tiles"),
     "tile_asphalt": os.path.join(_TILE_BASE, "Tiles&Details", "PNG", "Asphalt_tiles"),
 
-    # Objects for obstacles
-    "obstacle_buildings": os.path.join(_BUILDING_BASE, "Objects", "PNG"),
+    # Objects for obstacles — outside objects (rocks, logs, trees, helicopter)
     "obstacle_outside": os.path.join(_TILE_BASE, "Objects", "PNG", "Objects_outside"),
+
+    # Destroyed vehicles — specific assembled sprites
+    "vehicle_car": os.path.join("zombie-tds-machines-and-tanks", "PNG", "Car", "car_0004_Layer-5.png"),
+    "vehicle_tank": os.path.join("zombie-tds-machines-and-tanks", "PNG", "Tank", "tank_0013_Layer-0.png"),
+    "vehicle_armored": os.path.join("zombie-tds-machines-and-tanks", "PNG", "Armored_car", "armored_car_0010_Layer-0.png"),
+    "vehicle_pickup": os.path.join("zombie-tds-machines-and-tanks", "PNG", "Pickup", "pickup_0004_Layer-5.png"),
+    "vehicle_compact_tank": os.path.join("zombie-tds-machines-and-tanks", "PNG", "Compact_tank", "pickup_0004_Layer-5.png"),
 
     # Items
     "health_pickup": os.path.join(
@@ -370,10 +376,13 @@ class AssetManager:
             if item_name in ASSET_CONFIG:
                 self.load_static(item_name, ASSET_CONFIG[item_name], icon_size)
 
-        # Obstacle sprites — load building objects (no pre-scaling, done per obstacle)
-        building_surfs = self.load_obstacle_set(ASSET_CONFIG["obstacle_buildings"], max_count=15)
-        outside_surfs = self.load_obstacle_set(ASSET_CONFIG["obstacle_outside"], max_count=10)
-        self._obstacle_surfaces = building_surfs + outside_surfs
+        # Obstacle sprites — destroyed vehicles + outside objects (rocks, logs, trees)
+        vehicles = []
+        for vkey in ("vehicle_car", "vehicle_tank", "vehicle_armored",
+                     "vehicle_pickup", "vehicle_compact_tank"):
+            vehicles.append(self._load_image(self._abs_path(ASSET_CONFIG[vkey])))
+        outside_surfs = self.load_obstacle_set(ASSET_CONFIG["obstacle_outside"], max_count=25)
+        self._obstacle_surfaces = vehicles + outside_surfs
 
         # UI backgrounds
         self.load_static("ui_background", ASSET_CONFIG["ui_background"], screen_size)
