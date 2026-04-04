@@ -1189,7 +1189,7 @@ class Unit:
         if abs(dx) > 0.1 or abs(dy) > 0.1:
             self.anim_state = "walk"
             # Convert movement direction to degrees (0 = up)
-            self.facing_angle = math.degrees(math.atan2(dy, dx)) + 90
+            self.facing_angle = math.degrees(math.atan2(dy, dx)) + 270
         else:
             self.anim_state = "idle"
         self._prev_x = self.x
@@ -1397,7 +1397,7 @@ class Enemy:
         dx, dy = target.x - self.x, target.y - self.y
         dist = math.hypot(dx, dy) or 1
         # Track facing direction toward target
-        self.facing_angle = math.degrees(math.atan2(dy, dx)) + 90
+        self.facing_angle = math.degrees(math.atan2(dy, dx)) + 270
         if self.enemy_type == "shooter":
             # Distance-keeping: approach if far, retreat if close, strafe otherwise
             nx, ny = dx / dist, dy / dist
