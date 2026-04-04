@@ -639,31 +639,31 @@ class TestFullLevelUpFlow(unittest.TestCase):
         self.assertEqual(inv[0]["weapon_type"], "normal")
 
 
-class TestTronColorPalette(unittest.TestCase):
-    def test_bg_is_near_black(self):
-        self.assertEqual(BG, (5, 5, 15))
+class TestColorPalette(unittest.TestCase):
+    def test_bg_is_dark(self):
+        self.assertEqual(BG, (30, 25, 20))
 
-    def test_player_color_is_cyan(self):
-        self.assertEqual(PLAYER_COLOR, (0, 220, 255))
+    def test_player_color(self):
+        self.assertEqual(PLAYER_COLOR, (220, 180, 80))
 
-    def test_enemy_color_is_neon_red(self):
-        self.assertEqual(ENEMY_COLOR, (255, 30, 60))
+    def test_enemy_color(self):
+        self.assertEqual(ENEMY_COLOR, (180, 40, 40))
 
-    def test_grid_color_is_dim_blue(self):
-        self.assertEqual(GRID_COLOR, (15, 15, 40))
+    def test_grid_color(self):
+        self.assertEqual(GRID_COLOR, (40, 35, 28))
 
-    def test_border_color_is_neon_purple(self):
-        self.assertEqual(BORDER_COLOR, (150, 0, 255))
+    def test_border_color(self):
+        self.assertEqual(BORDER_COLOR, (100, 70, 40))
 
     def test_obstacle_colors(self):
-        self.assertEqual(OBSTACLE_COLOR, (15, 10, 30))
-        self.assertEqual(OBSTACLE_BORDER, (120, 0, 200))
+        self.assertEqual(OBSTACLE_COLOR, (50, 40, 30))
+        self.assertEqual(OBSTACLE_BORDER, (80, 60, 40))
 
     def test_bullet_color(self):
-        self.assertEqual(BULLET_COLOR, (200, 255, 255))
+        self.assertEqual(BULLET_COLOR, (255, 200, 50))
 
-    def test_health_fg_neon(self):
-        self.assertEqual(HEALTH_FG, (0, 255, 180))
+    def test_health_fg(self):
+        self.assertEqual(HEALTH_FG, (180, 30, 30))
 
 
 class TestDrawGlow(unittest.TestCase):
@@ -2268,20 +2268,17 @@ class TestMenuSeparator(unittest.TestCase):
         after = surface.get_at((60, 50))
         self.assertNotEqual(before, after)
 
-    def test_draw_menu_separator_different_ticks(self):
+    def test_draw_menu_separator_draws_line(self):
         s1 = pygame.Surface((400, 100))
-        s2 = pygame.Surface((400, 100))
         s1.fill((0, 0, 0))
-        s2.fill((0, 0, 0))
         game.draw_menu_separator(s1, 10, 50, 200, 0)
-        game.draw_menu_separator(s2, 10, 50, 200, 500)
-        # At least one pixel should differ due to animation
-        differs = False
+        # Separator should draw non-black pixels on the line
+        drawn = False
         for x in range(10, 210):
-            if s1.get_at((x, 50)) != s2.get_at((x, 50)):
-                differs = True
+            if s1.get_at((x, 50)) != (0, 0, 0, 255):
+                drawn = True
                 break
-        self.assertTrue(differs)
+        self.assertTrue(drawn)
 
 
 class TestMenuFadeIn(unittest.TestCase):

@@ -5,6 +5,7 @@ import sys
 import json
 import os
 import time
+from assets_manager import AssetManager, TileRenderer
 
 try:
     import tomllib
@@ -335,9 +336,13 @@ level_up_selected_index = 0  # keyboard/gamepad selection index for upgrade pane
 _last_levelup_mouse_pos = (-1, -1)  # track mouse to avoid overriding gamepad selection
 
 
+_assets = None  # Global AssetManager instance
+_tile_renderer = None  # Global TileRenderer instance
+
+
 def init_pygame():
     global screen, clock, font, title_font, menu_font, active_joystick, WIDTH, HEIGHT
-    global options_fullscreen
+    global options_fullscreen, _assets, _tile_renderer
     if screen is not None:
         return
     # Step 1: Initialize pygame
@@ -368,6 +373,12 @@ def init_pygame():
     font = pygame.font.SysFont(None, 36)
     title_font = pygame.font.SysFont(None, 72)
     menu_font = pygame.font.SysFont(None, 52)
+    # Step 5: Load all sprite assets
+    _assets = AssetManager()
+    _assets.preload_all(screen_size=(WIDTH, HEIGHT))
+    # Step 6: Build tile renderer for background
+    _tile_renderer = TileRenderer(MAP_WIDTH, MAP_HEIGHT, tile_size=128)
+    _tile_renderer.build(_assets.get_tiles("grass"), _assets.get_tiles("ground"))
 
 
 def handle_joy_device_added(current_joystick, device_index):
@@ -453,24 +464,24 @@ menu_font = None  # initialized in init_pygame
 menu_fade_alpha = 0  # fade-in alpha (0-255)
 menu_fade_active = True  # whether fade-in is in progress
 
-# Colors
-BG = (5, 5, 15)
-PLAYER_COLOR = (0, 220, 255)
+# Colors — classic zombie shooter palette
+BG = (30, 25, 20)
+PLAYER_COLOR = (220, 180, 80)
 ALLY_COLORS = [
-    (0, 150, 255), (100, 80, 255), (180, 0, 255),
-    (255, 0, 200), (0, 200, 220), (120, 100, 255),
+    (180, 160, 80), (160, 140, 70), (200, 170, 90),
+    (170, 150, 75), (190, 165, 85), (175, 155, 78),
 ]
-ENEMY_COLOR = (255, 30, 60)
-BULLET_COLOR = (200, 255, 255)
+ENEMY_COLOR = (180, 40, 40)
+BULLET_COLOR = (255, 200, 50)
 HEALTH_BG = (60, 60, 60)
-HEALTH_FG = (0, 255, 180)
-GRID_COLOR = (15, 15, 40)
-BORDER_COLOR = (150, 0, 255)
-OBSTACLE_COLOR = (15, 10, 30)
-OBSTACLE_BORDER = (120, 0, 200)
-HEALTH_PICKUP_COLOR = (0, 255, 180)
-ESCAPE_ROOM_COLOR = (10, 25, 20)
-ESCAPE_ROOM_BORDER = (0, 255, 200)
+HEALTH_FG = (180, 30, 30)
+GRID_COLOR = (40, 35, 28)
+BORDER_COLOR = (100, 70, 40)
+OBSTACLE_COLOR = (50, 40, 30)
+OBSTACLE_BORDER = (80, 60, 40)
+HEALTH_PICKUP_COLOR = (200, 50, 50)
+ESCAPE_ROOM_COLOR = (20, 40, 20)
+ESCAPE_ROOM_BORDER = (50, 180, 50)
 
 
 _glow_surface_cache = {}
@@ -625,21 +636,18 @@ class Obstacle:
         self.y = y
         self.w = w
         self.h = h
+        self._sprite = None
+        if _assets is not None:
+            seed = int(x * 1000 + y)
+            self._sprite = _assets.get_random_obstacle_sprite(w, h, seed=seed)
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        # Rectangular glow layers matching obstacle shape
-        for i in range(3, 0, -1):
-            pad = i * 4
-            alpha = max(10, 50 // i)
-            dim = (self.w + pad * 2, self.h + pad * 2)
-            glow_surf = _get_glow_surface(dim)
-            glow_surf.fill((0, 0, 0, 0))
-            glow_color = (OBSTACLE_BORDER[0], OBSTACLE_BORDER[1], OBSTACLE_BORDER[2], alpha)
-            pygame.draw.rect(glow_surf, glow_color, (0, 0, dim[0], dim[1]))
-            screen.blit(glow_surf, (sx - pad, sy - pad))
-        pygame.draw.rect(screen, OBSTACLE_COLOR, (sx, sy, self.w, self.h))
-        pygame.draw.rect(screen, OBSTACLE_BORDER, (sx, sy, self.w, self.h), 2)
+        if self._sprite is not None:
+            screen.blit(self._sprite, (sx, sy))
+        else:
+            pygame.draw.rect(screen, OBSTACLE_COLOR, (sx, sy, self.w, self.h))
+            pygame.draw.rect(screen, OBSTACLE_BORDER, (sx, sy, self.w, self.h), 2)
 
     def collides_circle(self, cx, cy, radius):
         closest_x = max(self.x, min(cx, self.x + self.w))
@@ -695,20 +703,16 @@ class EscapeRoom:
                 sy + self.h < -CULL_MARGIN or sy > sh + CULL_MARGIN):
             return
         pulse = 0.6 + 0.4 * math.sin(self.pulse_timer * 0.05)
-        # Glow layers
-        for i in range(4, 0, -1):
-            pad = i * 6
-            alpha = max(10, int(60 * pulse) // i)
-            dim = (self.w + pad * 2, self.h + pad * 2)
-            glow_surf = _get_glow_surface(dim)
-            glow_surf.fill((0, 0, 0, 0))
-            glow_color = (ESCAPE_ROOM_BORDER[0], ESCAPE_ROOM_BORDER[1],
-                          ESCAPE_ROOM_BORDER[2], alpha)
-            pygame.draw.rect(glow_surf, glow_color, (0, 0, dim[0], dim[1]))
-            screen.blit(glow_surf, (sx - pad, sy - pad))
+        # Draw safe zone with pulsing green border
         pygame.draw.rect(screen, ESCAPE_ROOM_COLOR, (sx, sy, self.w, self.h))
         border_col = tuple(int(c * pulse) for c in ESCAPE_ROOM_BORDER)
         pygame.draw.rect(screen, border_col, (sx, sy, self.w, self.h), 3)
+        # Cross symbol in center
+        cx_s = sx + self.w // 2
+        cy_s = sy + self.h // 2
+        cross_size = min(self.w, self.h) // 4
+        pygame.draw.line(screen, border_col, (cx_s - cross_size, cy_s), (cx_s + cross_size, cy_s), 3)
+        pygame.draw.line(screen, border_col, (cx_s, cy_s - cross_size), (cx_s, cy_s + cross_size), 3)
 
     def collides_circle(self, cx, cy, radius):
         closest_x = max(self.x, min(cx, self.x + self.w))
@@ -1035,8 +1039,8 @@ class Bullet:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        draw_glow(screen, BULLET_COLOR, (sx, sy), self.RADIUS, intensity=60, layers=3)
-        pygame.draw.circle(screen, BULLET_COLOR, (sx, sy), self.RADIUS)
+        color = _WEAPON_TYPE_COLORS.get(self.weapon_type, BULLET_COLOR)
+        pygame.draw.circle(screen, color, (sx, sy), self.RADIUS)
 
 
 class EnemyBullet:
@@ -1044,7 +1048,6 @@ class EnemyBullet:
     SPEED = _eb_cfg.get("speed", 4)
     RADIUS = _eb_cfg.get("radius", 5)
     LIFETIME = _eb_cfg.get("lifetime", 120)
-    COLOR = (255, 120, 40)  # red/orange
 
     def __init__(self, x, y, dx, dy, damage=1):
         self.x, self.y = x, y
@@ -1059,9 +1062,10 @@ class EnemyBullet:
         self.y += self.vy
         self.life -= 1
 
+    COLOR = (120, 200, 50)  # sickly green for zombie bullets
+
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
-        draw_glow(screen, self.COLOR, (sx, sy), self.RADIUS, intensity=80, layers=3)
         pygame.draw.circle(screen, self.COLOR, (sx, sy), self.RADIUS)
 
 
@@ -1088,6 +1092,20 @@ class Unit:
         self.hp = self.max_hp
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
         self.invulnerable_timer = 0
+        self.facing_angle = 0.0  # degrees, 0 = up
+        self.anim_state = "idle"
+        self._prev_x = float(x)
+        self._prev_y = float(y)
+        # Load sprites
+        if _assets is not None:
+            prefix = "player" if is_player else "ally"
+            self.sprite_idle = _assets.get_animation(f"{prefix}_idle")
+            self.sprite_walk = _assets.get_animation(f"{prefix}_walk")
+            self.sprite_shoot = _assets.get_animation(f"{prefix}_shoot") if is_player else None
+        else:
+            self.sprite_idle = None
+            self.sprite_walk = None
+            self.sprite_shoot = None
 
     def move_towards(self, tx, ty, allies, obstacles=()):
         dx, dy = tx - self.x, ty - self.y
@@ -1164,34 +1182,66 @@ class Unit:
                                   damage=damage, speed=bullet_speed,
                                   lifetime=bullet_range, weapon_type=weapon_type))
 
+    def _update_anim_state(self):
+        """Update animation state and facing angle based on movement."""
+        dx = self.x - self._prev_x
+        dy = self.y - self._prev_y
+        if abs(dx) > 0.1 or abs(dy) > 0.1:
+            self.anim_state = "walk"
+            # Convert movement direction to degrees (0 = up)
+            self.facing_angle = math.degrees(math.atan2(dy, dx)) + 90
+        else:
+            self.anim_state = "idle"
+        self._prev_x = self.x
+        self._prev_y = self.y
+
     def draw(self, camera):
         # Blink effect: skip drawing on odd 6-frame cycles during invulnerability
         if self.invulnerable_timer > 0 and (self.invulnerable_timer // 6) % 2 == 1:
             return
         sx, sy = camera.apply(self.x, self.y)
-        # Fade ally color based on remaining lifetime
-        draw_color = self.color
-        if not self.is_player and self.lifetime >= 0:
-            fade = max(0.2, self.lifetime / self.ALLY_LIFETIME)
-            draw_color = tuple(int(c * fade) for c in self.color)
-        draw_glow(screen, draw_color, (sx, sy), self.RADIUS, intensity=80, layers=4)
-        pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS)
-        outline = tuple(min(255, c + 60) for c in draw_color)
-        pygame.draw.circle(screen, outline, (sx, sy), self.RADIUS, 2)
+
+        self._update_anim_state()
+
+        # Pick the right sprite animation
+        sprite = None
+        if self.anim_state == "walk" and self.sprite_walk:
+            sprite = self.sprite_walk
+        elif self.sprite_idle:
+            sprite = self.sprite_idle
+
+        if sprite is not None:
+            sprite.update()
+            frame = sprite.get_rotated_frame(self.facing_angle)
+            # Apply ally fade
+            if not self.is_player and self.lifetime >= 0:
+                fade = max(50, int(255 * self.lifetime / self.ALLY_LIFETIME))
+                frame = frame.copy()
+                frame.set_alpha(fade)
+            fw, fh = frame.get_size()
+            screen.blit(frame, (sx - fw // 2, sy - fh // 2))
+        else:
+            # Fallback: simple circle
+            draw_color = self.color
+            if not self.is_player and self.lifetime >= 0:
+                fade = max(0.2, self.lifetime / self.ALLY_LIFETIME)
+                draw_color = tuple(int(c * fade) for c in self.color)
+            pygame.draw.circle(screen, draw_color, (sx, sy), self.RADIUS)
+
         # HP bar
-        bar_w = self.RADIUS * 2
+        bar_w = self.RADIUS * 2 + 4
         max_hp = self.max_hp
         filled = bar_w * max(0, self.hp) / max_hp
         bx = sx - bar_w // 2
-        by = sy - self.RADIUS - 8
+        by = sy - self.RADIUS - 12
         pygame.draw.rect(screen, HEALTH_BG, (bx, by, bar_w, 4))
         pygame.draw.rect(screen, HEALTH_FG, (bx, by, int(filled), 4))
         # Lifetime bar for allies
         if not self.is_player and self.lifetime >= 0:
             life_filled = bar_w * self.lifetime / self.ALLY_LIFETIME
-            by2 = sy - self.RADIUS - 13
+            by2 = sy - self.RADIUS - 17
             pygame.draw.rect(screen, HEALTH_BG, (bx, by2, bar_w, 3))
-            pygame.draw.rect(screen, (100, 180, 255), (bx, by2, int(life_filled), 3))
+            pygame.draw.rect(screen, (100, 140, 180), (bx, by2, int(life_filled), 3))
 
 
 _ENEMY_TYPE_DEFAULTS = {
@@ -1334,10 +1384,20 @@ class Enemy:
         # Clamp to map bounds (with some allowance outside)
         self.x = max(-margin, min(MAP_WIDTH + margin, float(self.x)))
         self.y = max(-margin, min(MAP_HEIGHT + margin, float(self.y)))
+        self.facing_angle = 0.0  # degrees
+        # Load sprites
+        if _assets is not None:
+            self.sprite_walk = _assets.get_animation(f"enemy_{enemy_type}_walk")
+            self.sprite_attack = _assets.get_animation(f"enemy_{enemy_type}_attack")
+        else:
+            self.sprite_walk = None
+            self.sprite_attack = None
 
     def update(self, target, enemy_bullets=None):
         dx, dy = target.x - self.x, target.y - self.y
         dist = math.hypot(dx, dy) or 1
+        # Track facing direction toward target
+        self.facing_angle = math.degrees(math.atan2(dy, dx)) + 90
         if self.enemy_type == "shooter":
             # Distance-keeping: approach if far, retreat if close, strafe otherwise
             nx, ny = dx / dist, dy / dist
@@ -1369,60 +1429,22 @@ class Enemy:
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
         r = self.radius
-        draw_glow(screen, self.color, (sx, sy), r, intensity=80, layers=4)
-        if self.enemy_type == "runner":
-            points = [(sx, sy - r), (sx + r, sy + r), (sx - r, sy + r)]
-        elif self.enemy_type == "brute":
-            points = [
-                (sx + r * math.cos(math.radians(60 * i - 90)),
-                 sy + r * math.sin(math.radians(60 * i - 90)))
-                for i in range(6)
-            ]
-        elif self.enemy_type == "shielded":
-            # Pentagon shape
-            points = [
-                (sx + r * math.cos(math.radians(72 * i - 90)),
-                 sy + r * math.sin(math.radians(72 * i - 90)))
-                for i in range(5)
-            ]
-        elif self.enemy_type == "elite":
-            # Pulsing glow effect
-            pulse = (math.sin(pygame.time.get_ticks() * 0.005) + 1) / 2  # 0..1
-            extra_intensity = int(40 + 80 * pulse)
-            draw_glow(screen, self.color, (sx, sy), r, intensity=extra_intensity, layers=6)
-            # Octagon shape
-            points = [
-                (sx + r * math.cos(math.radians(45 * i)),
-                 sy + r * math.sin(math.radians(45 * i)))
-                for i in range(8)
-            ]
-        elif self.enemy_type in ("splitter", "mini"):
-            # Star-like: 4-pointed star
-            points = []
-            for i in range(8):
-                angle = math.radians(45 * i - 90)
-                dist = r if i % 2 == 0 else r * 0.5
-                points.append((sx + dist * math.cos(angle), sy + dist * math.sin(angle)))
-        elif self.enemy_type == "shooter":
-            # Tall diamond with crosshair-like notches
-            points = [
-                (sx, sy - r * 1.3),       # top (elongated)
-                (sx + r * 0.4, sy - r * 0.3),
-                (sx + r, sy),              # right
-                (sx + r * 0.4, sy + r * 0.3),
-                (sx, sy + r * 1.3),        # bottom (elongated)
-                (sx - r * 0.4, sy + r * 0.3),
-                (sx - r, sy),              # left
-                (sx - r * 0.4, sy - r * 0.3),
-            ]
+
+        sprite = self.sprite_walk
+        if sprite is not None:
+            sprite.update()
+            frame = sprite.get_rotated_frame(self.facing_angle)
+            fw, fh = frame.get_size()
+            screen.blit(frame, (sx - fw // 2, sy - fh // 2))
         else:
-            points = [(sx, sy - r), (sx + r, sy), (sx, sy + r), (sx - r, sy)]
-        pygame.draw.polygon(screen, self.color, points)
-        enemy_outline = tuple(min(255, c + 60) for c in self.color)
-        pygame.draw.polygon(screen, enemy_outline, points, 2)
+            # Fallback: simple colored circle
+            pygame.draw.circle(screen, self.color, (sx, sy), r)
+            outline = tuple(min(255, c + 60) for c in self.color)
+            pygame.draw.circle(screen, outline, (sx, sy), r, 2)
+
         # Draw shield ring if active
         if self.shield:
-            shield_color = (100, 255, 255)
+            shield_color = (80, 160, 200)
             pygame.draw.circle(screen, shield_color, (sx, sy), r + 4, 2)
 
 
@@ -1457,14 +1479,19 @@ class HealthPickup:
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
         fade = max(0.3, self.lifetime / self.LIFETIME)
-        color = tuple(int(c * fade) for c in HEALTH_PICKUP_COLOR)
-        draw_glow(screen, color, (sx, sy), self.RADIUS, intensity=100, layers=5)
-        pygame.draw.circle(screen, color, (sx, sy), self.RADIUS)
-        # Cross symbol
-        cx_half = self.RADIUS // 2
-        bright = tuple(min(255, c + 80) for c in color)
-        pygame.draw.line(screen, bright, (sx - cx_half, sy), (sx + cx_half, sy), 2)
-        pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
+        pickup_sprite = _assets.get_static("health_pickup") if _assets else None
+        if pickup_sprite is not None:
+            frame = pickup_sprite.copy()
+            frame.set_alpha(int(255 * fade))
+            fw, fh = frame.get_size()
+            screen.blit(frame, (sx - fw // 2, sy - fh // 2))
+        else:
+            color = tuple(int(c * fade) for c in HEALTH_PICKUP_COLOR)
+            pygame.draw.circle(screen, color, (sx, sy), self.RADIUS)
+            cx_half = self.RADIUS // 2
+            bright = tuple(min(255, c + 80) for c in color)
+            pygame.draw.line(screen, bright, (sx - cx_half, sy), (sx + cx_half, sy), 2)
+            pygame.draw.line(screen, bright, (sx, sy - cx_half), (sx, sy + cx_half), 2)
 
 
 _HEALTH_DROP_DEFAULTS = {
@@ -1625,27 +1652,16 @@ def find_closest_enemy(unit, enemies):
 
 
 def draw_grid(camera):
-    grid_size = 128
-    # Brighter grid line color for subtle bloom effect
-    glow_color = (25, 25, 60)
-    # Calculate visible grid lines
-    start_x = int(camera.x // grid_size) * grid_size
-    start_y = int(camera.y // grid_size) * grid_size
-    for x in range(start_x, int(camera.x + WIDTH) + grid_size, grid_size):
-        if 0 <= x <= MAP_WIDTH:
-            sx = int(x - camera.x)
-            # Draw wider dim line for bloom, then bright center
-            pygame.draw.line(screen, GRID_COLOR, (sx, 0), (sx, HEIGHT), 3)
-            pygame.draw.line(screen, glow_color, (sx, 0), (sx, HEIGHT), 1)
-    for y in range(start_y, int(camera.y + HEIGHT) + grid_size, grid_size):
-        if 0 <= y <= MAP_HEIGHT:
-            sy = int(y - camera.y)
-            pygame.draw.line(screen, GRID_COLOR, (0, sy), (WIDTH, sy), 3)
-            pygame.draw.line(screen, glow_color, (0, sy), (WIDTH, sy), 1)
-    # Draw map border with glow
+    """Draw tiled ground background and map border."""
+    if _tile_renderer is not None:
+        _tile_renderer.draw(screen, camera)
+    else:
+        # Fallback: solid fill
+        screen.fill(BG)
+    # Draw map border
     bx, by = camera.apply(0, 0)
     bw, bh = MAP_WIDTH, MAP_HEIGHT
-    pygame.draw.rect(screen, (80, 0, 140), (bx - 2, by - 2, bw + 4, bh + 4), 5)
+    pygame.draw.rect(screen, (60, 45, 30), (bx - 2, by - 2, bw + 4, bh + 4), 5)
     pygame.draw.rect(screen, BORDER_COLOR, (bx, by, bw, bh), 3)
 
 
@@ -1653,20 +1669,7 @@ HUD_MARGIN = 10  # Spacing from screen edges for all HUD widgets
 
 
 def draw_hud_panel(x, y, w, h, border_color=BORDER_COLOR):
-    """Draw a semi-transparent rounded-rect panel with neon border and subtle glow."""
-    # Subtle glow behind the border
-    glow_layers = 3
-    for i in range(glow_layers, 0, -1):
-        expand = i * 2
-        alpha = max(8, 40 // i)
-        glow_color = (border_color[0], border_color[1], border_color[2], alpha)
-        glow_surf = _get_glow_surface((w + expand * 2, h + expand * 2))
-        glow_surf.fill((0, 0, 0, 0))
-        pygame.draw.rect(glow_surf, glow_color,
-                         (0, 0, w + expand * 2, h + expand * 2),
-                         border_radius=6 + expand)
-        screen.blit(glow_surf, (x - expand, y - expand))
-    # Panel background
+    """Draw a semi-transparent rounded-rect HUD panel."""
     panel = _get_glow_surface((w, h))
     panel.fill((0, 0, 0, 0))
     pygame.draw.rect(panel, PANEL_BG_COLOR, (0, 0, w, h), border_radius=6)
@@ -1747,9 +1750,9 @@ def draw_hud_vitals(player, xp, xp_thresholds, level):
 # Weapon type -> display color mapping for HUD
 _WEAPON_TYPE_COLORS = {
     "normal": BULLET_COLOR,
-    "shotgun": (255, 180, 0),
-    "piercing": (0, 255, 255),
-    "explosive": (255, 80, 60),
+    "shotgun": (220, 140, 40),
+    "piercing": (140, 200, 220),
+    "explosive": (220, 80, 40),
 }
 
 
@@ -1913,9 +1916,12 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
             if _is_visible(camera, hx, hy):
                 sx, sy = camera.apply(hx, hy)
                 alpha_frac = ht / 15
-                r = int(20 + 20 * (1 - alpha_frac))
-                draw_glow(screen, HEALTH_PICKUP_COLOR, (sx, sy), r,
-                          intensity=int(120 * alpha_frac), layers=3)
+                r = int(10 + 10 * (1 - alpha_frac))
+                heal_surf = _get_glow_surface((r * 2, r * 2))
+                heal_surf.fill((0, 0, 0, 0))
+                alpha = int(120 * alpha_frac)
+                pygame.draw.circle(heal_surf, (180, 40, 40, alpha), (r, r), r)
+                screen.blit(heal_surf, (sx - r, sy - r))
     for a in allies:
         if _is_visible(camera, a.x, a.y):
             a.draw(camera)
@@ -1925,8 +1931,8 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     if escape_flash_timer > 0:
         flash_surface = _get_glow_surface((WIDTH, HEIGHT))
         flash_surface.fill((0, 0, 0, 0))
-        alpha = int(180 * (escape_flash_timer / 15))
-        flash_surface.fill((0, 255, 200, alpha))
+        alpha = int(140 * (escape_flash_timer / 15))
+        flash_surface.fill((50, 180, 50, alpha))
         screen.blit(flash_surface, (0, 0))
 
     # HUD - Top-left vitals widget
@@ -2037,7 +2043,7 @@ def draw_dim_overlay():
 # Upgrade panel constants
 PANEL_WIDTH = 500
 PANEL_HEIGHT = 350
-PANEL_BG_COLOR = (10, 5, 25, 200)
+PANEL_BG_COLOR = (20, 18, 15, 200)
 PANEL_BORDER_GLOW_LAYERS = 4
 OPTION_ROW_HEIGHT = 55
 OPTION_PADDING = 10
@@ -2117,38 +2123,26 @@ def _panel_origin():
 
 
 def draw_upgrade_panel(level, upgrade_options):
-    """Draw a centered floating panel with neon border for the upgrade selector."""
+    """Draw a centered floating panel for the upgrade selector."""
     panel_x, panel_y = _panel_origin()
     # Panel background
     panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
     panel_surf.fill(PANEL_BG_COLOR)
-
-    # Neon glow border
-    for i in range(PANEL_BORDER_GLOW_LAYERS, 0, -1):
-        alpha = max(15, 80 // i)
-        glow_color = (BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], alpha)
-        expand = i * 3
-        glow_rect = pygame.Rect(-expand, -expand,
-                                PANEL_WIDTH + expand * 2, PANEL_HEIGHT + expand * 2)
-        glow_surf = pygame.Surface((glow_rect.width, glow_rect.height), pygame.SRCALPHA)
-        pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius=8)
-        screen.blit(glow_surf, (panel_x - expand, panel_y - expand))
 
     # Solid border
     pygame.draw.rect(panel_surf, BORDER_COLOR,
                      pygame.Rect(0, 0, PANEL_WIDTH, PANEL_HEIGHT), 2, border_radius=6)
 
     # Title
-    title = title_font.render(f"Level {level}!", True, BORDER_COLOR)
-    title_glow = title_font.render(f"Level {level}!", True, (80, 0, 140))
+    title = title_font.render(f"Level {level}!", True, (200, 160, 80))
+    title_shadow = title_font.render(f"Level {level}!", True, (50, 35, 15))
     tx = PANEL_WIDTH // 2 - title.get_width() // 2
     ty = 15
-    panel_surf.blit(title_glow, (tx - 2, ty - 2))
-    panel_surf.blit(title_glow, (tx + 2, ty + 2))
+    panel_surf.blit(title_shadow, (tx + 2, ty + 2))
     panel_surf.blit(title, (tx, ty))
 
     # Subtitle
-    subtitle = font.render("Choose an upgrade:", True, (0, 180, 220))
+    subtitle = font.render("Choose an upgrade:", True, (180, 160, 120))
     panel_surf.blit(subtitle, (PANEL_WIDTH // 2 - subtitle.get_width() // 2, 60))
 
     # Upgrade option rows (level_up_selected_index is synced from mouse hover each frame)
@@ -2167,7 +2161,7 @@ def draw_upgrade_panel(level, upgrade_options):
             panel_surf.blit(row_bg, row_rect.topleft)
             pygame.draw.rect(panel_surf, BORDER_COLOR, row_rect, 1, border_radius=4)
         else:
-            pygame.draw.rect(panel_surf, (60, 40, 100, 120), row_rect, 1, border_radius=4)
+            pygame.draw.rect(panel_surf, (60, 50, 35, 120), row_rect, 1, border_radius=4)
 
         # Icon (use cached if available)
         icon = opt.get('_icon') or create_upgrade_icon(opt)
@@ -2176,7 +2170,7 @@ def draw_upgrade_panel(level, upgrade_options):
         panel_surf.blit(icon, (icon_x, icon_y))
 
         # Option text (shifted right to make room for icon)
-        color = (0, 255, 180) if "weapon_type" in opt else (100, 80, 255)
+        color = (200, 170, 80) if "weapon_type" in opt else (180, 160, 120)
         text = font.render(f"[{i+1}] {opt['name']}", True, color)
         text_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - text.get_height() // 2
         panel_surf.blit(text, (icon_x + ICON_SIZE + 10, text_y))
@@ -2210,9 +2204,14 @@ def apply_resolution():
         # Fallback to windowed mode if fullscreen fails
         options_fullscreen = False
         screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
-    _menu_background = None  # Reset so it regenerates at new size
+    _menu_background = None
     _fade_overlay = None
     _dim_overlay = None
+    # Reload UI backgrounds at new resolution
+    if _assets is not None:
+        from assets_manager import ASSET_CONFIG
+        _assets.load_static("ui_background", ASSET_CONFIG["ui_background"], (WIDTH, HEIGHT))
+        _assets.load_static("ui_background2", ASSET_CONFIG["ui_background2"], (WIDTH, HEIGHT))
     save_settings()
 
 
@@ -2220,19 +2219,20 @@ def draw_options_menu():
     """Draw the options menu matching main menu visual style."""
     global _menu_background
 
-    # Draw animated fractal city background
-    if _menu_background is None:
-        _menu_background = FractalBackground(WIDTH, HEIGHT)
-    _menu_background.draw(screen)
+    # Draw background image or solid fallback
+    bg = _assets.get_static("ui_background") if _assets else None
+    if bg is not None:
+        screen.blit(bg, (0, 0))
+    else:
+        screen.fill(BG)
 
     # Title in upper-left area matching main menu style
     options_start_y = MENU_START_Y
-    title = title_font.render("Options", True, PLAYER_COLOR)
-    title_glow = title_font.render("Options", True, (0, 100, 140))
+    title = title_font.render("Options", True, (200, 60, 40))
+    title_shadow = title_font.render("Options", True, (40, 15, 10))
     tx = MENU_X
     ty = options_start_y - 120
-    screen.blit(title_glow, (tx - 2, ty - 2))
-    screen.blit(title_glow, (tx + 2, ty + 2))
+    screen.blit(title_shadow, (tx + 2, ty + 2))
     screen.blit(title, (tx, ty))
 
     items = [
@@ -2251,19 +2251,17 @@ def draw_options_menu():
         x = MENU_X + (MENU_HOVER_INDENT if is_selected else 0)
 
         if is_selected:
-            glow_color = (255, 140, 0)
-            text_color = (255, 255, 255)
-            glow_surf = menu_font.render(label, True, glow_color)
-            screen.blit(glow_surf, (x - 1, y - 1))
-            screen.blit(glow_surf, (x + 1, y + 1))
+            text_color = (255, 220, 160)
+            shadow_surf = menu_font.render(label, True, (80, 40, 10))
+            screen.blit(shadow_surf, (x + 1, y + 1))
         else:
-            text_color = (180, 180, 180)
+            text_color = (180, 170, 160)
 
         text_surf = menu_font.render(label, True, text_color)
         screen.blit(text_surf, (x, y))
 
         if value:
-            val_color = PLAYER_COLOR if is_selected else (180, 180, 180)
+            val_color = PLAYER_COLOR if is_selected else (180, 170, 160)
             val_surf = menu_font.render(f"  {value}", True, val_color)
             screen.blit(val_surf, (x + text_surf.get_width(), y))
 
@@ -2298,57 +2296,43 @@ def get_hovered_options_index(mx, my):
 
 
 def draw_menu_separator(surface, x, y, width, ticks):
-    """Draw an animated orange line separator between menu items."""
-    # Pulsing alpha based on time
-    pulse = int(80 + 40 * math.sin(ticks * 0.003))
-    color = (255, 140, 0)
-    # Draw the line
+    """Draw a subtle separator line between menu items."""
+    color = (100, 70, 40)
     pygame.draw.line(surface, color, (x, y), (x + width, y), 1)
-    # Animated glow sweep - a brighter spot that moves along the line
-    sweep_pos = int((ticks * 0.1) % (width + 40)) - 20
-    glow_width = 40
-    for i in range(glow_width):
-        gx = sweep_pos - glow_width // 2 + i
-        if x <= gx <= x + width:
-            intensity = max(0, pulse - abs(i - glow_width // 2) * 4)
-            glow_color = (255, min(255, intensity + 60), 0)
-            pygame.draw.line(surface, glow_color, (gx, y - 1), (gx, y + 1), 1)
 
 
 def draw_menu():
     global _menu_background, menu_fade_alpha, menu_fade_active
 
-    # Draw animated fractal city background
-    if _menu_background is None:
-        _menu_background = FractalBackground(WIDTH, HEIGHT)
-    _menu_background.draw(screen)
+    # Draw background image or solid fallback
+    bg = _assets.get_static("ui_background") if _assets else None
+    if bg is not None:
+        screen.blit(bg, (0, 0))
+    else:
+        screen.fill(BG)
 
-    # Title in upper-left area
-    title = title_font.render("Squad Survivors", True, PLAYER_COLOR)
-    title_glow = title_font.render("Squad Survivors", True, (0, 100, 140))
+    # Title in upper-left area — blood red zombie style
+    title = title_font.render("Squad Survivors", True, (200, 60, 40))
+    title_shadow = title_font.render("Squad Survivors", True, (40, 15, 10))
     tx = MENU_X
     ty = MENU_START_Y - 120
-    screen.blit(title_glow, (tx - 2, ty - 2))
-    screen.blit(title_glow, (tx + 2, ty + 2))
+    screen.blit(title_shadow, (tx + 2, ty + 2))
     screen.blit(title, (tx, ty))
 
     ticks = pygame.time.get_ticks()
 
-    # Draw menu items - Half-Life style
+    # Draw menu items
     for i, item_text in enumerate(MENU_ITEMS):
         y = MENU_START_Y + i * MENU_ITEM_HEIGHT
         is_selected = (i == menu_selected_index)
         x = MENU_X + (MENU_HOVER_INDENT if is_selected else 0)
 
         if is_selected:
-            # Orange/white highlight with neon glow
-            glow_color = (255, 140, 0)
-            text_color = (255, 255, 255)
-            glow_surf = menu_font.render(item_text, True, glow_color)
-            screen.blit(glow_surf, (x - 1, y - 1))
-            screen.blit(glow_surf, (x + 1, y + 1))
+            text_color = (255, 220, 160)
+            shadow_surf = menu_font.render(item_text, True, (80, 40, 10))
+            screen.blit(shadow_surf, (x + 1, y + 1))
         else:
-            text_color = (180, 180, 180)
+            text_color = (180, 170, 160)
 
         text_surf = menu_font.render(item_text, True, text_color)
         screen.blit(text_surf, (x, y))
@@ -2375,33 +2359,33 @@ def draw_menu():
 
 
 def draw_game_over(score, level=1, killer_info=None):
-    # Semi-transparent dark overlay instead of solid fill
+    # Semi-transparent dark overlay
     overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 180))
     screen.blit(overlay, (0, 0))
-    # Neon red glow on GAME OVER
-    t1 = title_font.render("GAME OVER", True, ENEMY_COLOR)
-    t1_glow = title_font.render("GAME OVER", True, (140, 10, 30))
+    # GAME OVER in blood red with shadow
+    t1 = title_font.render("GAME OVER", True, (180, 30, 20))
+    t1_shadow = title_font.render("GAME OVER", True, (40, 8, 5))
     tx = WIDTH // 2 - t1.get_width() // 2
     ty = HEIGHT // 4
-    screen.blit(t1_glow, (tx - 2, ty - 2))
-    screen.blit(t1_glow, (tx + 2, ty + 2))
+    screen.blit(t1_shadow, (tx + 2, ty + 2))
     screen.blit(t1, (tx, ty))
     # Killed by info
     info_y = ty + t1.get_height() + 30
+    text_color = (200, 180, 160)
     if killer_info:
-        kb = font.render(f"Killed by: {killer_info['killed_by']}", True, (255, 100, 100))
+        kb = font.render(f"Killed by: {killer_info['killed_by']}", True, (220, 100, 80))
         screen.blit(kb, (WIDTH // 2 - kb.get_width() // 2, info_y))
         info_y += 35
-        wt = font.render(f"Wave: {killer_info['wave']}", True, (200, 255, 255))
+        wt = font.render(f"Wave: {killer_info['wave']}", True, text_color)
         screen.blit(wt, (WIDTH // 2 - wt.get_width() // 2, info_y))
         info_y += 30
-        st = font.render(f"Survived: {killer_info['survival_time']}s", True, (200, 255, 255))
+        st = font.render(f"Survived: {killer_info['survival_time']}s", True, text_color)
         screen.blit(st, (WIDTH // 2 - st.get_width() // 2, info_y))
         info_y += 30
-    t2 = font.render(f"Score: {score}   Level: {level}", True, (200, 255, 255))
+    t2 = font.render(f"Score: {score}   Level: {level}", True, text_color)
     screen.blit(t2, (WIDTH // 2 - t2.get_width() // 2, info_y + 10))
-    t3 = font.render("Press ENTER to Restart", True, (0, 180, 220))
+    t3 = font.render("Press ENTER to Restart", True, (180, 160, 120))
     screen.blit(t3, (WIDTH // 2 - t3.get_width() // 2, info_y + 50))
     pygame.display.flip()
 
