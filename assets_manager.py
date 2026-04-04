@@ -3,7 +3,8 @@
 Provides:
 - AnimatedSprite: frame-based animation with rotation caching
 - AssetManager: singleton that loads/caches all game sprites
-- TileRenderer: draws tiled ground backgrounds
+- TileRenderer: procedural tiled ground backgrounds (fallback)
+- TiledMapRenderer: loads Tiled (.tmx) maps via pytmx
 """
 
 import os
@@ -407,28 +408,30 @@ class TileRenderer:
     def build(self, grass_tiles, ground_tiles):
         """Assign tile variants to each grid cell.
 
+        Only uses the center/fill tile (index 0) from each set — the other
+        12 tiles are edge/corner transition pieces meant for autotiling.
+
         Args:
             grass_tiles: list of pygame.Surface (grass variants)
             ground_tiles: list of pygame.Surface (ground/dirt variants)
         """
         rng = random.Random(self._seed)
-        all_tiles = []
-        # Weight grass more heavily for a natural look
+        # Only use center/fill tiles (index 0) — seamless, no edges
+        fill_tiles = []
         if grass_tiles:
-            all_tiles.extend(grass_tiles * 3)
+            fill_tiles.append(grass_tiles[0])
         if ground_tiles:
-            all_tiles.extend(ground_tiles)
-        if not all_tiles:
-            # Fallback: solid brown tile
+            fill_tiles.append(ground_tiles[0])
+        if not fill_tiles:
             fallback = pygame.Surface((self.tile_size, self.tile_size))
             fallback.fill((40, 35, 25))
-            all_tiles = [fallback]
+            fill_tiles = [fallback]
 
         self._tile_map = []
         for row in range(self.rows):
             row_tiles = []
             for col in range(self.cols):
-                tile = rng.choice(all_tiles)
+                tile = rng.choice(fill_tiles)
                 row_tiles.append(tile)
             self._tile_map.append(row_tiles)
 
@@ -451,3 +454,58 @@ class TileRenderer:
                 sx = int(col * ts - camera.x)
                 sy = int(row * ts - camera.y)
                 screen.blit(tile_surf, (sx, sy))
+
+
+# ---------------------------------------------------------------------------
+# TiledMapRenderer — loads Tiled (.tmx) maps via pytmx
+# ---------------------------------------------------------------------------
+class TiledMapRenderer:
+    """Renders a Tiled (.tmx) map using pytmx.
+
+    Supports multiple layers, proper terrain transitions, and tile scaling.
+    Falls back gracefully if pytmx is not installed.
+    """
+
+    def __init__(self, tmx_path, target_tile_size=128):
+        try:
+            from pytmx.util_pygame import load_pygame
+        except ImportError:
+            raise ImportError("pytmx is required for .tmx map loading. Install with: pip install pytmx")
+        self.tmx_data = load_pygame(tmx_path)
+        self.target_tile_size = target_tile_size
+        self.map_pixel_w = self.tmx_data.width * target_tile_size
+        self.map_pixel_h = self.tmx_data.height * target_tile_size
+        # Pre-scale cache: (original_surface_id, target_size) -> scaled_surface
+        self._scale_cache = {}
+
+    def _get_scaled(self, image):
+        """Return image scaled to target tile size, with caching."""
+        ts = self.target_tile_size
+        target = (ts, ts)
+        if image.get_size() == target:
+            return image
+        key = id(image)
+        cached = self._scale_cache.get(key)
+        if cached is not None:
+            return cached
+        scaled = pygame.transform.smoothscale(image, target)
+        self._scale_cache[key] = scaled
+        return scaled
+
+    def draw(self, screen, camera):
+        """Blit visible tiles from all visible layers."""
+        ts = self.target_tile_size
+        screen_w = screen.get_width()
+        screen_h = screen.get_height()
+
+        for layer in self.tmx_data.visible_layers:
+            if not hasattr(layer, 'tiles'):
+                continue
+            for x, y, image in layer.tiles():
+                px = x * ts - int(camera.x)
+                py = y * ts - int(camera.y)
+                # Cull off-screen tiles
+                if px > screen_w or px < -ts or py > screen_h or py < -ts:
+                    continue
+                scaled = self._get_scaled(image)
+                screen.blit(scaled, (px, py))

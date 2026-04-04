@@ -5,7 +5,7 @@ import sys
 import json
 import os
 import time
-from assets_manager import AssetManager, TileRenderer
+from assets_manager import AssetManager, TileRenderer, TiledMapRenderer
 
 try:
     import tomllib
@@ -377,8 +377,13 @@ def init_pygame():
     _assets = AssetManager()
     _assets.preload_all(screen_size=(WIDTH, HEIGHT))
     # Step 6: Build tile renderer for background
-    _tile_renderer = TileRenderer(MAP_WIDTH, MAP_HEIGHT, tile_size=128)
-    _tile_renderer.build(_assets.get_tiles("grass"), _assets.get_tiles("ground"))
+    # Prefer Tiled .tmx map if available, fall back to procedural
+    _tmx_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "maps", "level1.tmx")
+    if os.path.exists(_tmx_path):
+        _tile_renderer = TiledMapRenderer(_tmx_path, target_tile_size=128)
+    else:
+        _tile_renderer = TileRenderer(MAP_WIDTH, MAP_HEIGHT, tile_size=128)
+        _tile_renderer.build(_assets.get_tiles("grass"), _assets.get_tiles("ground"))
 
 
 def handle_joy_device_added(current_joystick, device_index):
