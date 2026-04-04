@@ -3325,8 +3325,8 @@ def run():
             save_stats(run_data)
             # Roguelite: compute earned upgrades and save one to profile
             earned = compute_run_earned_upgrades(profile_start_levels, run_upgrade_levels)
-            if earned:
-                saved_idx, saved_upgrade = select_saved_upgrade(earned)
+            saved_idx, saved_upgrade = select_saved_upgrade(earned, profile) if earned else (None, None)
+            if saved_upgrade is not None:
                 save_run_upgrade_to_profile(profile, saved_upgrade, wave=wave)
                 death_review_data = {
                     "earned": earned,

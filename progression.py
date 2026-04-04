@@ -360,7 +360,8 @@ def compute_run_earned_upgrades(profile_start_levels, run_levels):
     """Compute list of individual upgrade events earned during this run.
 
     Each entry represents one level-up in one category.
-    Categories that gained multiple levels produce multiple entries.
+    Only includes upgrades that exceed the current profile level,
+    so saving one can never downgrade the player's profile.
 
     Returns:
         list of dicts: {"category": key, "name": display_name, "from_level": N, "to_level": N+1}
@@ -380,25 +381,41 @@ def compute_run_earned_upgrades(profile_start_levels, run_levels):
     return earned
 
 
-def select_saved_upgrade(earned_upgrades):
+def select_saved_upgrade(earned_upgrades, profile):
     """Randomly select one upgrade event to save to profile.
 
+    Only considers upgrades whose to_level exceeds the current profile
+    level for that category, ensuring we never downgrade progress.
+
     Returns:
-        (index, upgrade_event) tuple, or (None, None) if no upgrades earned
+        (index, upgrade_event) tuple, or (None, None) if nothing qualifies
     """
     if not earned_upgrades:
         return None, None
-    idx = random.randint(0, len(earned_upgrades) - 1)
-    return idx, earned_upgrades[idx]
+    # Filter to only upgrades that would actually raise the profile level
+    profile_levels = profile.get("upgrades", {})
+    eligible = []
+    for i, upg in enumerate(earned_upgrades):
+        current_profile_level = profile_levels.get(upg["category"], 0)
+        if upg["to_level"] > current_profile_level:
+            eligible.append((i, upg))
+    if not eligible:
+        return None, None
+    idx, upg = random.choice(eligible)
+    return idx, upg
 
 
 def save_run_upgrade_to_profile(profile, upgrade_event, wave=0):
     """Save a single upgrade event to the player profile.
 
-    Increments the category's permanent level by 1 and updates stats.
+    Only saves if the upgrade's target level exceeds the current profile
+    level, preventing any accidental downgrade of player progress.
     """
     key = upgrade_event["category"]
-    profile["upgrades"][key] = profile["upgrades"].get(key, 0) + 1
+    current = profile["upgrades"].get(key, 0)
+    target = upgrade_event.get("to_level", current + 1)
+    if target > current:
+        profile["upgrades"][key] = target
     profile["total_runs"] = profile.get("total_runs", 0) + 1
     if wave > profile.get("best_wave", 0):
         profile["best_wave"] = wave
