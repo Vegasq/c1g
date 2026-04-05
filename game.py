@@ -631,6 +631,22 @@ def _get_glow_surface(size):
     return surf
 
 
+_shadow_cache = {}
+
+
+def draw_shadow(surface, center, width, height):
+    """Draw a dark semi-transparent ellipse shadow under an entity."""
+    key = (width, height)
+    shadow = _shadow_cache.get(key)
+    if shadow is None:
+        if len(_shadow_cache) > 128:
+            _shadow_cache.clear()
+        shadow = pygame.Surface((width, height), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow, (0, 0, 0, 50), (0, 0, width, height))
+        _shadow_cache[key] = shadow
+    surface.blit(shadow, (center[0] - width // 2, center[1] - height // 4))
+
+
 def draw_glow(surface, color, center, radius, intensity=80, layers=4):
     """Draw layered transparent circles to simulate neon glow."""
     if radius <= 0 or layers <= 0:
@@ -674,6 +690,10 @@ class Obstacle:
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
+        # Shadow offset below and to the right
+        cx = sx + self.w // 2
+        cy = sy + self.h // 2
+        draw_shadow(screen, (cx + 4, cy + 4), self.w, int(self.h * 0.6))
         if self._sprite is not None:
             screen.blit(self._sprite, (sx, sy))
         else:
@@ -1239,6 +1259,9 @@ class Unit:
             return
         sx, sy = camera.apply(self.x, self.y)
 
+        # Shadow
+        draw_shadow(screen, (sx, sy), self.RADIUS * 3, self.RADIUS * 2)
+
         self._update_anim_state()
 
         # Pick the right sprite animation
@@ -1499,6 +1522,9 @@ class Enemy:
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
         r = self.radius
+
+        # Shadow
+        draw_shadow(screen, (sx, sy), r * 3, r * 2)
 
         sprite = self.sprite_walk
         if sprite is not None:
