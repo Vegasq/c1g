@@ -2184,6 +2184,14 @@ _card_toml = None  # parsed TOML positions dict
 _card_scaled_surface = None  # pre-scaled card surface for rendering
 _card_scale_factor = 1.0  # scale factor applied to cards
 _card_scaled_positions = None  # TOML positions scaled for rendering
+ICON_TARGET_SIZE = 180  # icon area diameter on original 405px-wide card
+_upgrade_icon_cache = {}  # category -> scaled pygame.Surface
+# Legacy constants kept for draw_upgrade_panel/get_hovered_upgrade_index until
+# those functions are rewritten in Tasks 3-5.
+ICON_SIZE = 32
+OPTION_ROW_HEIGHT = 60
+OPTION_START_Y = 90
+OPTION_PADDING = 20
 PANEL_WIDTH = 500  # updated by _load_card_assets
 PANEL_HEIGHT = 350  # updated by _load_card_assets
 
@@ -2232,53 +2240,35 @@ def _load_card_assets():
 
 
 def create_upgrade_icon(option):
-    """Create a 32x32 procedural icon for an upgrade option."""
-    surf = pygame.Surface((ICON_SIZE, ICON_SIZE), pygame.SRCALPHA)
-    cx, cy = ICON_SIZE // 2, ICON_SIZE // 2
+    """Load and return a scaled icon surface for an upgrade option.
+
+    Loads the PNG from assets/upgrades/upgrades_{category}.png, scales it to
+    fit the icon area on the card, and caches the result.  Returns a transparent
+    surface for unknown categories.
+    """
     cat = option.get("category", "")
 
-    if cat == "max_hp":
-        color = (255, 50, 100)
-        pygame.draw.polygon(surf, color, [
-            (cx, 28), (4, 14), (4, 8), (10, 4), (cx, 12),
-            (22, 4), (28, 8), (28, 14)
-        ])
-    elif cat == "move_speed":
-        color = (100, 200, 255)
-        pygame.draw.polygon(surf, color, [(4, 28), (16, 4), (28, 28)])
-        pygame.draw.line(surf, color, (8, 20), (24, 20), 2)
-    elif cat == "weapon_normal":
-        color = (200, 180, 100)
-        pygame.draw.line(surf, color, (cx, 4), (cx, 24), 3)
-        pygame.draw.line(surf, color, (cx - 8, 18), (cx + 8, 18), 2)
-        pygame.draw.rect(surf, color, (cx - 2, 24, 4, 4))
-    elif cat == "weapon_shotgun":
-        color = (220, 140, 40)
-        pygame.draw.line(surf, color, (4, cy), (28, 6), 2)
-        pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
-        pygame.draw.line(surf, color, (4, cy), (28, 26), 2)
-    elif cat == "weapon_piercing":
-        color = (140, 200, 220)
-        pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
-        pygame.draw.line(surf, color, (20, 8), (28, cy), 2)
-        pygame.draw.line(surf, color, (20, 24), (28, cy), 2)
-        pygame.draw.circle(surf, color, (14, cy), 3, 1)
-    elif cat == "weapon_explosive":
-        color = (220, 80, 40)
-        pygame.draw.circle(surf, color, (cx, cy), 8, 2)
-        for pts in [((cx, 2), (cx, 8)), ((cx, 24), (cx, 30)),
-                    ((2, cy), (8, cy)), ((24, cy), (30, cy))]:
-            pygame.draw.line(surf, color, pts[0], pts[1], 1)
-    elif cat == "ally_spawn":
-        color = (100, 180, 100)
-        pygame.draw.circle(surf, color, (10, 14), 6, 2)
-        pygame.draw.circle(surf, color, (22, 14), 6, 2)
-        pygame.draw.circle(surf, color, (16, 22), 4, 2)
-    elif cat == "heal_amount":
-        color = (200, 80, 80)
-        pygame.draw.rect(surf, color, (cx - 8, cy - 2, 16, 4))
-        pygame.draw.rect(surf, color, (cx - 2, cy - 8, 4, 16))
+    if cat in _upgrade_icon_cache:
+        return _upgrade_icon_cache[cat]
 
+    # Compute the target pixel size for the icon on the scaled card
+    scaled_icon_size = int(ICON_TARGET_SIZE * _card_scale_factor)
+    if scaled_icon_size < 1:
+        scaled_icon_size = 1
+
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "upgrades", f"upgrades_{cat}.png")
+    if os.path.isfile(icon_path):
+        raw = pygame.image.load(icon_path)
+        try:
+            raw = raw.convert_alpha()
+        except pygame.error:
+            pass  # no display surface yet (e.g. in tests)
+        surf = pygame.transform.smoothscale(raw, (scaled_icon_size, scaled_icon_size))
+    else:
+        surf = pygame.Surface((scaled_icon_size, scaled_icon_size), pygame.SRCALPHA)
+
+    _upgrade_icon_cache[cat] = surf
     return surf
 
 

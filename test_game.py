@@ -799,6 +799,7 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         game.title_font = self._make_mock_font()
         self._orig_menu_font = game.menu_font
         game.menu_font = self._make_mock_font()
+        game._upgrade_icon_cache.clear()
 
     def tearDown(self):
         import game
@@ -945,42 +946,56 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self.assertEqual(center_y, HEIGHT // 2)
 
     def test_create_upgrade_icon_returns_surface(self):
-        """Verify create_upgrade_icon returns a 32x32 surface for each upgrade type."""
-        from game import create_upgrade_icon, ICON_SIZE
-        test_options = [
-            {"name": "+Damage", "stat": "damage", "amount": 1},
-            {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
-            {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2},
-            {"name": "+Range", "stat": "range", "amount": 15},
-            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
-            {"name": "Weapon: Piercing", "weapon_type": "piercing"},
-            {"name": "Weapon: Explosive", "weapon_type": "explosive"},
+        """Verify create_upgrade_icon returns a square surface for each category."""
+        from game import create_upgrade_icon, ICON_TARGET_SIZE, _card_scale_factor
+        expected = int(ICON_TARGET_SIZE * _card_scale_factor)
+        categories = [
+            "max_hp", "move_speed", "weapon_normal", "weapon_shotgun",
+            "weapon_piercing", "weapon_explosive", "ally_spawn", "heal_amount",
         ]
-        for opt in test_options:
-            icon = create_upgrade_icon(opt)
-            self.assertEqual(icon.get_width(), ICON_SIZE, f"Icon width wrong for {opt['name']}")
-            self.assertEqual(icon.get_height(), ICON_SIZE, f"Icon height wrong for {opt['name']}")
+        for cat in categories:
+            icon = create_upgrade_icon({"category": cat, "name": cat})
+            self.assertEqual(icon.get_width(), expected, f"Icon width wrong for {cat}")
+            self.assertEqual(icon.get_height(), expected, f"Icon height wrong for {cat}")
 
     def test_create_upgrade_icon_not_blank(self):
-        """Verify icons have non-transparent pixels drawn on them."""
-        from game import create_upgrade_icon, ICON_SIZE
-        test_options = [
-            {"category": "max_hp", "name": "Max HP"},
-            {"category": "weapon_shotgun", "name": "Shotgun"},
-            {"category": "move_speed", "name": "Move Speed"},
-            {"category": "ally_spawn", "name": "Ally Spawn Rate"},
+        """Verify icons loaded from PNG have non-transparent pixels."""
+        from game import create_upgrade_icon
+        categories = [
+            "max_hp", "weapon_shotgun", "move_speed", "ally_spawn",
+            "weapon_normal", "weapon_piercing", "weapon_explosive", "heal_amount",
         ]
-        for opt in test_options:
-            icon = create_upgrade_icon(opt)
+        for cat in categories:
+            icon = create_upgrade_icon({"category": cat, "name": cat})
+            w, h = icon.get_width(), icon.get_height()
             has_pixel = False
-            for x in range(ICON_SIZE):
-                for y in range(ICON_SIZE):
+            for x in range(w):
+                for y in range(h):
                     if icon.get_at((x, y))[3] > 0:
                         has_pixel = True
                         break
                 if has_pixel:
                     break
-            self.assertTrue(has_pixel, f"Icon for {opt['name']} is completely blank")
+            self.assertTrue(has_pixel, f"Icon for {cat} is completely blank")
+
+    def test_create_upgrade_icon_caching(self):
+        """Verify that calling create_upgrade_icon twice returns the same cached surface."""
+        import game
+        from game import create_upgrade_icon
+        game._upgrade_icon_cache.clear()
+        icon1 = create_upgrade_icon({"category": "max_hp", "name": "Max HP"})
+        icon2 = create_upgrade_icon({"category": "max_hp", "name": "Max HP"})
+        self.assertIs(icon1, icon2, "Icon should be returned from cache")
+
+    def test_create_upgrade_icon_unknown_category(self):
+        """Unknown category returns a transparent surface instead of crashing."""
+        import game
+        from game import create_upgrade_icon, ICON_TARGET_SIZE, _card_scale_factor
+        game._upgrade_icon_cache.pop("unknown_cat_xyz", None)
+        icon = create_upgrade_icon({"category": "unknown_cat_xyz", "name": "?"})
+        expected = int(ICON_TARGET_SIZE * _card_scale_factor)
+        self.assertEqual(icon.get_width(), expected)
+        self.assertEqual(icon.get_height(), expected)
 
     def test_upgrade_panel_renders_with_icons(self):
         """Verify draw_upgrade_panel works with all upgrade types (icons included)."""

@@ -41,11 +41,11 @@ Replace the current list-style upgrade panel with a card-based layout showing th
 **Files:**
 - Modify: `game.py`
 
-- [ ] Replace procedural icon generation in `create_upgrade_icon` with loading `assets/upgrades/upgrades_{category}.png`
-- [ ] Scale loaded icon to fit the icon area on the scaled card
-- [ ] Cache loaded icons to avoid reloading each frame
-- [ ] Write tests verifying icons load correctly for all 8 categories
-- [ ] Run project test suite - must pass before task 3
+- [x] Replace procedural icon generation in `create_upgrade_icon` with loading `assets/upgrades/upgrades_{category}.png`
+- [x] Scale loaded icon to fit the icon area on the scaled card
+- [x] Cache loaded icons to avoid reloading each frame
+- [x] Write tests verifying icons load correctly for all 8 categories
+- [x] Run project test suite - must pass before task 3
 
 ### Task 3: Rewrite draw_upgrade_panel for card layout
 
