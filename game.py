@@ -1358,11 +1358,18 @@ class DeathEffect:
         self.sprite = sprite
         self.finished = False
         self.sprite.reset()
+        # Total ticks for full animation (frames * frame_speed)
+        self._total_ticks = len(sprite.frames) * sprite.frame_speed
+        self._tick = 0
 
     def update(self):
-        self.sprite.update()
-        if self.sprite.frame_index >= len(self.sprite.frames) - 1:
+        self._tick += 1
+        if self._tick >= self._total_ticks:
             self.finished = True
+            # Clamp to last frame
+            self.sprite.frame_index = len(self.sprite.frames) - 1
+        else:
+            self.sprite.update()
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
