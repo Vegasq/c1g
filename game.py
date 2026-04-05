@@ -32,7 +32,7 @@ BALANCE = {}
 def _default_balance_toml():
     """Return the default balance.toml content as a string."""
     return '''\
-# Squad Survivors - Balance Configuration
+# SBU: Nuclear Option - Balance Configuration
 # Edit values below to tweak game balance. Delete this file to regenerate defaults.
 
 [player]
@@ -380,7 +380,7 @@ def init_pygame():
         options_fullscreen = False
         screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
         save_settings()
-    pygame.display.set_caption("Squad Survivors")
+    pygame.display.set_caption("SBU: Nuclear Option")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 36)
     title_font = pygame.font.SysFont(None, 72)
@@ -2450,8 +2450,8 @@ def draw_menu():
         screen.fill(BG)
 
     # Title in upper-left area — blood red zombie style
-    title = title_font.render("Squad Survivors", True, (200, 60, 40))
-    title_shadow = title_font.render("Squad Survivors", True, (40, 15, 10))
+    title = title_font.render("SBU: Nuclear Option", True, (200, 60, 40))
+    title_shadow = title_font.render("SBU: Nuclear Option", True, (40, 15, 10))
     tx = MENU_X
     ty = MENU_START_Y - 120
     screen.blit(title_shadow, (tx + 2, ty + 2))
