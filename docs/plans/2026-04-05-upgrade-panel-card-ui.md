@@ -79,10 +79,10 @@ Replace the current list-style upgrade panel with a card-based layout showing th
 **Files:**
 - Modify: `game.py`
 
-- [ ] Replace row-based hit detection with card-based hit detection: check if mouse position falls within any of the 3 card rectangles
-- [ ] Account for the new panel origin and card positions
-- [ ] Write tests verifying hover detection returns correct index for each card area and -1 for gaps
-- [ ] Run project test suite - must pass before task 6
+- [x] Replace row-based hit detection with card-based hit detection: check if mouse position falls within any of the 3 card rectangles
+- [x] Account for the new panel origin and card positions
+- [x] Write tests verifying hover detection returns correct index for each card area and -1 for gaps
+- [x] Run project test suite - must pass before task 6
 
 ### Task 6: Verify acceptance criteria
 

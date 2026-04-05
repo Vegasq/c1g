@@ -1027,25 +1027,42 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         draw_upgrade_panel(3, options)
 
     def test_get_hovered_upgrade_index_hit(self):
-        """Click inside an option row returns correct index."""
+        """Click inside each card area returns correct index."""
         from game import (get_hovered_upgrade_index, _panel_origin,
-                          OPTION_START_Y, OPTION_ROW_HEIGHT, PANEL_WIDTH)
+                          _card_scaled_surface, CARD_MARGIN, CARD_GAP,
+                          CARD_TITLE_AREA)
         panel_x, panel_y = _panel_origin()
-        row_h = OPTION_ROW_HEIGHT - 5  # actual row rect height
-        mx = panel_x + PANEL_WIDTH // 2
+        card_w = _card_scaled_surface.get_width()
+        card_h = _card_scaled_surface.get_height()
         for i in range(3):
-            # Click geometric center of each row
-            my = panel_y + OPTION_START_Y + i * OPTION_ROW_HEIGHT + row_h // 2
+            # Click center of each card
+            card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+            card_y = panel_y + CARD_TITLE_AREA
+            mx = card_x + card_w // 2
+            my = card_y + card_h // 2
             self.assertEqual(get_hovered_upgrade_index(mx, my, 3), i)
 
     def test_get_hovered_upgrade_index_miss(self):
-        """Click outside all option rows returns -1."""
+        """Click outside all card areas returns -1."""
         from game import get_hovered_upgrade_index, _panel_origin
         panel_x, panel_y = _panel_origin()
         # Click well outside panel
         self.assertEqual(get_hovered_upgrade_index(0, 0, 3), -1)
-        # Click above options (in title area)
+        # Click above cards (in title area)
         self.assertEqual(get_hovered_upgrade_index(panel_x + 100, panel_y + 10, 3), -1)
+
+    def test_get_hovered_upgrade_index_gap_between_cards(self):
+        """Click in gap between cards returns -1."""
+        from game import (get_hovered_upgrade_index, _panel_origin,
+                          _card_scaled_surface, CARD_MARGIN, CARD_GAP,
+                          CARD_TITLE_AREA)
+        panel_x, panel_y = _panel_origin()
+        card_w = _card_scaled_surface.get_width()
+        card_h = _card_scaled_surface.get_height()
+        # Click in gap between card 0 and card 1
+        gap_x = panel_x + CARD_MARGIN + card_w + CARD_GAP // 2
+        gap_y = panel_y + CARD_TITLE_AREA + card_h // 2
+        self.assertEqual(get_hovered_upgrade_index(gap_x, gap_y, 3), -1)
 
     def test_get_hovered_upgrade_index_no_options(self):
         """With zero options, always returns -1."""

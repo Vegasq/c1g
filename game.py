@@ -2383,15 +2383,17 @@ def draw_upgrade_panel(level, upgrade_options):
 
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
-    """Return the index of the upgrade option under the mouse, or -1 if none."""
+    """Return the index of the upgrade card under the mouse, or -1 if none."""
+    if num_options <= 0 or _card_scaled_surface is None:
+        return -1
     panel_x, panel_y = _panel_origin()
-    local_mx = mouse_x - panel_x
-    local_my = mouse_y - panel_y
+    card_w = _card_scaled_surface.get_width()
+    card_h = _card_scaled_surface.get_height()
     for i in range(num_options):
-        row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
-        row_rect = pygame.Rect(OPTION_PADDING, row_y,
-                               PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
-        if row_rect.collidepoint(local_mx, local_my):
+        card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+        card_y = panel_y + CARD_TITLE_AREA
+        card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
+        if card_rect.collidepoint(mouse_x, mouse_y):
             return i
     return -1
 
