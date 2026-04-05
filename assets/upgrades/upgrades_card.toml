@@ -1,5 +1,5 @@
 # Positions for upgrades_card.png card ui 
-# Use this file to configurate upgrades ui card in game for posioning texts and icons. All positions assume that x=0 y=0 is top left corner, x increas from left to right, y increase from top to bottom.
+# Use this file to configure the upgrade UI card in game for positioning texts and icons. All positions assume that x=0 y=0 is top left corner, x increas from left to right, y increase from top to bottom.
 
 # position of upgrade icon center
 [icon]

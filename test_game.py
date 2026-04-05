@@ -5320,48 +5320,39 @@ class TestCardHoverScaling(unittest.TestCase):
         g.level_up_selected_index = -1
         g.draw_upgrade_panel(1, self._make_options())
 
-    def test_hovered_card_draws_larger(self):
-        """Hovered card should draw at a larger size than non-hovered."""
+    def test_hovered_card_draws_larger_area(self):
+        """Hovered card should draw pixels in a larger area than non-hovered."""
         import game as g
-        from game import (CARD_HOVER_SCALE, _card_scaled_surface,
-                          _panel_origin, CARD_MARGIN, CARD_GAP, CARD_TITLE_AREA)
+        from game import CARD_MARGIN, CARD_TITLE_AREA, _panel_origin
 
-        card_w = _card_scaled_surface.get_width()
-        card_h = _card_scaled_surface.get_height()
-        hover_w = int(card_w * CARD_HOVER_SCALE)
-        hover_h = int(card_h * CARD_HOVER_SCALE)
-
-        # Hover scale should produce a card larger than default
-        self.assertGreater(hover_w, card_w)
-        self.assertGreater(hover_h, card_h)
-
-    def test_hover_scaling_preserves_center(self):
-        """Hovered card offset should keep it centered in its slot."""
-        import game as g
-        from game import (CARD_HOVER_SCALE, _card_scaled_surface,
-                          _panel_origin, CARD_MARGIN, CARD_GAP, CARD_TITLE_AREA)
-
-        card_w = _card_scaled_surface.get_width()
-        card_h = _card_scaled_surface.get_height()
+        options = self._make_options()
+        card_w = g._card_scaled_surface.get_width()
+        card_h = g._card_scaled_surface.get_height()
         panel_x, panel_y = _panel_origin()
+        # Check area just outside the non-hovered card 0 boundary (left side)
+        base_card_x = panel_x + CARD_MARGIN
+        base_card_y = panel_y + CARD_TITLE_AREA
 
-        # For card index 1 (middle card)
-        base_x = panel_x + CARD_MARGIN + 1 * (card_w + CARD_GAP)
-        base_y = panel_y + CARD_TITLE_AREA
+        # Render without hover -- card 0 area only covers base rect
+        g.level_up_selected_index = -1
+        g.screen.fill((0, 0, 0))
+        g.draw_upgrade_panel(1, options)
+        # Sample pixel just left of the base card (should be black with no hover)
+        check_x = max(0, base_card_x - 3)
+        check_y = base_card_y + card_h // 2
+        pixel_no_hover = g.screen.get_at((check_x, check_y))
 
-        hover_w = int(card_w * CARD_HOVER_SCALE)
-        hover_h = int(card_h * CARD_HOVER_SCALE)
-        hover_x = base_x - (hover_w - card_w) // 2
-        hover_y = base_y - (hover_h - card_h) // 2
+        # Render with hover on card 0 -- card expands, should draw pixels further left
+        g.level_up_selected_index = 0
+        g.screen.fill((0, 0, 0))
+        g.draw_upgrade_panel(1, options)
+        pixel_hover = g.screen.get_at((check_x, check_y))
 
-        # Center of hovered card should match center of base card
-        base_center_x = base_x + card_w // 2
-        base_center_y = base_y + card_h // 2
-        hover_center_x = hover_x + hover_w // 2
-        hover_center_y = hover_y + hover_h // 2
-
-        self.assertAlmostEqual(base_center_x, hover_center_x, delta=1)
-        self.assertAlmostEqual(base_center_y, hover_center_y, delta=1)
+        # The hovered render should have drawn card pixels where the non-hovered didn't
+        self.assertEqual(pixel_no_hover[:3], (0, 0, 0),
+                         "Pixel outside base card should be black without hover")
+        self.assertNotEqual(pixel_hover[:3], (0, 0, 0),
+                            "Pixel outside base card should have content when hovered")
 
 
 if __name__ == "__main__":

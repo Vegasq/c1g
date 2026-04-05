@@ -2173,7 +2173,6 @@ def draw_dim_overlay():
 
 # Upgrade panel constants (card-based layout)
 PANEL_BG_COLOR = (20, 18, 15, 200)
-PANEL_BORDER_GLOW_LAYERS = 4
 CARD_GAP = 20  # pixels between cards
 CARD_MARGIN = 30  # left/right margin around all cards
 CARD_TITLE_AREA = 70  # vertical space above cards for "Level N!" title
@@ -2187,12 +2186,7 @@ _card_scale_factor = 1.0  # scale factor applied to cards
 _card_scaled_positions = None  # TOML positions scaled for rendering
 ICON_TARGET_SIZE = 180  # icon area diameter on original 405px-wide card
 _upgrade_icon_cache = {}  # category -> scaled pygame.Surface
-# Legacy constants kept for draw_upgrade_panel/get_hovered_upgrade_index until
-# those functions are rewritten in Tasks 3-5.
-ICON_SIZE = 32
-OPTION_ROW_HEIGHT = 60
-OPTION_START_Y = 90
-OPTION_PADDING = 20
+_card_hover_surface = None  # pre-scaled hover card surface
 PANEL_WIDTH = 500  # updated by _load_card_assets
 PANEL_HEIGHT = 350  # updated by _load_card_assets
 
@@ -2200,7 +2194,10 @@ PANEL_HEIGHT = 350  # updated by _load_card_assets
 def _load_card_assets():
     """Load card background image and TOML config, compute layout constants."""
     global _card_surface, _card_toml, _card_scaled_surface, _card_scale_factor
-    global _card_scaled_positions, PANEL_WIDTH, PANEL_HEIGHT
+    global _card_scaled_positions, PANEL_WIDTH, PANEL_HEIGHT, _card_hover_surface
+
+    # Clear stale icon cache (icons depend on scale factor)
+    _upgrade_icon_cache.clear()
 
     # Load card background image
     card_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -2238,6 +2235,11 @@ def _load_card_assets():
     # Update panel dimensions
     PANEL_WIDTH = 3 * scaled_w + 2 * CARD_GAP + 2 * CARD_MARGIN
     PANEL_HEIGHT = scaled_h + CARD_TITLE_AREA + CARD_MARGIN
+
+    # Pre-compute hover-scaled card surface
+    hover_w = int(scaled_w * CARD_HOVER_SCALE)
+    hover_h = int(scaled_h * CARD_HOVER_SCALE)
+    _card_hover_surface = pygame.transform.smoothscale(_card_surface, (hover_w, hover_h))
 
 
 def create_upgrade_icon(option):
@@ -2280,6 +2282,8 @@ def _panel_origin():
 
 def draw_upgrade_panel(level, upgrade_options):
     """Draw a card-based upgrade selector with 3 cards side by side."""
+    if _card_scaled_surface is None:
+        return
     panel_x, panel_y = _panel_origin()
 
     # "Level N!" title centered above the cards
@@ -2305,15 +2309,13 @@ def draw_upgrade_panel(level, upgrade_options):
         is_hovered = (i == level_up_selected_index)
 
         if is_hovered:
-            # Scale card surface up for hover effect
-            hover_w = int(card_w * CARD_HOVER_SCALE)
-            hover_h = int(card_h * CARD_HOVER_SCALE)
-            hover_card_surf = pygame.transform.smoothscale(
-                _card_scaled_surface, (hover_w, hover_h))
+            # Use pre-computed hover-scaled card surface
+            hover_w = _card_hover_surface.get_width()
+            hover_h = _card_hover_surface.get_height()
             # Offset so the scaled card stays centered in its slot
             card_x = base_card_x - (hover_w - card_w) // 2
             card_y = base_card_y - (hover_h - card_h) // 2
-            screen.blit(hover_card_surf, (card_x, card_y))
+            screen.blit(_card_hover_surface, (card_x, card_y))
             # Scale factor for positioning elements on the hovered card
             h_scale = CARD_HOVER_SCALE
         else:
@@ -2417,6 +2419,8 @@ def apply_resolution():
     _menu_background = None
     _fade_overlay = None
     _dim_overlay = None
+    if _card_surface is not None and pygame.display.get_surface() is not None:
+        _load_card_assets()
     # Reload UI backgrounds at new resolution
     if _assets is not None:
         from assets_manager import ASSET_CONFIG
