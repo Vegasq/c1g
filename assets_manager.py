@@ -114,6 +114,10 @@ ASSET_CONFIG = {
     # UI
     "ui_background": os.path.join(_UI_BASE, "background.png"),
     "ui_background2": os.path.join(_UI_BASE, "background2.png"),
+
+    # Commander portrait
+    "commander_icon": os.path.join(
+        "zombie-tds-main-characters", "Icons", "PNG", "man icon_no_bg.png"),
 }
 
 # Number of quantized rotation angles (16 = every 22.5 degrees)
@@ -400,6 +404,9 @@ class AssetManager:
         # UI backgrounds
         self.load_static("ui_background", ASSET_CONFIG["ui_background"], screen_size)
         self.load_static("ui_background2", ASSET_CONFIG["ui_background2"], screen_size)
+
+        # Commander portrait
+        self.load_static("commander_icon", ASSET_CONFIG["commander_icon"], (128, 128))
 
     def get_random_obstacle_sprite(self, width, height, seed=0):
         """Get a random obstacle sprite scaled to fit the given dimensions."""

@@ -436,6 +436,10 @@ STATE_GAME_OVER = 2
 STATE_LEVEL_UP = 3
 STATE_OPTIONS = 4
 STATE_DEATH_REVIEW = 5
+STATE_INTRO = 6
+STATE_VICTORY = 7
+
+BOMB_PARTS_TOTAL = 10
 
 SUPPORTED_RESOLUTIONS = [
     (800, 600),
@@ -1852,11 +1856,11 @@ _WEAPON_TYPE_COLORS = {
 }
 
 
-def draw_hud_stats(score, wave, allies):
-    """Draw top-right stats widget: score, wave counter, squad size."""
+def draw_hud_stats(score, wave, allies, bomb_parts=0):
+    """Draw top-right stats widget: score, wave counter, squad size, bomb parts."""
     hud_font, hud_font_small = _get_hud_fonts()
 
-    panel_w, panel_h = 180, 80
+    panel_w, panel_h = 180, 100
     panel_x = WIDTH - panel_w - HUD_MARGIN
     panel_y = HUD_MARGIN
     draw_hud_panel(panel_x, panel_y, panel_w, panel_h)
@@ -1867,22 +1871,29 @@ def draw_hud_stats(score, wave, allies):
 
     # Score
     score_label = hud_font_small.render("Score", True, BORDER_COLOR)
-    screen.blit(score_label, (tx, panel_y + 8))
+    screen.blit(score_label, (tx, panel_y + 6))
     score_val = hud_font.render(str(score), True, PLAYER_COLOR)
-    screen.blit(score_val, (right_x - score_val.get_width(), panel_y + 6))
+    screen.blit(score_val, (right_x - score_val.get_width(), panel_y + 4))
 
     # Wave
     wave_label = hud_font_small.render("Wave", True, BORDER_COLOR)
-    screen.blit(wave_label, (tx, panel_y + 30))
+    screen.blit(wave_label, (tx, panel_y + 26))
     wave_val = hud_font.render(str(wave), True, PLAYER_COLOR)
-    screen.blit(wave_val, (right_x - wave_val.get_width(), panel_y + 28))
+    screen.blit(wave_val, (right_x - wave_val.get_width(), panel_y + 24))
 
     # Squad size
     squad_label = hud_font_small.render("Squad", True, BORDER_COLOR)
-    screen.blit(squad_label, (tx, panel_y + 52))
-    squad_count = 1 + len(allies)  # player + allies
+    screen.blit(squad_label, (tx, panel_y + 46))
+    squad_count = 1 + len(allies)
     squad_val = hud_font.render(str(squad_count), True, PLAYER_COLOR)
-    screen.blit(squad_val, (right_x - squad_val.get_width(), panel_y + 50))
+    screen.blit(squad_val, (right_x - squad_val.get_width(), panel_y + 44))
+
+    # Bomb parts
+    parts_label = hud_font_small.render("Bomb", True, BORDER_COLOR)
+    screen.blit(parts_label, (tx, panel_y + 66))
+    parts_color = (50, 200, 50) if bomb_parts >= BOMB_PARTS_TOTAL else PLAYER_COLOR
+    parts_val = hud_font.render(f"{bomb_parts}/{BOMB_PARTS_TOTAL}", True, parts_color)
+    screen.blit(parts_val, (right_x - parts_val.get_width(), panel_y + 64))
 
 
 def draw_hud_weapons(weapon_inventory):
@@ -1983,7 +1994,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     health_pickups=None, heal_effects=None,
                     escape_rooms=None, escape_flash_timer=0,
                     enemy_bullets=None, explosion_effects=None,
-                    death_effects=None):
+                    death_effects=None, bomb_parts=0):
     """Draw the full game scene (background, entities, HUD)."""
     screen.fill(BG)
     draw_grid(camera)
@@ -2057,7 +2068,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     draw_hud_vitals(player, xp, xp_thresholds, level)
 
     # HUD - Top-right stats widget
-    draw_hud_stats(score, wave, allies)
+    draw_hud_stats(score, wave, allies, bomb_parts=bomb_parts)
 
     # HUD - Bottom-left weapon widget
     draw_hud_weapons(weapon_inventory)
@@ -2635,6 +2646,146 @@ def draw_death_review(data):
     pygame.display.flip()
 
 
+def _wrap_text(text, font_obj, max_width):
+    """Split text into lines that fit within max_width pixels."""
+    words = text.split()
+    lines = []
+    current = ""
+    for word in words:
+        test = f"{current} {word}".strip()
+        if font_obj.size(test)[0] <= max_width:
+            current = test
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
+def draw_intro_screen():
+    """Draw the mission briefing intro screen with commander portrait."""
+    screen.fill((10, 8, 5))
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    # Commander portrait on the left
+    commander = _assets.get_static("commander_icon") if _assets else None
+    portrait_x = 60
+    portrait_y = HEIGHT // 2 - 100
+    if commander:
+        screen.blit(commander, (portrait_x, portrait_y))
+        # Border around portrait
+        pygame.draw.rect(screen, (100, 80, 40),
+                         (portrait_x - 2, portrait_y - 2, 132, 132), 2)
+
+    # Title
+    title = title_font.render("MISSION BRIEFING", True, (200, 60, 40))
+    title_shadow = title_font.render("MISSION BRIEFING", True, (40, 15, 10))
+    tx = 220
+    screen.blit(title_shadow, (tx + 2, 42))
+    screen.blit(title, (tx, 40))
+
+    # Story text
+    story = (
+        "Soldier, we have a critical situation. Russian zomboids are invading. "
+        "Command has authorized the use of a nuclear device, but it was "
+        "disassembled and scattered across the combat zone. "
+        "Your objective is to find all 10 parts of the nuclear bomb. "
+        "As our scientists locate each part, we will send coordinates to you. "
+        "Gather supplies and weapons as enemies close in. "
+        "Recruit local population to fight the zomboid menace. "
+        "Stay strong and godspeed."
+    )
+
+    text_x = 220
+    text_y = 110
+    max_w = WIDTH - text_x - 60
+    lines = _wrap_text(story, font, max_w)
+    for line in lines:
+        surf = font.render(line, True, (200, 190, 170))
+        screen.blit(surf, (text_x, text_y))
+        text_y += 32
+
+    # Objectives
+    obj_y = text_y + 30
+    obj_title = font.render("OBJECTIVES:", True, (220, 180, 80))
+    screen.blit(obj_title, (text_x, obj_y))
+    obj_y += 35
+    objectives = [
+        "Locate and collect 10 nuclear bomb parts",
+        "Eliminate hostile zomboids",
+        "Recruit allies to strengthen your squad",
+        "Survive at all costs",
+    ]
+    for obj in objectives:
+        dot = hud_font_small.render(f"  > {obj}", True, (180, 170, 150))
+        screen.blit(dot, (text_x, obj_y))
+        obj_y += 26
+
+    # Footer
+    footer = font.render("Press ENTER to begin mission", True, (180, 160, 120))
+    screen.blit(footer, (WIDTH // 2 - footer.get_width() // 2, HEIGHT - 60))
+    pygame.display.flip()
+
+
+def draw_victory_screen(score, bomb_parts, killer_count):
+    """Draw the victory screen after collecting all bomb parts."""
+    screen.fill((10, 8, 5))
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    # Commander portrait
+    commander = _assets.get_static("commander_icon") if _assets else None
+    portrait_x = 60
+    portrait_y = HEIGHT // 2 - 100
+    if commander:
+        screen.blit(commander, (portrait_x, portrait_y))
+        pygame.draw.rect(screen, (50, 180, 50),
+                         (portrait_x - 2, portrait_y - 2, 132, 132), 2)
+
+    # Title
+    title = title_font.render("MISSION COMPLETE", True, (50, 200, 50))
+    title_shadow = title_font.render("MISSION COMPLETE", True, (10, 40, 10))
+    tx = 220
+    screen.blit(title_shadow, (tx + 2, 42))
+    screen.blit(title, (tx, 40))
+
+    # Victory text
+    victory = (
+        f"Outstanding work, soldier! All {bomb_parts} parts of the nuclear "
+        "device have been recovered and assembled. "
+        f"During your mission you eliminated {killer_count} Russian zomboids. "
+        "The bomb is being deployed to Moscow as we speak. "
+        "Your bravery will not be forgotten. "
+        "The world owes you a debt of gratitude."
+    )
+
+    text_x = 220
+    text_y = 110
+    max_w = WIDTH - text_x - 60
+    lines = _wrap_text(victory, font, max_w)
+    for line in lines:
+        surf = font.render(line, True, (200, 190, 170))
+        screen.blit(surf, (text_x, text_y))
+        text_y += 32
+
+    # Stats
+    stat_y = text_y + 30
+    stats = [
+        f"Bomb parts collected: {bomb_parts}/{BOMB_PARTS_TOTAL}",
+        f"Zomboids eliminated: {killer_count}",
+    ]
+    for s in stats:
+        surf = font.render(s, True, (220, 180, 80))
+        screen.blit(surf, (text_x, stat_y))
+        stat_y += 35
+
+    # Footer
+    footer = font.render("Press ENTER to return to base", True, (180, 160, 120))
+    screen.blit(footer, (WIDTH // 2 - footer.get_width() // 2, HEIGHT - 60))
+    pygame.display.flip()
+
+
 def run():
     global options_selected_index, options_resolution_index, options_fullscreen
     global menu_selected_index, active_joystick
@@ -2681,6 +2832,7 @@ def run():
     run_upgrade_levels = dict(profile["upgrades"])
     profile_start_levels = dict(profile["upgrades"])
     death_review_data = None
+    bomb_parts_collected = 0
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies
@@ -2690,6 +2842,7 @@ def run():
         nonlocal run_stats, run_start_time, total_xp_earned
         nonlocal last_damage_source, killer_info
         nonlocal run_upgrade_levels, profile_start_levels, game_vars, profile
+        nonlocal bomb_parts_collected
         camera = Camera()
         player = Unit(MAP_WIDTH / 2, MAP_HEIGHT / 2, PLAYER_COLOR, is_player=True)
         obstacles = generate_obstacles()
@@ -2721,6 +2874,7 @@ def run():
         total_xp_earned = 0
         last_damage_source = ""
         killer_info = {}
+        bomb_parts_collected = 0
         # Roguelite: load profile and apply saved upgrades
         profile = load_profile()
         game_vars = apply_profile_to_game(profile, player, weapon_inventory)
@@ -2786,6 +2940,13 @@ def run():
                         state = STATE_MENU
                         _play_music("menu.wav")
                         _reset_menu_state()
+                    elif state == STATE_INTRO:
+                        state = STATE_PLAYING
+                        _play_music("game.wav")
+                    elif state == STATE_VICTORY:
+                        state = STATE_MENU
+                        _play_music("menu.wav")
+                        _reset_menu_state()
                     elif state == STATE_PLAYING:
                         save_if_playing()
                         state = STATE_MENU
@@ -2838,15 +2999,21 @@ def run():
                     elif event.key == pygame.K_RETURN:
                         if menu_selected_index == 0:  # NEW GAME
                             reset_game()
-                            state = STATE_PLAYING
-                            _play_music("game.wav")
+                            state = STATE_INTRO
                         elif menu_selected_index == 1:  # OPTIONS
                             options_selected_index = 0
                             state = STATE_OPTIONS
                         elif menu_selected_index == 2:  # QUIT
                             running = False
                 elif event.key == pygame.K_RETURN:
-                    if state == STATE_DEATH_REVIEW:
+                    if state == STATE_INTRO:
+                        state = STATE_PLAYING
+                        _play_music("game.wav")
+                    elif state == STATE_VICTORY:
+                        state = STATE_MENU
+                        _play_music("menu.wav")
+                        _reset_menu_state()
+                    elif state == STATE_DEATH_REVIEW:
                         state = STATE_GAME_OVER
                     elif state == STATE_GAME_OVER:
                         reset_game()
@@ -2885,8 +3052,7 @@ def run():
                     if state == STATE_MENU:
                         if menu_selected_index == 0:  # NEW GAME
                             reset_game()
-                            state = STATE_PLAYING
-                            _play_music("game.wav")
+                            state = STATE_INTRO
                         elif menu_selected_index == 1:  # OPTIONS
                             options_selected_index = 0
                             state = STATE_OPTIONS
@@ -2910,6 +3076,13 @@ def run():
                     elif state == STATE_LEVEL_UP and upgrade_options:
                         if 0 <= level_up_selected_index < len(upgrade_options):
                             apply_chosen_upgrade(upgrade_options[level_up_selected_index])
+                    elif state == STATE_INTRO:
+                        state = STATE_PLAYING
+                        _play_music("game.wav")
+                    elif state == STATE_VICTORY:
+                        state = STATE_MENU
+                        _play_music("menu.wav")
+                        _reset_menu_state()
                     elif state == STATE_DEATH_REVIEW:
                         state = STATE_GAME_OVER
                     elif state == STATE_GAME_OVER:
@@ -2960,8 +3133,7 @@ def run():
                     idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                     if idx == 0:  # NEW GAME
                         reset_game()
-                        state = STATE_PLAYING
-                        _play_music("game.wav")
+                        state = STATE_INTRO
                     elif idx == 1:  # OPTIONS
                         options_selected_index = 0
                         state = STATE_OPTIONS
@@ -2971,6 +3143,13 @@ def run():
                     idx = get_hovered_upgrade_index(event.pos[0], event.pos[1], len(upgrade_options))
                     if 0 <= idx < len(upgrade_options):
                         apply_chosen_upgrade(upgrade_options[idx])
+                elif state == STATE_INTRO:
+                    state = STATE_PLAYING
+                    _play_music("game.wav")
+                elif state == STATE_VICTORY:
+                    state = STATE_MENU
+                    _play_music("menu.wav")
+                    _reset_menu_state()
                 elif state == STATE_DEATH_REVIEW:
                     state = STATE_GAME_OVER
             # Mouse scroll for death review
@@ -3045,13 +3224,24 @@ def run():
             clock.tick(FPS)
             continue
 
+        if state == STATE_INTRO:
+            draw_intro_screen()
+            clock.tick(FPS)
+            continue
+
+        if state == STATE_VICTORY:
+            draw_victory_screen(score, bomb_parts_collected, score)
+            clock.tick(FPS)
+            continue
+
         if state == STATE_DEATH_REVIEW:
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
                             escape_flash_timer, enemy_bullets=enemy_bullets,
                             explosion_effects=explosion_effects,
-                            death_effects=death_effects)
+                            death_effects=death_effects,
+                            bomb_parts=bomb_parts_collected)
             if death_review_data:
                 draw_death_review(death_review_data)
             clock.tick(FPS)
@@ -3063,7 +3253,8 @@ def run():
                             health_pickups, heal_effects, escape_rooms,
                             escape_flash_timer, enemy_bullets=enemy_bullets,
                             explosion_effects=explosion_effects,
-                            death_effects=death_effects)
+                            death_effects=death_effects,
+                            bomb_parts=bomb_parts_collected)
             draw_game_over(score, level, killer_info=killer_info)
             clock.tick(FPS)
             continue
@@ -3074,7 +3265,8 @@ def run():
                             health_pickups, heal_effects, escape_rooms,
                             escape_flash_timer, enemy_bullets=enemy_bullets,
                             explosion_effects=explosion_effects,
-                            death_effects=death_effects)
+                            death_effects=death_effects,
+                            bomb_parts=bomb_parts_collected)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -3131,9 +3323,10 @@ def run():
         # Update camera
         camera.update(player)
 
-        # Check escape room entry
+        # Check bomb part (escape room) collection
         for er in escape_rooms:
             if er.collides_circle(player.x, player.y, player.RADIUS):
+                bomb_parts_collected += 1
                 # Eliminate all on-screen enemies
                 er_killed = 0
                 er_xp = 0
@@ -3171,8 +3364,12 @@ def run():
                         a = Unit(player.x + random.uniform(-30, 30),
                                  player.y + random.uniform(-30, 30), color)
                         allies.append(a)
-                # Clear all enemy bullets on escape room entry
+                # Clear all enemy bullets
                 enemy_bullets = []
+                # Check victory condition
+                if bomb_parts_collected >= BOMB_PARTS_TOTAL:
+                    state = STATE_VICTORY
+                    break
                 er.relocate(obstacles, escape_rooms)
                 escape_flash_timer = 15
                 break

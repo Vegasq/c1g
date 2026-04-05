@@ -115,10 +115,10 @@ mini_count = 2                  # number of mini enemies spawned on death
 spawn_offset = 12               # pixel offset from splitter death position
 
 [waves]
-timer = 480                     # frames per wave (~8 seconds at 60fps)
-spawn_interval_base = 110       # starting frames between spawn events
+timer = 960                     # frames per wave (~16 seconds at 60fps)
+spawn_interval_base = 220       # starting frames between spawn events
 spawn_interval_reduction = 14   # frames removed from spawn interval each wave
-spawn_interval_min = 10         # minimum spawn interval floor
+spawn_interval_min = 20         # minimum spawn interval floor
 
 # Wave composition: enemy type weights per wave threshold
 # Checked in descending order; first matching threshold is used
