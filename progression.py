@@ -180,7 +180,7 @@ UPGRADE_CATEGORIES = {
     },
     "ally_spawn": {
         "name": "Ally Spawn Rate",
-        "description": "Increase chance of ally spawning on kill",
+        "description": "Increase chance of \nally spawning on kill",
         "compute": compute_ally_spawn_chance,
         "lockable": False,
         "format_value": lambda lvl: f"Chance: {compute_ally_spawn_chance(lvl):.0%}",
@@ -200,7 +200,7 @@ def _format_weapon(level):
     stats = compute_weapon_stats(level)
     if stats is None:
         return "Locked"
-    return f"Dmg:{stats['damage']} Rate:{stats['fire_rate']} Spd:{stats['bullet_speed']}"
+    return f"Damage:{stats['damage']} \nRate:{stats['fire_rate']} \nSpeed:{stats['bullet_speed']}"
 
 
 # ---------------------------------------------------------------------------

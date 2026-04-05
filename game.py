@@ -396,6 +396,8 @@ def init_pygame():
     else:
         _tile_renderer = TileRenderer(MAP_WIDTH, MAP_HEIGHT, tile_size=128)
         _tile_renderer.build(_assets.get_tiles("grass"), _assets.get_tiles("ground"))
+    # Step 7: Load upgrade card assets
+    _load_card_assets()
 
 
 def handle_joy_device_added(current_joystick, device_index):
@@ -2169,65 +2171,107 @@ def draw_dim_overlay():
     screen.blit(_dim_overlay, (0, 0))
 
 
-# Upgrade panel constants
-PANEL_WIDTH = 500
-PANEL_HEIGHT = 350
+# Upgrade panel constants (card-based layout)
 PANEL_BG_COLOR = (20, 18, 15, 200)
-PANEL_BORDER_GLOW_LAYERS = 4
-OPTION_ROW_HEIGHT = 55
-OPTION_PADDING = 10
-OPTION_START_Y = 90  # relative to panel top
-ICON_SIZE = 32
+CARD_GAP = 20  # pixels between cards
+CARD_MARGIN = 30  # left/right margin around all cards
+CARD_TITLE_AREA = 70  # vertical space above cards for "Level N!" title
+CARD_HOVER_SCALE = 1.08  # scale multiplier for hovered card
+
+# Card asset globals (populated by _load_card_assets after pygame init)
+_card_surface = None  # original upgrades_card.png surface
+_card_toml = None  # parsed TOML positions dict
+_card_scaled_surface = None  # pre-scaled card surface for rendering
+_card_scale_factor = 1.0  # scale factor applied to cards
+_card_scaled_positions = None  # TOML positions scaled for rendering
+ICON_TARGET_SIZE = 180  # icon area diameter on original 405px-wide card
+_upgrade_icon_cache = {}  # category -> scaled pygame.Surface
+_card_hover_surface = None  # pre-scaled hover card surface
+PANEL_WIDTH = 500  # updated by _load_card_assets
+PANEL_HEIGHT = 350  # updated by _load_card_assets
+
+
+def _load_card_assets():
+    """Load card background image and TOML config, compute layout constants."""
+    global _card_surface, _card_toml, _card_scaled_surface, _card_scale_factor
+    global _card_scaled_positions, PANEL_WIDTH, PANEL_HEIGHT, _card_hover_surface
+
+    # Clear stale icon cache (icons depend on scale factor)
+    _upgrade_icon_cache.clear()
+
+    # Load card background image
+    card_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "upgrades", "upgrades_card.png")
+    _card_surface = pygame.image.load(card_path).convert_alpha()
+
+    # Parse TOML config
+    toml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "upgrades", "upgrades_card.toml")
+    with open(toml_path, "rb") as f:
+        _card_toml = tomllib.load(f)
+
+    # Card dimensions from loaded image
+    card_w = _card_surface.get_width()
+    card_h = _card_surface.get_height()
+
+    # Calculate scale factor: 3 cards + gaps + margins must fit in screen width
+    available_width = WIDTH - 2 * CARD_MARGIN
+    target_card_width = (available_width - 2 * CARD_GAP) / 3
+    _card_scale_factor = target_card_width / card_w
+
+    # Pre-scale card surface
+    scaled_w = int(card_w * _card_scale_factor)
+    scaled_h = int(card_h * _card_scale_factor)
+    _card_scaled_surface = pygame.transform.smoothscale(_card_surface, (scaled_w, scaled_h))
+
+    # Pre-scale TOML positions
+    _card_scaled_positions = {}
+    for key in ("icon", "title", "body", "level"):
+        _card_scaled_positions[key] = (
+            int(_card_toml[key]["x"] * _card_scale_factor),
+            int(_card_toml[key]["y"] * _card_scale_factor),
+        )
+
+    # Update panel dimensions
+    PANEL_WIDTH = 3 * scaled_w + 2 * CARD_GAP + 2 * CARD_MARGIN
+    PANEL_HEIGHT = scaled_h + CARD_TITLE_AREA + CARD_MARGIN
+
+    # Pre-compute hover-scaled card surface
+    hover_w = int(scaled_w * CARD_HOVER_SCALE)
+    hover_h = int(scaled_h * CARD_HOVER_SCALE)
+    _card_hover_surface = pygame.transform.smoothscale(_card_surface, (hover_w, hover_h))
 
 
 def create_upgrade_icon(option):
-    """Create a 32x32 procedural icon for an upgrade option."""
-    surf = pygame.Surface((ICON_SIZE, ICON_SIZE), pygame.SRCALPHA)
-    cx, cy = ICON_SIZE // 2, ICON_SIZE // 2
+    """Load and return a scaled icon surface for an upgrade option.
+
+    Loads the PNG from assets/upgrades/upgrades_{category}.png, scales it to
+    fit the icon area on the card, and caches the result.  Returns a transparent
+    surface for unknown categories.
+    """
     cat = option.get("category", "")
 
-    if cat == "max_hp":
-        color = (255, 50, 100)
-        pygame.draw.polygon(surf, color, [
-            (cx, 28), (4, 14), (4, 8), (10, 4), (cx, 12),
-            (22, 4), (28, 8), (28, 14)
-        ])
-    elif cat == "move_speed":
-        color = (100, 200, 255)
-        pygame.draw.polygon(surf, color, [(4, 28), (16, 4), (28, 28)])
-        pygame.draw.line(surf, color, (8, 20), (24, 20), 2)
-    elif cat == "weapon_normal":
-        color = (200, 180, 100)
-        pygame.draw.line(surf, color, (cx, 4), (cx, 24), 3)
-        pygame.draw.line(surf, color, (cx - 8, 18), (cx + 8, 18), 2)
-        pygame.draw.rect(surf, color, (cx - 2, 24, 4, 4))
-    elif cat == "weapon_shotgun":
-        color = (220, 140, 40)
-        pygame.draw.line(surf, color, (4, cy), (28, 6), 2)
-        pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
-        pygame.draw.line(surf, color, (4, cy), (28, 26), 2)
-    elif cat == "weapon_piercing":
-        color = (140, 200, 220)
-        pygame.draw.line(surf, color, (4, cy), (28, cy), 2)
-        pygame.draw.line(surf, color, (20, 8), (28, cy), 2)
-        pygame.draw.line(surf, color, (20, 24), (28, cy), 2)
-        pygame.draw.circle(surf, color, (14, cy), 3, 1)
-    elif cat == "weapon_explosive":
-        color = (220, 80, 40)
-        pygame.draw.circle(surf, color, (cx, cy), 8, 2)
-        for pts in [((cx, 2), (cx, 8)), ((cx, 24), (cx, 30)),
-                    ((2, cy), (8, cy)), ((24, cy), (30, cy))]:
-            pygame.draw.line(surf, color, pts[0], pts[1], 1)
-    elif cat == "ally_spawn":
-        color = (100, 180, 100)
-        pygame.draw.circle(surf, color, (10, 14), 6, 2)
-        pygame.draw.circle(surf, color, (22, 14), 6, 2)
-        pygame.draw.circle(surf, color, (16, 22), 4, 2)
-    elif cat == "heal_amount":
-        color = (200, 80, 80)
-        pygame.draw.rect(surf, color, (cx - 8, cy - 2, 16, 4))
-        pygame.draw.rect(surf, color, (cx - 2, cy - 8, 4, 16))
+    if cat in _upgrade_icon_cache:
+        return _upgrade_icon_cache[cat]
 
+    # Compute the target pixel size for the icon on the scaled card
+    scaled_icon_size = int(ICON_TARGET_SIZE * _card_scale_factor)
+    if scaled_icon_size < 1:
+        scaled_icon_size = 1
+
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "upgrades", f"upgrades_{cat}.png")
+    if os.path.isfile(icon_path):
+        raw = pygame.image.load(icon_path)
+        try:
+            raw = raw.convert_alpha()
+        except pygame.error:
+            pass  # no display surface yet (e.g. in tests)
+        surf = pygame.transform.smoothscale(raw, (scaled_icon_size, scaled_icon_size))
+    else:
+        surf = pygame.Surface((scaled_icon_size, scaled_icon_size), pygame.SRCALPHA)
+
+    _upgrade_icon_cache[cat] = surf
     return surf
 
 
@@ -2237,87 +2281,127 @@ def _panel_origin():
 
 
 def draw_upgrade_panel(level, upgrade_options):
-    """Draw a centered floating panel for the upgrade selector."""
+    """Draw a card-based upgrade selector with 3 cards side by side."""
+    if _card_scaled_surface is None:
+        return
     panel_x, panel_y = _panel_origin()
-    panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
-    panel_surf.fill(PANEL_BG_COLOR)
-    pygame.draw.rect(panel_surf, BORDER_COLOR,
-                     pygame.Rect(0, 0, PANEL_WIDTH, PANEL_HEIGHT), 2, border_radius=6)
 
-    # Title
+    # "Level N!" title centered above the cards
     title = title_font.render(f"Level {level}!", True, (200, 160, 80))
     title_shadow = title_font.render(f"Level {level}!", True, (50, 35, 15))
-    tx = PANEL_WIDTH // 2 - title.get_width() // 2
-    ty = 15
-    panel_surf.blit(title_shadow, (tx + 2, ty + 2))
-    panel_surf.blit(title, (tx, ty))
+    tx = panel_x + PANEL_WIDTH // 2 - title.get_width() // 2
+    ty = panel_y + 10
+    screen.blit(title_shadow, (tx + 2, ty + 2))
+    screen.blit(title, (tx, ty))
 
-    subtitle = font.render("Choose an upgrade:", True, (180, 160, 120))
-    panel_surf.blit(subtitle, (PANEL_WIDTH // 2 - subtitle.get_width() // 2, 60))
-
-    selected_idx = level_up_selected_index
     hud_font, hud_font_small = _get_hud_fonts()
 
+    # Card dimensions from the pre-scaled surface
+    card_w = _card_scaled_surface.get_width()
+    card_h = _card_scaled_surface.get_height()
+
     for i, opt in enumerate(upgrade_options):
-        row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
-        row_rect = pygame.Rect(OPTION_PADDING, row_y,
-                               PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
+        # Card x position: margin + i * (card_w + gap)
+        base_card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+        base_card_y = panel_y + CARD_TITLE_AREA
 
-        hovered = (i == selected_idx)
-        if hovered:
-            row_bg = pygame.Surface((row_rect.width, row_rect.height), pygame.SRCALPHA)
-            row_bg.fill((BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], 40))
-            panel_surf.blit(row_bg, row_rect.topleft)
-            pygame.draw.rect(panel_surf, BORDER_COLOR, row_rect, 1, border_radius=4)
+        # Determine if this card is hovered
+        is_hovered = (i == level_up_selected_index)
+
+        if is_hovered:
+            # Use pre-computed hover-scaled card surface
+            hover_w = _card_hover_surface.get_width()
+            hover_h = _card_hover_surface.get_height()
+            # Offset so the scaled card stays centered in its slot
+            card_x = base_card_x - (hover_w - card_w) // 2
+            card_y = base_card_y - (hover_h - card_h) // 2
+            screen.blit(_card_hover_surface, (card_x, card_y))
+            # Scale factor for positioning elements on the hovered card
+            h_scale = CARD_HOVER_SCALE
         else:
-            pygame.draw.rect(panel_surf, (60, 50, 35, 120), row_rect, 1, border_radius=4)
+            card_x = base_card_x
+            card_y = base_card_y
+            screen.blit(_card_scaled_surface, (card_x, card_y))
+            h_scale = 1.0
 
-        # Icon
+        # Icon centered at scaled icon position
         icon = opt.get('_icon') or create_upgrade_icon(opt)
-        icon_x = OPTION_PADDING + 10
-        icon_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - ICON_SIZE // 2
-        panel_surf.blit(icon, (icon_x, icon_y))
+        icon_cx, icon_cy = _card_scaled_positions["icon"]
+        if is_hovered:
+            # Scale icon for hover
+            hover_icon_w = int(icon.get_width() * CARD_HOVER_SCALE)
+            hover_icon_h = int(icon.get_height() * CARD_HOVER_SCALE)
+            icon = pygame.transform.smoothscale(icon, (hover_icon_w, hover_icon_h))
+            icon_bx = card_x + int(icon_cx * h_scale) - icon.get_width() // 2
+            icon_by = card_y + int(icon_cy * h_scale) - icon.get_height() // 2
+        else:
+            icon_bx = card_x + icon_cx - icon.get_width() // 2
+            icon_by = card_y + icon_cy - icon.get_height() // 2
+        screen.blit(icon, (icon_bx, icon_by))
 
-        # Category name and level info
+        # Title text centered at scaled title position
+        name_text = opt.get("name", "")
+        name_surf = font.render(name_text, True, (200, 160, 80))
+        title_cx, title_cy = _card_scaled_positions["title"]
+        screen.blit(name_surf, (card_x + int(title_cx * h_scale) - name_surf.get_width() // 2,
+                                card_y + int(title_cy * h_scale) - name_surf.get_height() // 2))
+
+        # Body: description text centered at scaled body position
         cur_lv = opt.get("current_level", 0)
         is_unlock = opt.get("is_unlock", False)
-        text_x = icon_x + ICON_SIZE + 10
+        cat_key = opt.get("category", "")
+        cat_info = UPGRADE_CATEGORIES.get(cat_key)
 
-        if is_unlock:
-            # Weapon unlock — show in green
-            label = font.render(f"[{i+1}] UNLOCK {opt['name']}", True, (80, 200, 80))
-            panel_surf.blit(label, (text_x, row_y + 8))
-            desc = hud_font_small.render(f"Adds {opt['name']} weapon", True, (150, 150, 130))
-            panel_surf.blit(desc, (text_x, row_y + 30))
+        body_cx, body_cy = _card_scaled_positions["body"]
+
+        if cat_info:
+            desc_text = cat_info["description"]
         else:
-            # Normal upgrade — show level transition and effect
-            color = (200, 170, 80) if opt.get("category", "").startswith("weapon_") else (180, 160, 120)
-            label = font.render(f"[{i+1}] {opt['name']}", True, color)
-            panel_surf.blit(label, (text_x, row_y + 8))
-            # Show level and stat preview
-            cat = UPGRADE_CATEGORIES.get(opt.get("category", ""))
-            if cat:
-                cur_val = cat["format_value"](cur_lv)
-                next_val = cat["format_value"](cur_lv + 1)
-                desc_text = f"Lv {cur_lv} -> {cur_lv + 1}  ({cur_val} -> {next_val})"
-            else:
-                desc_text = f"Lv {cur_lv} -> {cur_lv + 1}"
-            desc = hud_font_small.render(desc_text, True, (150, 150, 130))
-            panel_surf.blit(desc, (text_x, row_y + 30))
+            desc_text = ""
+        desc_surf = hud_font_small.render(desc_text, True, (180, 160, 120))
 
-    screen.blit(panel_surf, (panel_x, panel_y))
+        # New value in green below description
+        if cat_info and not is_unlock:
+            cur_val = cat_info["format_value"](cur_lv)
+            next_val = cat_info["format_value"](cur_lv + 1)
+            val_cur_surf = hud_font_small.render(cur_val, True, (180, 160, 120))
+            val_next_surf = hud_font_small.render(next_val, True, (80, 200, 80))
+            screen.blit(val_cur_surf, (card_x + int(body_cx * h_scale) - val_cur_surf.get_width() - 2,
+                                   card_y + int(body_cy * h_scale) - val_cur_surf.get_height()//2))
+            screen.blit(val_next_surf, (card_x + int(body_cx * h_scale) + 2,
+                                   card_y + int(body_cy * h_scale) - val_next_surf.get_height() // 2))
+            desc_vert_offset = max(val_cur_surf.get_height() // 2, val_next_surf.get_height() // 2)
+            screen.blit(desc_surf, (card_x + int(body_cx * h_scale) - desc_surf.get_width() // 2,
+                                card_y + int(body_cy * h_scale) - desc_surf.get_height() - desc_vert_offset - 10))
+        else:
+            screen.blit(desc_surf, (card_x + int(body_cx * h_scale) - desc_surf.get_width() // 2,
+                                card_y + int(body_cy * h_scale) - desc_surf.get_height() // 2))
+
+        # Level text centered at scaled level position
+        level_cx, level_cy = _card_scaled_positions["level"]
+        if is_unlock:
+            lv_text = "UNLOCK"
+            lv_color = (80, 200, 80)
+        else:
+            lv_text = f"LEVEL {cur_lv + 1}"
+            lv_color = (200, 160, 80)
+        lv_surf = font.render(lv_text, True, lv_color)
+        screen.blit(lv_surf, (card_x + int(level_cx * h_scale) - lv_surf.get_width() // 2,
+                              card_y + int(level_cy * h_scale) - lv_surf.get_height() // 2))
 
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
-    """Return the index of the upgrade option under the mouse, or -1 if none."""
+    """Return the index of the upgrade card under the mouse, or -1 if none."""
+    if num_options <= 0 or _card_scaled_surface is None:
+        return -1
     panel_x, panel_y = _panel_origin()
-    local_mx = mouse_x - panel_x
-    local_my = mouse_y - panel_y
+    card_w = _card_scaled_surface.get_width()
+    card_h = _card_scaled_surface.get_height()
     for i in range(num_options):
-        row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
-        row_rect = pygame.Rect(OPTION_PADDING, row_y,
-                               PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
-        if row_rect.collidepoint(local_mx, local_my):
+        card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+        card_y = panel_y + CARD_TITLE_AREA
+        card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
+        if card_rect.collidepoint(mouse_x, mouse_y):
             return i
     return -1
 
@@ -2341,6 +2425,8 @@ def apply_resolution():
     _menu_background = None
     _fade_overlay = None
     _dim_overlay = None
+    if _card_surface is not None and pygame.display.get_surface() is not None:
+        _load_card_assets()
     # Reload UI backgrounds at new resolution
     if _assets is not None:
         from assets_manager import ASSET_CONFIG

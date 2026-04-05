@@ -25,7 +25,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
                   handle_joy_device_added, handle_joy_device_removed,
                   BALANCE, load_balance_config, _default_balance_toml,
-                  MUSIC_DIR, _play_music, _stop_music)
+                  MUSIC_DIR, _play_music, _stop_music,
+                  _load_card_assets, CARD_GAP, CARD_MARGIN, CARD_TITLE_AREA)
 import game
 
 
@@ -775,6 +776,8 @@ class TestMenuAndHUDRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
 
     @classmethod
     def tearDownClass(cls):
@@ -790,6 +793,7 @@ class TestMenuAndHUDRendering(unittest.TestCase):
 
     def setUp(self):
         import game
+        from game import _load_card_assets
         self._orig_screen = game.screen
         self._orig_font = game.font
         self._orig_title_font = game.title_font
@@ -798,6 +802,17 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         game.title_font = self._make_mock_font()
         self._orig_menu_font = game.menu_font
         game.menu_font = self._make_mock_font()
+        game._upgrade_icon_cache.clear()
+        # Reset hud fonts in case a prior test class called pygame.quit()
+        game._hud_font = None
+        game._hud_font_small = None
+        # Card-based panel requires assets loaded; ensure WIDTH is 1024 for
+        # consistent layout regardless of prior test resolution changes.
+        self._orig_width = game.WIDTH
+        self._orig_height = game.HEIGHT
+        game.WIDTH = 1024
+        game.HEIGHT = 768
+        _load_card_assets()
 
     def tearDown(self):
         import game
@@ -805,6 +820,8 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         game.font = self._orig_font
         game.title_font = self._orig_title_font
         game.menu_font = self._orig_menu_font
+        game.WIDTH = self._orig_width
+        game.HEIGHT = self._orig_height
 
     def test_draw_menu_runs_without_error(self):
         from unittest.mock import patch
@@ -901,10 +918,11 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         draw_dim_overlay()
 
     def test_upgrade_panel_dimensions(self):
-        """Verify panel constants define a centered ~500x350 panel."""
+        """Verify panel dimensions fit 3 cards and panel is centered."""
         from game import PANEL_WIDTH, PANEL_HEIGHT, _panel_origin, WIDTH, HEIGHT
-        self.assertEqual(PANEL_WIDTH, 500)
-        self.assertEqual(PANEL_HEIGHT, 350)
+        # Card-based layout: panel must be wide enough for 3 cards
+        self.assertGreaterEqual(PANEL_WIDTH, 500)
+        self.assertGreaterEqual(PANEL_HEIGHT, 350)
         panel_x, panel_y = _panel_origin()
         self.assertEqual(panel_x, (WIDTH - PANEL_WIDTH) // 2)
         self.assertEqual(panel_y, (HEIGHT - PANEL_HEIGHT) // 2)
@@ -913,9 +931,9 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """Verify draw_upgrade_panel runs without raising."""
         from game import draw_upgrade_panel
         options = [
-            {"name": "Damage +10%", "stat": "damage", "amount": 1},
-            {"name": "Fire Rate +10%", "stat": "fire_rate", "amount": -2},
-            {"name": "Shotgun", "weapon_type": "shotgun"},
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Move Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
         ]
         # Should not raise
         draw_upgrade_panel(2, options)
@@ -925,7 +943,11 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         import game
         from game import draw_upgrade_panel, _panel_origin, PANEL_WIDTH, PANEL_HEIGHT
         game.screen.fill((0, 0, 0))
-        options = [{"name": "Test", "stat": "damage", "amount": 1}]
+        options = [
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Move Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
+        ]
         draw_upgrade_panel(1, options)
         panel_x, panel_y = _panel_origin()
         cx = panel_x + PANEL_WIDTH // 2
@@ -943,73 +965,104 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self.assertEqual(center_y, HEIGHT // 2)
 
     def test_create_upgrade_icon_returns_surface(self):
-        """Verify create_upgrade_icon returns a 32x32 surface for each upgrade type."""
-        from game import create_upgrade_icon, ICON_SIZE
-        test_options = [
-            {"name": "+Damage", "stat": "damage", "amount": 1},
-            {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
-            {"name": "+Bullet Speed", "stat": "bullet_speed", "amount": 2},
-            {"name": "+Range", "stat": "range", "amount": 15},
-            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
-            {"name": "Weapon: Piercing", "weapon_type": "piercing"},
-            {"name": "Weapon: Explosive", "weapon_type": "explosive"},
+        """Verify create_upgrade_icon returns a square surface for each category."""
+        from game import create_upgrade_icon, ICON_TARGET_SIZE, _card_scale_factor
+        expected = int(ICON_TARGET_SIZE * _card_scale_factor)
+        categories = [
+            "max_hp", "move_speed", "weapon_normal", "weapon_shotgun",
+            "weapon_piercing", "weapon_explosive", "ally_spawn", "heal_amount",
         ]
-        for opt in test_options:
-            icon = create_upgrade_icon(opt)
-            self.assertEqual(icon.get_width(), ICON_SIZE, f"Icon width wrong for {opt['name']}")
-            self.assertEqual(icon.get_height(), ICON_SIZE, f"Icon height wrong for {opt['name']}")
+        for cat in categories:
+            icon = create_upgrade_icon({"category": cat, "name": cat})
+            self.assertEqual(icon.get_width(), expected, f"Icon width wrong for {cat}")
+            self.assertEqual(icon.get_height(), expected, f"Icon height wrong for {cat}")
 
     def test_create_upgrade_icon_not_blank(self):
-        """Verify icons have non-transparent pixels drawn on them."""
-        from game import create_upgrade_icon, ICON_SIZE
-        test_options = [
-            {"category": "max_hp", "name": "Max HP"},
-            {"category": "weapon_shotgun", "name": "Shotgun"},
-            {"category": "move_speed", "name": "Move Speed"},
-            {"category": "ally_spawn", "name": "Ally Spawn Rate"},
+        """Verify icons loaded from PNG have non-transparent pixels."""
+        from game import create_upgrade_icon
+        categories = [
+            "max_hp", "weapon_shotgun", "move_speed", "ally_spawn",
+            "weapon_normal", "weapon_piercing", "weapon_explosive", "heal_amount",
         ]
-        for opt in test_options:
-            icon = create_upgrade_icon(opt)
+        for cat in categories:
+            icon = create_upgrade_icon({"category": cat, "name": cat})
+            w, h = icon.get_width(), icon.get_height()
             has_pixel = False
-            for x in range(ICON_SIZE):
-                for y in range(ICON_SIZE):
+            for x in range(w):
+                for y in range(h):
                     if icon.get_at((x, y))[3] > 0:
                         has_pixel = True
                         break
                 if has_pixel:
                     break
-            self.assertTrue(has_pixel, f"Icon for {opt['name']} is completely blank")
+            self.assertTrue(has_pixel, f"Icon for {cat} is completely blank")
+
+    def test_create_upgrade_icon_caching(self):
+        """Verify that calling create_upgrade_icon twice returns the same cached surface."""
+        import game
+        from game import create_upgrade_icon
+        game._upgrade_icon_cache.clear()
+        icon1 = create_upgrade_icon({"category": "max_hp", "name": "Max HP"})
+        icon2 = create_upgrade_icon({"category": "max_hp", "name": "Max HP"})
+        self.assertIs(icon1, icon2, "Icon should be returned from cache")
+
+    def test_create_upgrade_icon_unknown_category(self):
+        """Unknown category returns a transparent surface instead of crashing."""
+        import game
+        from game import create_upgrade_icon, ICON_TARGET_SIZE, _card_scale_factor
+        game._upgrade_icon_cache.pop("unknown_cat_xyz", None)
+        icon = create_upgrade_icon({"category": "unknown_cat_xyz", "name": "?"})
+        expected = int(ICON_TARGET_SIZE * _card_scale_factor)
+        self.assertEqual(icon.get_width(), expected)
+        self.assertEqual(icon.get_height(), expected)
 
     def test_upgrade_panel_renders_with_icons(self):
         """Verify draw_upgrade_panel works with all upgrade types (icons included)."""
         from game import draw_upgrade_panel
         options = [
-            {"name": "+Damage", "stat": "damage", "amount": 1},
-            {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
-            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
+            {"category": "max_hp", "name": "Max HP", "current_level": 2, "is_unlock": False},
+            {"category": "weapon_piercing", "name": "Piercing", "current_level": 1, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
         ]
         draw_upgrade_panel(3, options)
 
     def test_get_hovered_upgrade_index_hit(self):
-        """Click inside an option row returns correct index."""
+        """Click inside each card area returns correct index."""
         from game import (get_hovered_upgrade_index, _panel_origin,
-                          OPTION_START_Y, OPTION_ROW_HEIGHT, PANEL_WIDTH)
+                          _card_scaled_surface, CARD_MARGIN, CARD_GAP,
+                          CARD_TITLE_AREA)
         panel_x, panel_y = _panel_origin()
-        row_h = OPTION_ROW_HEIGHT - 5  # actual row rect height
-        mx = panel_x + PANEL_WIDTH // 2
+        card_w = _card_scaled_surface.get_width()
+        card_h = _card_scaled_surface.get_height()
         for i in range(3):
-            # Click geometric center of each row
-            my = panel_y + OPTION_START_Y + i * OPTION_ROW_HEIGHT + row_h // 2
+            # Click center of each card
+            card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+            card_y = panel_y + CARD_TITLE_AREA
+            mx = card_x + card_w // 2
+            my = card_y + card_h // 2
             self.assertEqual(get_hovered_upgrade_index(mx, my, 3), i)
 
     def test_get_hovered_upgrade_index_miss(self):
-        """Click outside all option rows returns -1."""
+        """Click outside all card areas returns -1."""
         from game import get_hovered_upgrade_index, _panel_origin
         panel_x, panel_y = _panel_origin()
         # Click well outside panel
         self.assertEqual(get_hovered_upgrade_index(0, 0, 3), -1)
-        # Click above options (in title area)
+        # Click above cards (in title area)
         self.assertEqual(get_hovered_upgrade_index(panel_x + 100, panel_y + 10, 3), -1)
+
+    def test_get_hovered_upgrade_index_gap_between_cards(self):
+        """Click in gap between cards returns -1."""
+        from game import (get_hovered_upgrade_index, _panel_origin,
+                          _card_scaled_surface, CARD_MARGIN, CARD_GAP,
+                          CARD_TITLE_AREA)
+        panel_x, panel_y = _panel_origin()
+        card_w = _card_scaled_surface.get_width()
+        card_h = _card_scaled_surface.get_height()
+        # Click in gap between card 0 and card 1
+        gap_x = panel_x + CARD_MARGIN + card_w + CARD_GAP // 2
+        gap_y = panel_y + CARD_TITLE_AREA + card_h // 2
+        self.assertEqual(get_hovered_upgrade_index(gap_x, gap_y, 3), -1)
 
     def test_get_hovered_upgrade_index_no_options(self):
         """With zero options, always returns -1."""
@@ -5053,6 +5106,253 @@ class TestDeathOverlay(unittest.TestCase):
                                          0, 1, 1, inv, 0, thresholds)
                     game.draw_game_over(0, 1, killer_info=ki)
         self.assertEqual(call_order, ["draw_game_scene", "draw_game_over"])
+
+
+class TestCardAssetLoading(unittest.TestCase):
+    """Tests for Task 1: card asset loading and TOML parsing."""
+
+    @classmethod
+    def setUpClass(cls):
+        if pygame.display.get_surface() is None:
+            pygame.init()
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
+        _load_card_assets()
+
+    def test_card_surface_loaded(self):
+        self.assertIsNotNone(game._card_surface)
+        self.assertGreater(game._card_surface.get_width(), 0)
+        self.assertGreater(game._card_surface.get_height(), 0)
+
+    def test_card_toml_parsed(self):
+        self.assertIsNotNone(game._card_toml)
+        for key in ("icon", "title", "body", "level"):
+            self.assertIn(key, game._card_toml)
+            self.assertIn("x", game._card_toml[key])
+            self.assertIn("y", game._card_toml[key])
+
+    def test_card_toml_values_match_file(self):
+        self.assertEqual(game._card_toml["icon"]["x"], 202)
+        self.assertEqual(game._card_toml["icon"]["y"], 218)
+        self.assertEqual(game._card_toml["title"]["y"], 38)
+        self.assertEqual(game._card_toml["level"]["y"], 621)
+
+    def test_scaled_surface_created(self):
+        self.assertIsNotNone(game._card_scaled_surface)
+        self.assertGreater(game._card_scaled_surface.get_width(), 0)
+        self.assertGreater(game._card_scaled_surface.get_height(), 0)
+
+    def test_scale_factor_reasonable(self):
+        # 3 cards must fit in 1024px, so scale factor should be < 1 and > 0
+        self.assertGreater(game._card_scale_factor, 0)
+        self.assertLess(game._card_scale_factor, 1.0)
+
+    def test_three_cards_fit_on_screen(self):
+        card_w = game._card_scaled_surface.get_width()
+        total = 3 * card_w + 2 * CARD_GAP + 2 * CARD_MARGIN
+        self.assertLessEqual(total, 1024)
+
+    def test_scaled_positions_present(self):
+        self.assertIsNotNone(game._card_scaled_positions)
+        for key in ("icon", "title", "body", "level"):
+            self.assertIn(key, game._card_scaled_positions)
+            x, y = game._card_scaled_positions[key]
+            self.assertGreater(x, 0)
+            self.assertGreater(y, 0)
+
+    def test_panel_dimensions_updated(self):
+        self.assertGreater(game.PANEL_WIDTH, 500)
+        self.assertGreater(game.PANEL_HEIGHT, 350)
+
+
+class TestDrawUpgradePanelCards(unittest.TestCase):
+    """Tests for the card-based draw_upgrade_panel (Task 3)."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
+        from game import _load_card_assets
+        if game._card_scaled_surface is None:
+            _load_card_assets()
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        game.screen = pygame.Surface((1024, 768))
+        game.font = pygame.font.SysFont(None, 36)
+        game.title_font = pygame.font.SysFont(None, 72)
+        game._upgrade_icon_cache.clear()
+        # Reset hud fonts in case a prior test class called pygame.quit()
+        game._hud_font = None
+        game._hud_font_small = None
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+
+    def _make_options(self):
+        return [
+            {"category": "max_hp", "name": "Max HP", "current_level": 2, "is_unlock": False},
+            {"category": "move_speed", "name": "Move Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
+        ]
+
+    def test_card_panel_no_crash_all_categories(self):
+        """draw_upgrade_panel should not crash for any category combination."""
+        from game import draw_upgrade_panel
+        categories = [
+            "max_hp", "move_speed", "weapon_normal", "weapon_shotgun",
+            "weapon_piercing", "weapon_explosive", "ally_spawn", "heal_amount",
+        ]
+        for i in range(0, len(categories), 3):
+            batch = categories[i:i+3]
+            options = [
+                {"category": c, "name": c, "current_level": 1, "is_unlock": False}
+                for c in batch
+            ]
+            draw_upgrade_panel(5, options)
+
+    def test_card_panel_renders_unlock_option(self):
+        """Panel renders without error when an option is an unlock."""
+        from game import draw_upgrade_panel
+        options = [
+            {"category": "weapon_explosive", "name": "Explosive", "current_level": 0, "is_unlock": True},
+            {"category": "max_hp", "name": "Max HP", "current_level": 3, "is_unlock": False},
+            {"category": "heal_amount", "name": "Health Restore", "current_level": 1, "is_unlock": False},
+        ]
+        draw_upgrade_panel(4, options)
+
+    def test_card_panel_draws_pixels_in_card_area(self):
+        """Cards should draw non-black pixels in the card area."""
+        import game as g
+        from game import draw_upgrade_panel, _panel_origin, PANEL_WIDTH, PANEL_HEIGHT
+        from game import CARD_MARGIN, CARD_TITLE_AREA, CARD_GAP
+        g.screen.fill((0, 0, 0))
+        options = self._make_options()
+        draw_upgrade_panel(2, options)
+        panel_x, panel_y = _panel_origin()
+        card_w = g._card_scaled_surface.get_width()
+        card_h = g._card_scaled_surface.get_height()
+        # Check center of first card
+        cx = panel_x + CARD_MARGIN + card_w // 2
+        cy = panel_y + CARD_TITLE_AREA + card_h // 2
+        pixel = g.screen.get_at((cx, cy))
+        self.assertNotEqual(pixel[:3], (0, 0, 0), "First card area should have non-black pixels")
+
+    def test_card_panel_with_missing_category(self):
+        """Panel should handle options with unknown category gracefully."""
+        from game import draw_upgrade_panel
+        options = [
+            {"category": "unknown_xyz", "name": "Unknown", "current_level": 0, "is_unlock": False},
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Speed", "current_level": 0, "is_unlock": False},
+        ]
+        draw_upgrade_panel(1, options)
+
+
+class TestCardHoverScaling(unittest.TestCase):
+    """Tests for card hover scaling effect in upgrade panel."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
+        from game import _load_card_assets
+        if game._card_scaled_surface is None:
+            _load_card_assets()
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        self._orig_selected = game.level_up_selected_index
+        game.screen = pygame.Surface((1024, 768))
+        game.font = pygame.font.SysFont(None, 36)
+        game.title_font = pygame.font.SysFont(None, 72)
+        game._upgrade_icon_cache.clear()
+        game._hud_font = None
+        game._hud_font_small = None
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+        game.level_up_selected_index = self._orig_selected
+
+    def _make_options(self):
+        return [
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_normal", "name": "Normal Gun", "current_level": 2, "is_unlock": False},
+        ]
+
+    def test_hover_scale_constant_exists(self):
+        """CARD_HOVER_SCALE constant should be defined and > 1."""
+        from game import CARD_HOVER_SCALE
+        self.assertGreater(CARD_HOVER_SCALE, 1.0)
+        self.assertLessEqual(CARD_HOVER_SCALE, 1.2)
+
+    def test_draw_panel_with_hover_index_0(self):
+        """Panel renders without error when first card is hovered."""
+        import game as g
+        g.level_up_selected_index = 0
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_draw_panel_with_hover_index_1(self):
+        """Panel renders without error when middle card is hovered."""
+        import game as g
+        g.level_up_selected_index = 1
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_draw_panel_with_hover_index_2(self):
+        """Panel renders without error when last card is hovered."""
+        import game as g
+        g.level_up_selected_index = 2
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_draw_panel_with_no_valid_hover(self):
+        """Panel renders without error when hover index is out of range."""
+        import game as g
+        g.level_up_selected_index = -1
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_hovered_card_draws_larger_area(self):
+        """Hovered card should draw pixels in a larger area than non-hovered."""
+        import game as g
+        from game import CARD_MARGIN, CARD_TITLE_AREA, _panel_origin
+
+        options = self._make_options()
+        card_w = g._card_scaled_surface.get_width()
+        card_h = g._card_scaled_surface.get_height()
+        panel_x, panel_y = _panel_origin()
+        # Check area just outside the non-hovered card 0 boundary (left side)
+        base_card_x = panel_x + CARD_MARGIN
+        base_card_y = panel_y + CARD_TITLE_AREA
+
+        # Render without hover -- card 0 area only covers base rect
+        g.level_up_selected_index = -1
+        g.screen.fill((0, 0, 0))
+        g.draw_upgrade_panel(1, options)
+        # Sample pixel just left of the base card (should be black with no hover)
+        check_x = max(0, base_card_x - 3)
+        check_y = base_card_y + card_h // 2
+        pixel_no_hover = g.screen.get_at((check_x, check_y))
+
+        # Render with hover on card 0 -- card expands, should draw pixels further left
+        g.level_up_selected_index = 0
+        g.screen.fill((0, 0, 0))
+        g.draw_upgrade_panel(1, options)
+        pixel_hover = g.screen.get_at((check_x, check_y))
+
+        # The hovered render should have drawn card pixels where the non-hovered didn't
+        self.assertEqual(pixel_no_hover[:3], (0, 0, 0),
+                         "Pixel outside base card should be black without hover")
+        self.assertNotEqual(pixel_hover[:3], (0, 0, 0),
+                            "Pixel outside base card should have content when hovered")
 
 
 if __name__ == "__main__":
