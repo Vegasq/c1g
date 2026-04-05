@@ -650,6 +650,18 @@ class FractalBackground:
 
 _menu_background = None
 _fade_overlay = None
+_zoom_surface = None
+_zoom_surface_size = (0, 0)
+
+
+def _get_zoom_surface(w, h):
+    """Return a cached surface for zoom rendering, matching display pixel format."""
+    global _zoom_surface, _zoom_surface_size
+    if _zoom_surface is None or _zoom_surface_size != (w, h):
+        # Match the display surface format so convert_alpha'd sprites blit correctly
+        _zoom_surface = pygame.Surface((w, h)).convert(screen)
+        _zoom_surface_size = (w, h)
+    return _zoom_surface
 
 
 def _reset_menu_state():
@@ -723,15 +735,22 @@ def draw_glow(surface, color, center, radius, intensity=80, layers=4):
 
 
 class Camera:
+    ZOOM_MIN = 0.5
+    ZOOM_MAX = 3.0
+    ZOOM_STEP = 0.1
+
     def __init__(self):
         self.x = 0.0
         self.y = 0.0
+        self.zoom = 1.0
 
     def update(self, target):
-        self.x = target.x - WIDTH / 2
-        self.y = target.y - HEIGHT / 2
-        self.x = max(0, min(MAP_WIDTH - WIDTH, self.x))
-        self.y = max(0, min(MAP_HEIGHT - HEIGHT, self.y))
+        vw = WIDTH / self.zoom
+        vh = HEIGHT / self.zoom
+        self.x = target.x - vw / 2
+        self.y = target.y - vh / 2
+        self.x = max(0, min(MAP_WIDTH - vw, self.x))
+        self.y = max(0, min(MAP_HEIGHT - vh, self.y))
 
     def apply(self, x, y):
         return int(x - self.x), int(y - self.y)
@@ -2037,11 +2056,12 @@ def draw_hud_minimap(camera, player, allies, enemies, obstacles, escape_rooms=No
     py = int(player.y * scale_y)
     pygame.draw.circle(mm_surf, PLAYER_COLOR, (px, py), 3)
 
-    # Draw camera viewport rectangle
+    # Draw camera viewport rectangle (use zoom-adjusted view area)
+    zoom = getattr(camera, 'zoom', 1.0)
     vx = int(camera.x * scale_x)
     vy = int(camera.y * scale_y)
-    vw = max(1, int(WIDTH * scale_x))
-    vh = max(1, int(HEIGHT * scale_y))
+    vw = max(1, int((WIDTH / zoom) * scale_x))
+    vh = max(1, int((HEIGHT / zoom) * scale_y))
     pygame.draw.rect(mm_surf, (150, 0, 255, 100), (vx, vy, vw, vh), 1)
 
     screen.blit(mm_surf, (panel_x + pad, panel_y + pad))
@@ -2054,6 +2074,15 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     enemy_bullets=None, explosion_effects=None,
                     death_effects=None, bomb_parts=0):
     """Draw the full game scene (background, entities, HUD)."""
+    global screen, WIDTH, HEIGHT
+    zoom = getattr(camera, 'zoom', 1.0)
+    _zoomed = zoom > 1.001
+    if _zoomed:
+        _real_screen = screen
+        _real_w, _real_h = WIDTH, HEIGHT
+        vw, vh = max(1, int(WIDTH / zoom)), max(1, int(HEIGHT / zoom))
+        screen = _get_zoom_surface(vw, vh)
+        WIDTH, HEIGHT = vw, vh
     screen.fill(BG)
     draw_grid(camera)
     for obs in obstacles:
@@ -2122,6 +2151,12 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
         flash_surface.fill((50, 180, 50, alpha))
         screen.blit(flash_surface, (0, 0))
 
+    # Zoom: scale world render surface up to real screen before drawing HUD
+    if _zoomed:
+        screen = _real_screen
+        WIDTH, HEIGHT = _real_w, _real_h
+        pygame.transform.scale(_get_zoom_surface(vw, vh), (WIDTH, HEIGHT), screen)
+
     # HUD - Top-left vitals widget
     draw_hud_vitals(player, xp, xp_thresholds, level)
 
@@ -2171,6 +2206,10 @@ def _draw_escape_room_indicator(camera, er, player):
     er_cx = er.x + er.w / 2
     er_cy = er.y + er.h / 2
     sx, sy = camera.apply(er_cx, er_cy)
+    # Scale from virtual to real screen coords when zoomed
+    zoom = getattr(camera, 'zoom', 1.0)
+    sx = int(sx * zoom)
+    sy = int(sy * zoom)
 
     result = compute_indicator_position(sx, sy, WIDTH, HEIGHT)
     if result is None:
@@ -2179,6 +2218,7 @@ def _draw_escape_room_indicator(camera, er, player):
 
     # Direction relative to player's screen position
     px, py = camera.apply(player.x, player.y)
+    px, py = int(px * zoom), int(py * zoom)
     dx, dy = sx - px, sy - py
     dist = math.sqrt(dx * dx + dy * dy)
     if dist == 0:
@@ -2481,6 +2521,7 @@ def apply_resolution():
     _menu_background = None
     _fade_overlay = None
     _dim_overlay = None
+    _zoom_surface = None
     if _card_surface is not None and pygame.display.get_surface() is not None:
         _load_card_assets()
     # Reload UI backgrounds at new resolution
@@ -3405,6 +3446,12 @@ def run():
                     death_review_data["scroll_offset"] = max(0, death_review_data["scroll_offset"] - 30)
                 elif event.button == 5:  # scroll down
                     death_review_data["scroll_offset"] += 30
+            # Mouse scroll for camera zoom during gameplay
+            if event.type == pygame.MOUSEBUTTONDOWN and state == STATE_PLAYING:
+                if event.button == 4:  # scroll up — zoom in
+                    camera.zoom = min(Camera.ZOOM_MAX, camera.zoom + Camera.ZOOM_STEP)
+                elif event.button == 5:  # scroll down — zoom out
+                    camera.zoom = max(Camera.ZOOM_MIN, camera.zoom - Camera.ZOOM_STEP)
 
         # Gamepad D-pad/stick navigation for menu states (with repeat delay)
         if active_joystick is not None and state != STATE_PLAYING:
