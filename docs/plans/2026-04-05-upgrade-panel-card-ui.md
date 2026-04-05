@@ -52,16 +52,16 @@ Replace the current list-style upgrade panel with a card-based layout showing th
 **Files:**
 - Modify: `game.py`
 
-- [ ] Draw a dark semi-transparent overlay behind the panel (reuse existing draw_dim_overlay or similar)
-- [ ] Draw the "Level N!" title centered above the three cards
-- [ ] For each of the 3 upgrade options, blit the scaled card image side by side with spacing
-- [ ] On each card, blit the upgrade icon centered at the scaled icon position from TOML
-- [ ] For title: render `opt["name"]` (the label text) and center it at the scaled title position
-- [ ] For body: render the description text from `UPGRADE_CATEGORIES[category]["description"]` and center it at the scaled body position
-- [ ] For new value: compute the difference between current and next level values using `format_value`, render it in green color, and position it on the card (below body or as part of body area)
-- [ ] For level: render "LEVEL {cur_lv + 1}" or "UNLOCK" if is_unlock, center at the scaled level position
-- [ ] Write tests verifying draw_upgrade_panel runs without errors with mock upgrade options
-- [ ] Run project test suite - must pass before task 4
+- [x] Draw a dark semi-transparent overlay behind the panel (reuse existing draw_dim_overlay or similar)
+- [x] Draw the "Level N!" title centered above the three cards
+- [x] For each of the 3 upgrade options, blit the scaled card image side by side with spacing
+- [x] On each card, blit the upgrade icon centered at the scaled icon position from TOML
+- [x] For title: render `opt["name"]` (the label text) and center it at the scaled title position
+- [x] For body: render the description text from `UPGRADE_CATEGORIES[category]["description"]` and center it at the scaled body position
+- [x] For new value: compute the difference between current and next level values using `format_value`, render it in green color, and position it on the card (below body or as part of body area)
+- [x] For level: render "LEVEL {cur_lv + 1}" or "UNLOCK" if is_unlock, center at the scaled level position
+- [x] Write tests verifying draw_upgrade_panel runs without errors with mock upgrade options
+- [x] Run project test suite - must pass before task 4
 
 ### Task 4: Implement hover card scaling effect
 

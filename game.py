@@ -2278,75 +2278,81 @@ def _panel_origin():
 
 
 def draw_upgrade_panel(level, upgrade_options):
-    """Draw a centered floating panel for the upgrade selector."""
+    """Draw a card-based upgrade selector with 3 cards side by side."""
     panel_x, panel_y = _panel_origin()
-    panel_surf = pygame.Surface((PANEL_WIDTH, PANEL_HEIGHT), pygame.SRCALPHA)
-    panel_surf.fill(PANEL_BG_COLOR)
-    pygame.draw.rect(panel_surf, BORDER_COLOR,
-                     pygame.Rect(0, 0, PANEL_WIDTH, PANEL_HEIGHT), 2, border_radius=6)
 
-    # Title
+    # "Level N!" title centered above the cards
     title = title_font.render(f"Level {level}!", True, (200, 160, 80))
     title_shadow = title_font.render(f"Level {level}!", True, (50, 35, 15))
-    tx = PANEL_WIDTH // 2 - title.get_width() // 2
-    ty = 15
-    panel_surf.blit(title_shadow, (tx + 2, ty + 2))
-    panel_surf.blit(title, (tx, ty))
+    tx = panel_x + PANEL_WIDTH // 2 - title.get_width() // 2
+    ty = panel_y + 10
+    screen.blit(title_shadow, (tx + 2, ty + 2))
+    screen.blit(title, (tx, ty))
 
-    subtitle = font.render("Choose an upgrade:", True, (180, 160, 120))
-    panel_surf.blit(subtitle, (PANEL_WIDTH // 2 - subtitle.get_width() // 2, 60))
-
-    selected_idx = level_up_selected_index
     hud_font, hud_font_small = _get_hud_fonts()
 
+    # Card dimensions from the pre-scaled surface
+    card_w = _card_scaled_surface.get_width()
+    card_h = _card_scaled_surface.get_height()
+
     for i, opt in enumerate(upgrade_options):
-        row_y = OPTION_START_Y + i * OPTION_ROW_HEIGHT
-        row_rect = pygame.Rect(OPTION_PADDING, row_y,
-                               PANEL_WIDTH - OPTION_PADDING * 2, OPTION_ROW_HEIGHT - 5)
+        # Card x position: margin + i * (card_w + gap)
+        card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+        card_y = panel_y + CARD_TITLE_AREA
 
-        hovered = (i == selected_idx)
-        if hovered:
-            row_bg = pygame.Surface((row_rect.width, row_rect.height), pygame.SRCALPHA)
-            row_bg.fill((BORDER_COLOR[0], BORDER_COLOR[1], BORDER_COLOR[2], 40))
-            panel_surf.blit(row_bg, row_rect.topleft)
-            pygame.draw.rect(panel_surf, BORDER_COLOR, row_rect, 1, border_radius=4)
-        else:
-            pygame.draw.rect(panel_surf, (60, 50, 35, 120), row_rect, 1, border_radius=4)
+        # Blit card background
+        screen.blit(_card_scaled_surface, (card_x, card_y))
 
-        # Icon
+        # Icon centered at scaled icon position
         icon = opt.get('_icon') or create_upgrade_icon(opt)
-        icon_x = OPTION_PADDING + 10
-        icon_y = row_y + (OPTION_ROW_HEIGHT - 5) // 2 - ICON_SIZE // 2
-        panel_surf.blit(icon, (icon_x, icon_y))
+        icon_cx, icon_cy = _card_scaled_positions["icon"]
+        icon_bx = card_x + icon_cx - icon.get_width() // 2
+        icon_by = card_y + icon_cy - icon.get_height() // 2
+        screen.blit(icon, (icon_bx, icon_by))
 
-        # Category name and level info
+        # Title text centered at scaled title position
+        name_text = opt.get("name", "")
+        name_surf = font.render(name_text, True, (200, 160, 80))
+        title_cx, title_cy = _card_scaled_positions["title"]
+        screen.blit(name_surf, (card_x + title_cx - name_surf.get_width() // 2,
+                                card_y + title_cy - name_surf.get_height() // 2))
+
+        # Body: description text centered at scaled body position
         cur_lv = opt.get("current_level", 0)
         is_unlock = opt.get("is_unlock", False)
-        text_x = icon_x + ICON_SIZE + 10
+        cat_key = opt.get("category", "")
+        cat_info = UPGRADE_CATEGORIES.get(cat_key)
 
-        if is_unlock:
-            # Weapon unlock — show in green
-            label = font.render(f"[{i+1}] UNLOCK {opt['name']}", True, (80, 200, 80))
-            panel_surf.blit(label, (text_x, row_y + 8))
-            desc = hud_font_small.render(f"Adds {opt['name']} weapon", True, (150, 150, 130))
-            panel_surf.blit(desc, (text_x, row_y + 30))
+        body_cx, body_cy = _card_scaled_positions["body"]
+
+        if cat_info:
+            desc_text = cat_info["description"]
         else:
-            # Normal upgrade — show level transition and effect
-            color = (200, 170, 80) if opt.get("category", "").startswith("weapon_") else (180, 160, 120)
-            label = font.render(f"[{i+1}] {opt['name']}", True, color)
-            panel_surf.blit(label, (text_x, row_y + 8))
-            # Show level and stat preview
-            cat = UPGRADE_CATEGORIES.get(opt.get("category", ""))
-            if cat:
-                cur_val = cat["format_value"](cur_lv)
-                next_val = cat["format_value"](cur_lv + 1)
-                desc_text = f"Lv {cur_lv} -> {cur_lv + 1}  ({cur_val} -> {next_val})"
-            else:
-                desc_text = f"Lv {cur_lv} -> {cur_lv + 1}"
-            desc = hud_font_small.render(desc_text, True, (150, 150, 130))
-            panel_surf.blit(desc, (text_x, row_y + 30))
+            desc_text = ""
+        desc_surf = hud_font_small.render(desc_text, True, (180, 160, 120))
+        screen.blit(desc_surf, (card_x + body_cx - desc_surf.get_width() // 2,
+                                card_y + body_cy - desc_surf.get_height() // 2 - 10))
 
-    screen.blit(panel_surf, (panel_x, panel_y))
+        # New value in green below description
+        if cat_info and not is_unlock:
+            cur_val = cat_info["format_value"](cur_lv)
+            next_val = cat_info["format_value"](cur_lv + 1)
+            val_text = f"{cur_val} -> {next_val}"
+            val_surf = hud_font_small.render(val_text, True, (80, 200, 80))
+            screen.blit(val_surf, (card_x + body_cx - val_surf.get_width() // 2,
+                                   card_y + body_cy - val_surf.get_height() // 2 + 12))
+
+        # Level text centered at scaled level position
+        level_cx, level_cy = _card_scaled_positions["level"]
+        if is_unlock:
+            lv_text = "UNLOCK"
+            lv_color = (80, 200, 80)
+        else:
+            lv_text = f"LEVEL {cur_lv + 1}"
+            lv_color = (200, 160, 80)
+        lv_surf = font.render(lv_text, True, lv_color)
+        screen.blit(lv_surf, (card_x + level_cx - lv_surf.get_width() // 2,
+                              card_y + level_cy - lv_surf.get_height() // 2))
 
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):

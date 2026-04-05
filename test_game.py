@@ -776,6 +776,8 @@ class TestMenuAndHUDRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
 
     @classmethod
     def tearDownClass(cls):
@@ -791,6 +793,7 @@ class TestMenuAndHUDRendering(unittest.TestCase):
 
     def setUp(self):
         import game
+        from game import _load_card_assets
         self._orig_screen = game.screen
         self._orig_font = game.font
         self._orig_title_font = game.title_font
@@ -800,6 +803,16 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         self._orig_menu_font = game.menu_font
         game.menu_font = self._make_mock_font()
         game._upgrade_icon_cache.clear()
+        # Reset hud fonts in case a prior test class called pygame.quit()
+        game._hud_font = None
+        game._hud_font_small = None
+        # Card-based panel requires assets loaded; ensure WIDTH is 1024 for
+        # consistent layout regardless of prior test resolution changes.
+        self._orig_width = game.WIDTH
+        self._orig_height = game.HEIGHT
+        game.WIDTH = 1024
+        game.HEIGHT = 768
+        _load_card_assets()
 
     def tearDown(self):
         import game
@@ -807,6 +820,8 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         game.font = self._orig_font
         game.title_font = self._orig_title_font
         game.menu_font = self._orig_menu_font
+        game.WIDTH = self._orig_width
+        game.HEIGHT = self._orig_height
 
     def test_draw_menu_runs_without_error(self):
         from unittest.mock import patch
@@ -916,9 +931,9 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """Verify draw_upgrade_panel runs without raising."""
         from game import draw_upgrade_panel
         options = [
-            {"name": "Damage +10%", "stat": "damage", "amount": 1},
-            {"name": "Fire Rate +10%", "stat": "fire_rate", "amount": -2},
-            {"name": "Shotgun", "weapon_type": "shotgun"},
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Move Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
         ]
         # Should not raise
         draw_upgrade_panel(2, options)
@@ -928,7 +943,11 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         import game
         from game import draw_upgrade_panel, _panel_origin, PANEL_WIDTH, PANEL_HEIGHT
         game.screen.fill((0, 0, 0))
-        options = [{"name": "Test", "stat": "damage", "amount": 1}]
+        options = [
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Move Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
+        ]
         draw_upgrade_panel(1, options)
         panel_x, panel_y = _panel_origin()
         cx = panel_x + PANEL_WIDTH // 2
@@ -1001,9 +1020,9 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         """Verify draw_upgrade_panel works with all upgrade types (icons included)."""
         from game import draw_upgrade_panel
         options = [
-            {"name": "+Damage", "stat": "damage", "amount": 1},
-            {"name": "+Fire Rate", "stat": "fire_rate", "amount": -3},
-            {"name": "Weapon: Shotgun", "weapon_type": "shotgun"},
+            {"category": "max_hp", "name": "Max HP", "current_level": 2, "is_unlock": False},
+            {"category": "weapon_piercing", "name": "Piercing", "current_level": 1, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
         ]
         draw_upgrade_panel(3, options)
 
@@ -5126,6 +5145,95 @@ class TestCardAssetLoading(unittest.TestCase):
     def test_panel_dimensions_updated(self):
         self.assertGreater(game.PANEL_WIDTH, 500)
         self.assertGreater(game.PANEL_HEIGHT, 350)
+
+
+class TestDrawUpgradePanelCards(unittest.TestCase):
+    """Tests for the card-based draw_upgrade_panel (Task 3)."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
+        from game import _load_card_assets
+        if game._card_scaled_surface is None:
+            _load_card_assets()
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        game.screen = pygame.Surface((1024, 768))
+        game.font = pygame.font.SysFont(None, 36)
+        game.title_font = pygame.font.SysFont(None, 72)
+        game._upgrade_icon_cache.clear()
+        # Reset hud fonts in case a prior test class called pygame.quit()
+        game._hud_font = None
+        game._hud_font_small = None
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+
+    def _make_options(self):
+        return [
+            {"category": "max_hp", "name": "Max HP", "current_level": 2, "is_unlock": False},
+            {"category": "move_speed", "name": "Move Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_shotgun", "name": "Shotgun", "current_level": 0, "is_unlock": True},
+        ]
+
+    def test_card_panel_no_crash_all_categories(self):
+        """draw_upgrade_panel should not crash for any category combination."""
+        from game import draw_upgrade_panel
+        categories = [
+            "max_hp", "move_speed", "weapon_normal", "weapon_shotgun",
+            "weapon_piercing", "weapon_explosive", "ally_spawn", "heal_amount",
+        ]
+        for i in range(0, len(categories), 3):
+            batch = categories[i:i+3]
+            options = [
+                {"category": c, "name": c, "current_level": 1, "is_unlock": False}
+                for c in batch
+            ]
+            draw_upgrade_panel(5, options)
+
+    def test_card_panel_renders_unlock_option(self):
+        """Panel renders without error when an option is an unlock."""
+        from game import draw_upgrade_panel
+        options = [
+            {"category": "weapon_explosive", "name": "Explosive", "current_level": 0, "is_unlock": True},
+            {"category": "max_hp", "name": "Max HP", "current_level": 3, "is_unlock": False},
+            {"category": "heal_amount", "name": "Health Restore", "current_level": 1, "is_unlock": False},
+        ]
+        draw_upgrade_panel(4, options)
+
+    def test_card_panel_draws_pixels_in_card_area(self):
+        """Cards should draw non-black pixels in the card area."""
+        import game as g
+        from game import draw_upgrade_panel, _panel_origin, PANEL_WIDTH, PANEL_HEIGHT
+        from game import CARD_MARGIN, CARD_TITLE_AREA, CARD_GAP
+        g.screen.fill((0, 0, 0))
+        options = self._make_options()
+        draw_upgrade_panel(2, options)
+        panel_x, panel_y = _panel_origin()
+        card_w = g._card_scaled_surface.get_width()
+        card_h = g._card_scaled_surface.get_height()
+        # Check center of first card
+        cx = panel_x + CARD_MARGIN + card_w // 2
+        cy = panel_y + CARD_TITLE_AREA + card_h // 2
+        pixel = g.screen.get_at((cx, cy))
+        self.assertNotEqual(pixel[:3], (0, 0, 0), "First card area should have non-black pixels")
+
+    def test_card_panel_with_missing_category(self):
+        """Panel should handle options with unknown category gracefully."""
+        from game import draw_upgrade_panel
+        options = [
+            {"category": "unknown_xyz", "name": "Unknown", "current_level": 0, "is_unlock": False},
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Speed", "current_level": 0, "is_unlock": False},
+        ]
+        draw_upgrade_panel(1, options)
 
 
 if __name__ == "__main__":
