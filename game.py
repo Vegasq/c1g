@@ -2359,17 +2359,23 @@ def draw_upgrade_panel(level, upgrade_options):
         else:
             desc_text = ""
         desc_surf = hud_font_small.render(desc_text, True, (180, 160, 120))
-        screen.blit(desc_surf, (card_x + int(body_cx * h_scale) - desc_surf.get_width() // 2,
-                                card_y + int(body_cy * h_scale) - desc_surf.get_height() // 2 - 10))
 
         # New value in green below description
         if cat_info and not is_unlock:
             cur_val = cat_info["format_value"](cur_lv)
             next_val = cat_info["format_value"](cur_lv + 1)
-            val_text = f"{cur_val} -> {next_val}"
-            val_surf = hud_font_small.render(val_text, True, (80, 200, 80))
-            screen.blit(val_surf, (card_x + int(body_cx * h_scale) - val_surf.get_width() // 2,
-                                   card_y + int(body_cy * h_scale) - val_surf.get_height() // 2 + 12))
+            val_cur_surf = hud_font_small.render(cur_val, True, (180, 160, 120))
+            val_next_surf = hud_font_small.render(next_val, True, (80, 200, 80))
+            screen.blit(val_cur_surf, (card_x + int(body_cx * h_scale) - val_cur_surf.get_width() - 2,
+                                   card_y + int(body_cy * h_scale) - val_cur_surf.get_height()//2))
+            screen.blit(val_next_surf, (card_x + int(body_cx * h_scale) + 2,
+                                   card_y + int(body_cy * h_scale) - val_next_surf.get_height() // 2))
+            desc_vert_offset = max(val_cur_surf.get_height() // 2, val_next_surf.get_height() // 2)
+            screen.blit(desc_surf, (card_x + int(body_cx * h_scale) - desc_surf.get_width() // 2,
+                                card_y + int(body_cy * h_scale) - desc_surf.get_height() - desc_vert_offset - 10))
+        else:
+            screen.blit(desc_surf, (card_x + int(body_cx * h_scale) - desc_surf.get_width() // 2,
+                                card_y + int(body_cy * h_scale) - desc_surf.get_height() // 2))
 
         # Level text centered at scaled level position
         level_cx, level_cy = _card_scaled_positions["level"]

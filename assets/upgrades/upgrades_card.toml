@@ -9,7 +9,7 @@ y = 218
 # position of upgrade title text center
 [title]
 x = 202
-y = 38
+y = 40
 
 # position of upgrade information text center
 [body]
