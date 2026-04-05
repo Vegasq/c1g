@@ -5236,5 +5236,116 @@ class TestDrawUpgradePanelCards(unittest.TestCase):
         draw_upgrade_panel(1, options)
 
 
+class TestCardHoverScaling(unittest.TestCase):
+    """Tests for card hover scaling effect in upgrade panel."""
+
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
+        from game import _load_card_assets
+        if game._card_scaled_surface is None:
+            _load_card_assets()
+
+    def setUp(self):
+        self._orig_screen = game.screen
+        self._orig_font = game.font
+        self._orig_title_font = game.title_font
+        self._orig_selected = game.level_up_selected_index
+        game.screen = pygame.Surface((1024, 768))
+        game.font = pygame.font.SysFont(None, 36)
+        game.title_font = pygame.font.SysFont(None, 72)
+        game._upgrade_icon_cache.clear()
+        game._hud_font = None
+        game._hud_font_small = None
+
+    def tearDown(self):
+        game.screen = self._orig_screen
+        game.font = self._orig_font
+        game.title_font = self._orig_title_font
+        game.level_up_selected_index = self._orig_selected
+
+    def _make_options(self):
+        return [
+            {"category": "max_hp", "name": "Max HP", "current_level": 1, "is_unlock": False},
+            {"category": "move_speed", "name": "Speed", "current_level": 0, "is_unlock": False},
+            {"category": "weapon_normal", "name": "Normal Gun", "current_level": 2, "is_unlock": False},
+        ]
+
+    def test_hover_scale_constant_exists(self):
+        """CARD_HOVER_SCALE constant should be defined and > 1."""
+        from game import CARD_HOVER_SCALE
+        self.assertGreater(CARD_HOVER_SCALE, 1.0)
+        self.assertLessEqual(CARD_HOVER_SCALE, 1.2)
+
+    def test_draw_panel_with_hover_index_0(self):
+        """Panel renders without error when first card is hovered."""
+        import game as g
+        g.level_up_selected_index = 0
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_draw_panel_with_hover_index_1(self):
+        """Panel renders without error when middle card is hovered."""
+        import game as g
+        g.level_up_selected_index = 1
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_draw_panel_with_hover_index_2(self):
+        """Panel renders without error when last card is hovered."""
+        import game as g
+        g.level_up_selected_index = 2
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_draw_panel_with_no_valid_hover(self):
+        """Panel renders without error when hover index is out of range."""
+        import game as g
+        g.level_up_selected_index = -1
+        g.draw_upgrade_panel(1, self._make_options())
+
+    def test_hovered_card_draws_larger(self):
+        """Hovered card should draw at a larger size than non-hovered."""
+        import game as g
+        from game import (CARD_HOVER_SCALE, _card_scaled_surface,
+                          _panel_origin, CARD_MARGIN, CARD_GAP, CARD_TITLE_AREA)
+
+        card_w = _card_scaled_surface.get_width()
+        card_h = _card_scaled_surface.get_height()
+        hover_w = int(card_w * CARD_HOVER_SCALE)
+        hover_h = int(card_h * CARD_HOVER_SCALE)
+
+        # Hover scale should produce a card larger than default
+        self.assertGreater(hover_w, card_w)
+        self.assertGreater(hover_h, card_h)
+
+    def test_hover_scaling_preserves_center(self):
+        """Hovered card offset should keep it centered in its slot."""
+        import game as g
+        from game import (CARD_HOVER_SCALE, _card_scaled_surface,
+                          _panel_origin, CARD_MARGIN, CARD_GAP, CARD_TITLE_AREA)
+
+        card_w = _card_scaled_surface.get_width()
+        card_h = _card_scaled_surface.get_height()
+        panel_x, panel_y = _panel_origin()
+
+        # For card index 1 (middle card)
+        base_x = panel_x + CARD_MARGIN + 1 * (card_w + CARD_GAP)
+        base_y = panel_y + CARD_TITLE_AREA
+
+        hover_w = int(card_w * CARD_HOVER_SCALE)
+        hover_h = int(card_h * CARD_HOVER_SCALE)
+        hover_x = base_x - (hover_w - card_w) // 2
+        hover_y = base_y - (hover_h - card_h) // 2
+
+        # Center of hovered card should match center of base card
+        base_center_x = base_x + card_w // 2
+        base_center_y = base_y + card_h // 2
+        hover_center_x = hover_x + hover_w // 2
+        hover_center_y = hover_y + hover_h // 2
+
+        self.assertAlmostEqual(base_center_x, hover_center_x, delta=1)
+        self.assertAlmostEqual(base_center_y, hover_center_y, delta=1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2177,6 +2177,7 @@ PANEL_BORDER_GLOW_LAYERS = 4
 CARD_GAP = 20  # pixels between cards
 CARD_MARGIN = 30  # left/right margin around all cards
 CARD_TITLE_AREA = 70  # vertical space above cards for "Level N!" title
+CARD_HOVER_SCALE = 1.08  # scale multiplier for hovered card
 
 # Card asset globals (populated by _load_card_assets after pygame init)
 _card_surface = None  # original upgrades_card.png surface
@@ -2297,25 +2298,51 @@ def draw_upgrade_panel(level, upgrade_options):
 
     for i, opt in enumerate(upgrade_options):
         # Card x position: margin + i * (card_w + gap)
-        card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
-        card_y = panel_y + CARD_TITLE_AREA
+        base_card_x = panel_x + CARD_MARGIN + i * (card_w + CARD_GAP)
+        base_card_y = panel_y + CARD_TITLE_AREA
 
-        # Blit card background
-        screen.blit(_card_scaled_surface, (card_x, card_y))
+        # Determine if this card is hovered
+        is_hovered = (i == level_up_selected_index)
+
+        if is_hovered:
+            # Scale card surface up for hover effect
+            hover_w = int(card_w * CARD_HOVER_SCALE)
+            hover_h = int(card_h * CARD_HOVER_SCALE)
+            hover_card_surf = pygame.transform.smoothscale(
+                _card_scaled_surface, (hover_w, hover_h))
+            # Offset so the scaled card stays centered in its slot
+            card_x = base_card_x - (hover_w - card_w) // 2
+            card_y = base_card_y - (hover_h - card_h) // 2
+            screen.blit(hover_card_surf, (card_x, card_y))
+            # Scale factor for positioning elements on the hovered card
+            h_scale = CARD_HOVER_SCALE
+        else:
+            card_x = base_card_x
+            card_y = base_card_y
+            screen.blit(_card_scaled_surface, (card_x, card_y))
+            h_scale = 1.0
 
         # Icon centered at scaled icon position
         icon = opt.get('_icon') or create_upgrade_icon(opt)
         icon_cx, icon_cy = _card_scaled_positions["icon"]
-        icon_bx = card_x + icon_cx - icon.get_width() // 2
-        icon_by = card_y + icon_cy - icon.get_height() // 2
+        if is_hovered:
+            # Scale icon for hover
+            hover_icon_w = int(icon.get_width() * CARD_HOVER_SCALE)
+            hover_icon_h = int(icon.get_height() * CARD_HOVER_SCALE)
+            icon = pygame.transform.smoothscale(icon, (hover_icon_w, hover_icon_h))
+            icon_bx = card_x + int(icon_cx * h_scale) - icon.get_width() // 2
+            icon_by = card_y + int(icon_cy * h_scale) - icon.get_height() // 2
+        else:
+            icon_bx = card_x + icon_cx - icon.get_width() // 2
+            icon_by = card_y + icon_cy - icon.get_height() // 2
         screen.blit(icon, (icon_bx, icon_by))
 
         # Title text centered at scaled title position
         name_text = opt.get("name", "")
         name_surf = font.render(name_text, True, (200, 160, 80))
         title_cx, title_cy = _card_scaled_positions["title"]
-        screen.blit(name_surf, (card_x + title_cx - name_surf.get_width() // 2,
-                                card_y + title_cy - name_surf.get_height() // 2))
+        screen.blit(name_surf, (card_x + int(title_cx * h_scale) - name_surf.get_width() // 2,
+                                card_y + int(title_cy * h_scale) - name_surf.get_height() // 2))
 
         # Body: description text centered at scaled body position
         cur_lv = opt.get("current_level", 0)
@@ -2330,8 +2357,8 @@ def draw_upgrade_panel(level, upgrade_options):
         else:
             desc_text = ""
         desc_surf = hud_font_small.render(desc_text, True, (180, 160, 120))
-        screen.blit(desc_surf, (card_x + body_cx - desc_surf.get_width() // 2,
-                                card_y + body_cy - desc_surf.get_height() // 2 - 10))
+        screen.blit(desc_surf, (card_x + int(body_cx * h_scale) - desc_surf.get_width() // 2,
+                                card_y + int(body_cy * h_scale) - desc_surf.get_height() // 2 - 10))
 
         # New value in green below description
         if cat_info and not is_unlock:
@@ -2339,8 +2366,8 @@ def draw_upgrade_panel(level, upgrade_options):
             next_val = cat_info["format_value"](cur_lv + 1)
             val_text = f"{cur_val} -> {next_val}"
             val_surf = hud_font_small.render(val_text, True, (80, 200, 80))
-            screen.blit(val_surf, (card_x + body_cx - val_surf.get_width() // 2,
-                                   card_y + body_cy - val_surf.get_height() // 2 + 12))
+            screen.blit(val_surf, (card_x + int(body_cx * h_scale) - val_surf.get_width() // 2,
+                                   card_y + int(body_cy * h_scale) - val_surf.get_height() // 2 + 12))
 
         # Level text centered at scaled level position
         level_cx, level_cy = _card_scaled_positions["level"]
@@ -2351,8 +2378,8 @@ def draw_upgrade_panel(level, upgrade_options):
             lv_text = f"LEVEL {cur_lv + 1}"
             lv_color = (200, 160, 80)
         lv_surf = font.render(lv_text, True, lv_color)
-        screen.blit(lv_surf, (card_x + level_cx - lv_surf.get_width() // 2,
-                              card_y + level_cy - lv_surf.get_height() // 2))
+        screen.blit(lv_surf, (card_x + int(level_cx * h_scale) - lv_surf.get_width() // 2,
+                              card_y + int(level_cy * h_scale) - lv_surf.get_height() // 2))
 
 
 def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):

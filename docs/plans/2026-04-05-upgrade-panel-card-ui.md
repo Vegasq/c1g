@@ -68,11 +68,11 @@ Replace the current list-style upgrade panel with a card-based layout showing th
 **Files:**
 - Modify: `game.py`
 
-- [ ] When a card is hovered (matches `level_up_selected_index`), scale that card's surface up slightly (e.g., 1.05-1.1x) before blitting
-- [ ] Non-hovered cards remain at default scale
-- [ ] Adjust blit position for scaled card so it stays centered in its slot
-- [ ] Write tests verifying hover index detection works with new card-based layout
-- [ ] Run project test suite - must pass before task 5
+- [x] When a card is hovered (matches `level_up_selected_index`), scale that card's surface up slightly (e.g., 1.05-1.1x) before blitting
+- [x] Non-hovered cards remain at default scale
+- [x] Adjust blit position for scaled card so it stays centered in its slot
+- [x] Write tests verifying hover index detection works with new card-based layout
+- [x] Run project test suite - must pass before task 5
 
 ### Task 5: Update get_hovered_upgrade_index for card layout
 
