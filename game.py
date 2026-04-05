@@ -3498,7 +3498,8 @@ def run():
                         health_pickups, heal_effects,
                         escape_rooms, escape_flash_timer,
                         enemy_bullets=enemy_bullets,
-                        explosion_effects=explosion_effects)
+                        explosion_effects=explosion_effects,
+                        death_effects=death_effects)
 
         pygame.display.flip()
         clock.tick(FPS)
