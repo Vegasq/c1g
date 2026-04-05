@@ -2688,6 +2688,7 @@ def draw_intro_screen():
 
     # Story text
     story = (
+        "Airplain that was carrying a nuclear device has crashed in the combat zone. "
         "Soldier, we have a critical situation. Russian zomboids are invading. "
         "Command has authorized the use of a nuclear device, but it was "
         "disassembled and scattered across the combat zone. "
@@ -3381,7 +3382,10 @@ def run():
                 player, score, wave, level, weapon_inventory,
                 xp, xp_thresholds, health_pickups,
                 heal_effects, escape_rooms, escape_flash_timer,
-                enemy_bullets=enemy_bullets)
+                enemy_bullets=enemy_bullets,
+                explosion_effects=explosion_effects,
+                death_effects=death_effects,
+                bomb_parts=bomb_parts_collected)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -3722,7 +3726,8 @@ def run():
                         escape_rooms, escape_flash_timer,
                         enemy_bullets=enemy_bullets,
                         explosion_effects=explosion_effects,
-                        death_effects=death_effects)
+                        death_effects=death_effects,
+                        bomb_parts=bomb_parts_collected)
 
         pygame.display.flip()
         clock.tick(FPS)
