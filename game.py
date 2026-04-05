@@ -440,6 +440,7 @@ STATE_OPTIONS = 4
 STATE_DEATH_REVIEW = 5
 STATE_INTRO = 6
 STATE_VICTORY = 7
+STATE_DIFFICULTY = 8
 
 BOMB_PARTS_TOTAL = 10
 
@@ -500,6 +501,31 @@ menu_selected_index = 0  # keyboard selection index
 menu_font = None  # initialized in init_pygame
 menu_fade_alpha = 0  # fade-in alpha (0-255)
 menu_fade_active = True  # whether fade-in is in progress
+
+# Difficulty selection
+DIFFICULTY_ITEMS = ["EASY", "NORMAL", "HARD", "X HARD", "XX HARD", "XXX HARD"]
+DIFFICULTY_DESCS = [
+    "Fewer enemies — explore at your own pace",
+    "Standard enemy count — the intended experience",
+    "Double the enemies — pure survival",
+    "More enemies, tougher and faster — for the brave",
+    "Swarms of beefy, fast enemies — madness",
+    "Overwhelming hordes of brutal enemies — impossible",
+]
+DIFFICULTY_SPAWN_DIVISORS = {
+    "EASY": 1.0, "NORMAL": 2.0, "HARD": 4.0,
+    "X HARD": 8.0, "XX HARD": 16.0, "XXX HARD": 32.0,
+}
+DIFFICULTY_HP_MULTIPLIERS = {
+    "EASY": 1.0, "NORMAL": 1.0, "HARD": 1.0,
+    "X HARD": 1.5, "XX HARD": 2.5, "XXX HARD": 4.0,
+}
+DIFFICULTY_SPEED_MULTIPLIERS = {
+    "EASY": 1.0, "NORMAL": 1.0, "HARD": 1.0,
+    "X HARD": 1.15, "XX HARD": 1.3, "XXX HARD": 1.5,
+}
+difficulty_selected_index = 0
+current_difficulty = "EASY"
 
 # Colors — classic zombie shooter palette
 BG = (30, 25, 20)
@@ -1422,11 +1448,13 @@ class Enemy:
         hp_compound_start = scaling.get("hp_compound_start", 20)
         linear = 1 + hp_linear * (wave - 1)
         compound = hp_compound ** max(0, wave - hp_compound_start)
-        self.hp = max(base_hp, int(base_hp * linear * compound))
+        hp_diff_mult = DIFFICULTY_HP_MULTIPLIERS.get(current_difficulty, 1.0)
+        self.hp = max(base_hp, int(base_hp * linear * compound * hp_diff_mult))
         base_speed = type_cfg["speed"]
         speed_linear = scaling.get("speed_linear", 0.02)
         speed_cap = scaling.get("speed_cap", 2.0)
-        self.speed = base_speed * min(speed_cap, 1 + speed_linear * (wave - 1))
+        speed_diff_mult = DIFFICULTY_SPEED_MULTIPLIERS.get(current_difficulty, 1.0)
+        self.speed = base_speed * min(speed_cap, 1 + speed_linear * (wave - 1)) * speed_diff_mult
         self.radius = type_cfg["radius"]
         self.color = type_cfg["color"]
         base_xp = type_cfg["xp_value"]
@@ -2606,6 +2634,65 @@ def draw_menu():
     pygame.display.flip()
 
 
+def get_hovered_difficulty_index(mx, my):
+    """Return the index of the hovered difficulty item, or -1."""
+    for i in range(len(DIFFICULTY_ITEMS)):
+        y = MENU_START_Y + i * MENU_ITEM_HEIGHT
+        if MENU_X <= mx <= MENU_X + 400 and y <= my <= y + MENU_ITEM_HEIGHT:
+            return i
+    return -1
+
+
+def draw_difficulty_screen():
+    """Draw the difficulty selection screen."""
+    bg = _assets.get_static("ui_background") if _assets else None
+    if bg is not None:
+        screen.blit(bg, (0, 0))
+    else:
+        screen.fill(BG)
+
+    # Title
+    title = title_font.render("SELECT DIFFICULTY", True, (200, 60, 40))
+    title_shadow = title_font.render("SELECT DIFFICULTY", True, (40, 15, 10))
+    tx = MENU_X
+    ty = MENU_START_Y - 120
+    screen.blit(title_shadow, (tx + 2, ty + 2))
+    screen.blit(title, (tx, ty))
+
+    ticks = pygame.time.get_ticks()
+    hud_font, hud_font_small = _get_hud_fonts()
+
+    for i, item_text in enumerate(DIFFICULTY_ITEMS):
+        y = MENU_START_Y + i * MENU_ITEM_HEIGHT
+        is_selected = (i == difficulty_selected_index)
+        x = MENU_X + (MENU_HOVER_INDENT if is_selected else 0)
+
+        if is_selected:
+            text_color = (255, 220, 160)
+            shadow_surf = menu_font.render(item_text, True, (80, 40, 10))
+            screen.blit(shadow_surf, (x + 1, y + 1))
+        else:
+            text_color = (180, 170, 160)
+
+        text_surf = menu_font.render(item_text, True, text_color)
+        screen.blit(text_surf, (x, y))
+
+        # Description for selected item
+        if is_selected:
+            desc = hud_font_small.render(DIFFICULTY_DESCS[i], True, (140, 130, 110))
+            screen.blit(desc, (x, y + 35))
+
+        if i < len(DIFFICULTY_ITEMS) - 1:
+            sep_y = y + MENU_ITEM_HEIGHT - 10
+            draw_menu_separator(screen, MENU_X, sep_y, 200, ticks)
+
+    # Back hint
+    hint = hud_font_small.render("ESC to go back", True, (100, 90, 80))
+    screen.blit(hint, (MENU_X, HEIGHT - 60))
+
+    pygame.display.flip()
+
+
 def draw_game_over(score, level=1, killer_info=None):
     # Semi-transparent dark overlay
     overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -2890,6 +2977,7 @@ def run():
     global menu_selected_index, active_joystick
     global level_up_selected_index, _gamepad_nav_last_time, _last_levelup_mouse_pos
     global _current_music
+    global current_difficulty, difficulty_selected_index
     init_pygame()
     _current_music = None
     state = STATE_MENU
@@ -2959,7 +3047,8 @@ def run():
         escape_flash_timer = 0
         score = 0
         spawn_timer = 0
-        spawn_interval = BALANCE.get("waves", {}).get("spawn_interval_base", 110)
+        _divisor = DIFFICULTY_SPAWN_DIVISORS.get(current_difficulty, 1.0)
+        spawn_interval = int(BALANCE.get("waves", {}).get("spawn_interval_base", 110) / _divisor)
         wave = 1
         wave_timer = 0
         xp = 0
@@ -3035,7 +3124,11 @@ def run():
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if state == STATE_OPTIONS:
+                    if state == STATE_DIFFICULTY:
+                        state = STATE_MENU
+                        _play_music("menu.wav")
+                        _reset_menu_state()
+                    elif state == STATE_OPTIONS:
                         state = STATE_MENU
                         _play_music("menu.wav")
                         _reset_menu_state()
@@ -3090,6 +3183,15 @@ def run():
                     idx = event.key - pygame.K_1
                     if 0 <= idx < len(upgrade_options):
                         apply_chosen_upgrade(upgrade_options[idx])
+                elif state == STATE_DIFFICULTY:
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        difficulty_selected_index = (difficulty_selected_index - 1) % len(DIFFICULTY_ITEMS)
+                    elif event.key in (pygame.K_DOWN, pygame.K_s):
+                        difficulty_selected_index = (difficulty_selected_index + 1) % len(DIFFICULTY_ITEMS)
+                    elif event.key == pygame.K_RETURN:
+                        current_difficulty = DIFFICULTY_ITEMS[difficulty_selected_index]
+                        reset_game()
+                        state = STATE_INTRO
                 elif state == STATE_MENU:
                     if event.key in (pygame.K_UP, pygame.K_w):
                         menu_selected_index = (menu_selected_index - 1) % len(MENU_ITEMS)
@@ -3097,8 +3199,8 @@ def run():
                         menu_selected_index = (menu_selected_index + 1) % len(MENU_ITEMS)
                     elif event.key == pygame.K_RETURN:
                         if menu_selected_index == 0:  # NEW GAME
-                            reset_game()
-                            state = STATE_INTRO
+                            difficulty_selected_index = 0
+                            state = STATE_DIFFICULTY
                         elif menu_selected_index == 1:  # OPTIONS
                             options_selected_index = 0
                             state = STATE_OPTIONS
@@ -3122,6 +3224,10 @@ def run():
                 idx = get_hovered_options_index(event.pos[0], event.pos[1])
                 if idx >= 0:
                     options_selected_index = idx
+            if event.type == pygame.MOUSEMOTION and state == STATE_DIFFICULTY:
+                idx = get_hovered_difficulty_index(event.pos[0], event.pos[1])
+                if idx >= 0:
+                    difficulty_selected_index = idx
             if event.type == pygame.MOUSEMOTION and state == STATE_MENU:
                 idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                 if idx >= 0:
@@ -3150,13 +3256,17 @@ def run():
                 if event.button == 0:  # A button - confirm/select
                     if state == STATE_MENU:
                         if menu_selected_index == 0:  # NEW GAME
-                            reset_game()
-                            state = STATE_INTRO
+                            difficulty_selected_index = 0
+                            state = STATE_DIFFICULTY
                         elif menu_selected_index == 1:  # OPTIONS
                             options_selected_index = 0
                             state = STATE_OPTIONS
                         elif menu_selected_index == 2:  # QUIT
                             running = False
+                    elif state == STATE_DIFFICULTY:
+                        current_difficulty = DIFFICULTY_ITEMS[difficulty_selected_index]
+                        reset_game()
+                        state = STATE_INTRO
                     elif state == STATE_OPTIONS:
                         if options_selected_index == 0 and not options_fullscreen:
                             options_resolution_index = (
@@ -3189,7 +3299,11 @@ def run():
                         state = STATE_PLAYING
                         _play_music("game.wav")
                 elif event.button == 1:  # B button - back/escape
-                    if state == STATE_DEATH_REVIEW:
+                    if state == STATE_DIFFICULTY:
+                        state = STATE_MENU
+                        _play_music("menu.wav")
+                        _reset_menu_state()
+                    elif state == STATE_DEATH_REVIEW:
                         state = STATE_GAME_OVER
                     elif state == STATE_OPTIONS:
                         state = STATE_MENU
@@ -3228,11 +3342,17 @@ def run():
                         state = STATE_MENU
                         _play_music("menu.wav")
                         _reset_menu_state()
+                elif state == STATE_DIFFICULTY:
+                    idx = get_hovered_difficulty_index(event.pos[0], event.pos[1])
+                    if 0 <= idx < len(DIFFICULTY_ITEMS):
+                        current_difficulty = DIFFICULTY_ITEMS[idx]
+                        reset_game()
+                        state = STATE_INTRO
                 elif state == STATE_MENU:
                     idx = get_hovered_menu_index(event.pos[0], event.pos[1])
                     if idx == 0:  # NEW GAME
-                        reset_game()
-                        state = STATE_INTRO
+                        difficulty_selected_index = 0
+                        state = STATE_DIFFICULTY
                     elif idx == 1:  # OPTIONS
                         options_selected_index = 0
                         state = STATE_OPTIONS
@@ -3292,6 +3412,9 @@ def run():
                 if state == STATE_MENU:
                     if nav_y:
                         menu_selected_index = (menu_selected_index + (1 if nav_y > 0 else -1)) % len(MENU_ITEMS)
+                elif state == STATE_DIFFICULTY:
+                    if nav_y:
+                        difficulty_selected_index = (difficulty_selected_index + (1 if nav_y > 0 else -1)) % len(DIFFICULTY_ITEMS)
                 elif state == STATE_OPTIONS:
                     current_options_idx = options_selected_index
                     if nav_y:
@@ -3315,6 +3438,11 @@ def run():
 
         if state == STATE_MENU:
             draw_menu()
+            clock.tick(FPS)
+            continue
+
+        if state == STATE_DIFFICULTY:
+            draw_difficulty_screen()
             clock.tick(FPS)
             continue
 
@@ -3514,9 +3642,10 @@ def run():
             run_stats["wave_xp_earned"] = 0
             wave += 1
             wave_timer = 0
-            spawn_min = BALANCE.get("waves", {}).get("spawn_interval_min", 10)
+            _diff_div = DIFFICULTY_SPAWN_DIVISORS.get(current_difficulty, 1.0)
+            spawn_min = int(BALANCE.get("waves", {}).get("spawn_interval_min", 10) / _diff_div)
             spawn_reduction = BALANCE.get("waves", {}).get("spawn_interval_reduction", 14)
-            spawn_interval = max(spawn_min, spawn_interval - spawn_reduction)
+            spawn_interval = max(max(1, spawn_min), spawn_interval - spawn_reduction)
         if spawn_timer >= spawn_interval:
             spawn_timer = 0
             for _ in range(get_spawn_count(wave)):

@@ -7,3 +7,5 @@ progress*.txt
 stats.json
 # Runtime-generated settings
 settings.json
+# Adobe Illustrator files
+assets/**/*.ai
