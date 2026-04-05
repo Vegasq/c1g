@@ -25,7 +25,8 @@ from game import (generate_xp_thresholds, check_level_up, default_weapon_stats, 
                   JOYSTICK_DEADZONE, GAMEPAD_NAV_REPEAT_DELAY, init_pygame,
                   handle_joy_device_added, handle_joy_device_removed,
                   BALANCE, load_balance_config, _default_balance_toml,
-                  MUSIC_DIR, _play_music, _stop_music)
+                  MUSIC_DIR, _play_music, _stop_music,
+                  _load_card_assets, CARD_GAP, CARD_MARGIN, CARD_TITLE_AREA)
 import game
 
 
@@ -901,10 +902,11 @@ class TestMenuAndHUDRendering(unittest.TestCase):
         draw_dim_overlay()
 
     def test_upgrade_panel_dimensions(self):
-        """Verify panel constants define a centered ~500x350 panel."""
+        """Verify panel dimensions fit 3 cards and panel is centered."""
         from game import PANEL_WIDTH, PANEL_HEIGHT, _panel_origin, WIDTH, HEIGHT
-        self.assertEqual(PANEL_WIDTH, 500)
-        self.assertEqual(PANEL_HEIGHT, 350)
+        # Card-based layout: panel must be wide enough for 3 cards
+        self.assertGreaterEqual(PANEL_WIDTH, 500)
+        self.assertGreaterEqual(PANEL_HEIGHT, 350)
         panel_x, panel_y = _panel_origin()
         self.assertEqual(panel_x, (WIDTH - PANEL_WIDTH) // 2)
         self.assertEqual(panel_y, (HEIGHT - PANEL_HEIGHT) // 2)
@@ -5053,6 +5055,62 @@ class TestDeathOverlay(unittest.TestCase):
                                          0, 1, 1, inv, 0, thresholds)
                     game.draw_game_over(0, 1, killer_info=ki)
         self.assertEqual(call_order, ["draw_game_scene", "draw_game_over"])
+
+
+class TestCardAssetLoading(unittest.TestCase):
+    """Tests for Task 1: card asset loading and TOML parsing."""
+
+    @classmethod
+    def setUpClass(cls):
+        if pygame.display.get_surface() is None:
+            pygame.init()
+            pygame.display.set_mode((1024, 768), pygame.HIDDEN)
+        _load_card_assets()
+
+    def test_card_surface_loaded(self):
+        self.assertIsNotNone(game._card_surface)
+        self.assertGreater(game._card_surface.get_width(), 0)
+        self.assertGreater(game._card_surface.get_height(), 0)
+
+    def test_card_toml_parsed(self):
+        self.assertIsNotNone(game._card_toml)
+        for key in ("icon", "title", "body", "level"):
+            self.assertIn(key, game._card_toml)
+            self.assertIn("x", game._card_toml[key])
+            self.assertIn("y", game._card_toml[key])
+
+    def test_card_toml_values_match_file(self):
+        self.assertEqual(game._card_toml["icon"]["x"], 202)
+        self.assertEqual(game._card_toml["icon"]["y"], 218)
+        self.assertEqual(game._card_toml["title"]["y"], 38)
+        self.assertEqual(game._card_toml["level"]["y"], 621)
+
+    def test_scaled_surface_created(self):
+        self.assertIsNotNone(game._card_scaled_surface)
+        self.assertGreater(game._card_scaled_surface.get_width(), 0)
+        self.assertGreater(game._card_scaled_surface.get_height(), 0)
+
+    def test_scale_factor_reasonable(self):
+        # 3 cards must fit in 1024px, so scale factor should be < 1 and > 0
+        self.assertGreater(game._card_scale_factor, 0)
+        self.assertLess(game._card_scale_factor, 1.0)
+
+    def test_three_cards_fit_on_screen(self):
+        card_w = game._card_scaled_surface.get_width()
+        total = 3 * card_w + 2 * CARD_GAP + 2 * CARD_MARGIN
+        self.assertLessEqual(total, 1024)
+
+    def test_scaled_positions_present(self):
+        self.assertIsNotNone(game._card_scaled_positions)
+        for key in ("icon", "title", "body", "level"):
+            self.assertIn(key, game._card_scaled_positions)
+            x, y = game._card_scaled_positions[key]
+            self.assertGreater(x, 0)
+            self.assertGreater(y, 0)
+
+    def test_panel_dimensions_updated(self):
+        self.assertGreater(game.PANEL_WIDTH, 500)
+        self.assertGreater(game.PANEL_HEIGHT, 350)
 
 
 if __name__ == "__main__":

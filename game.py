@@ -396,6 +396,8 @@ def init_pygame():
     else:
         _tile_renderer = TileRenderer(MAP_WIDTH, MAP_HEIGHT, tile_size=128)
         _tile_renderer.build(_assets.get_tiles("grass"), _assets.get_tiles("ground"))
+    # Step 7: Load upgrade card assets
+    _load_card_assets()
 
 
 def handle_joy_device_added(current_joystick, device_index):
@@ -2169,15 +2171,64 @@ def draw_dim_overlay():
     screen.blit(_dim_overlay, (0, 0))
 
 
-# Upgrade panel constants
-PANEL_WIDTH = 500
-PANEL_HEIGHT = 350
+# Upgrade panel constants (card-based layout)
 PANEL_BG_COLOR = (20, 18, 15, 200)
 PANEL_BORDER_GLOW_LAYERS = 4
-OPTION_ROW_HEIGHT = 55
-OPTION_PADDING = 10
-OPTION_START_Y = 90  # relative to panel top
-ICON_SIZE = 32
+CARD_GAP = 20  # pixels between cards
+CARD_MARGIN = 30  # left/right margin around all cards
+CARD_TITLE_AREA = 70  # vertical space above cards for "Level N!" title
+
+# Card asset globals (populated by _load_card_assets after pygame init)
+_card_surface = None  # original upgrades_card.png surface
+_card_toml = None  # parsed TOML positions dict
+_card_scaled_surface = None  # pre-scaled card surface for rendering
+_card_scale_factor = 1.0  # scale factor applied to cards
+_card_scaled_positions = None  # TOML positions scaled for rendering
+PANEL_WIDTH = 500  # updated by _load_card_assets
+PANEL_HEIGHT = 350  # updated by _load_card_assets
+
+
+def _load_card_assets():
+    """Load card background image and TOML config, compute layout constants."""
+    global _card_surface, _card_toml, _card_scaled_surface, _card_scale_factor
+    global _card_scaled_positions, PANEL_WIDTH, PANEL_HEIGHT
+
+    # Load card background image
+    card_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "upgrades", "upgrades_card.png")
+    _card_surface = pygame.image.load(card_path).convert_alpha()
+
+    # Parse TOML config
+    toml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "assets", "upgrades", "upgrades_card.toml")
+    with open(toml_path, "rb") as f:
+        _card_toml = tomllib.load(f)
+
+    # Card dimensions from loaded image
+    card_w = _card_surface.get_width()
+    card_h = _card_surface.get_height()
+
+    # Calculate scale factor: 3 cards + gaps + margins must fit in screen width
+    available_width = WIDTH - 2 * CARD_MARGIN
+    target_card_width = (available_width - 2 * CARD_GAP) / 3
+    _card_scale_factor = target_card_width / card_w
+
+    # Pre-scale card surface
+    scaled_w = int(card_w * _card_scale_factor)
+    scaled_h = int(card_h * _card_scale_factor)
+    _card_scaled_surface = pygame.transform.smoothscale(_card_surface, (scaled_w, scaled_h))
+
+    # Pre-scale TOML positions
+    _card_scaled_positions = {}
+    for key in ("icon", "title", "body", "level"):
+        _card_scaled_positions[key] = (
+            int(_card_toml[key]["x"] * _card_scale_factor),
+            int(_card_toml[key]["y"] * _card_scale_factor),
+        )
+
+    # Update panel dimensions
+    PANEL_WIDTH = 3 * scaled_w + 2 * CARD_GAP + 2 * CARD_MARGIN
+    PANEL_HEIGHT = scaled_h + CARD_TITLE_AREA + CARD_MARGIN
 
 
 def create_upgrade_icon(option):
