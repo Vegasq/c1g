@@ -394,12 +394,20 @@ class AssetManager:
                 self.load_static(item_name, ASSET_CONFIG[item_name], icon_size)
 
         # Obstacle sprites — destroyed vehicles + outside objects (rocks, logs, trees)
-        vehicles = []
+        # Store as (surface, max_game_size) tuples for aspect-ratio-aware scaling
+        self._obstacle_entries = []
         for vkey in ("vehicle_car", "vehicle_tank", "vehicle_armored",
                      "vehicle_pickup", "vehicle_compact_tank"):
-            vehicles.append(self._load_image(self._abs_path(ASSET_CONFIG[vkey])))
+            surf = self._load_image(self._abs_path(ASSET_CONFIG[vkey]))
+            self._obstacle_entries.append((surf, 120))  # vehicles: max 120px
         outside_surfs = self.load_obstacle_set(ASSET_CONFIG["obstacle_outside"], max_count=25)
-        self._obstacle_surfaces = vehicles + outside_surfs
+        for surf in outside_surfs:
+            ow, oh = surf.get_size()
+            # Large objects (trees, wrecks) vs small objects (rocks, barrels)
+            max_dim = 80 if max(ow, oh) < 600 else 110
+            self._obstacle_entries.append((surf, max_dim))
+        # Keep legacy field for backward compat with any external code
+        self._obstacle_surfaces = [e[0] for e in self._obstacle_entries]
 
         # UI backgrounds
         self.load_static("ui_background", ASSET_CONFIG["ui_background"], screen_size)
@@ -409,14 +417,32 @@ class AssetManager:
         self.load_static("commander_icon", ASSET_CONFIG["commander_icon"], (128, 128))
 
     def get_random_obstacle_sprite(self, width, height, seed=0):
-        """Get a random obstacle sprite scaled to fit the given dimensions."""
-        if not self._obstacle_surfaces:
+        """Get a random obstacle sprite scaled preserving aspect ratio.
+
+        Returns (surface, actual_width, actual_height) where the sprite fits
+        within the requested bounds while maintaining its original proportions.
+        """
+        if not self._obstacle_entries:
             fallback = pygame.Surface((width, height), pygame.SRCALPHA)
             fallback.fill((60, 50, 40, 220))
-            return fallback
+            return fallback, width, height
         rng = random.Random(seed)
-        surf = rng.choice(self._obstacle_surfaces)
-        return pygame.transform.smoothscale(surf, (width, height))
+        surf, max_size = rng.choice(self._obstacle_entries)
+        ow, oh = surf.get_size()
+        if ow <= 0 or oh <= 0:
+            fallback = pygame.Surface((width, height), pygame.SRCALPHA)
+            fallback.fill((60, 50, 40, 220))
+            return fallback, width, height
+        # Scale to fit within max_size while preserving aspect ratio
+        aspect = ow / oh
+        if aspect >= 1:  # wider than tall
+            tw = min(width, max_size)
+            th = max(1, int(tw / aspect))
+        else:  # taller than wide
+            th = min(height, max_size)
+            tw = max(1, int(th * aspect))
+        scaled = pygame.transform.smoothscale(surf, (tw, th))
+        return scaled, tw, th
 
 
 # ---------------------------------------------------------------------------

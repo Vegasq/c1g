@@ -765,7 +765,7 @@ class Obstacle:
         self._sprite = None
         if _assets is not None:
             seed = int(x * 1000 + y)
-            self._sprite = _assets.get_random_obstacle_sprite(w, h, seed=seed)
+            self._sprite, self.w, self.h = _assets.get_random_obstacle_sprite(w, h, seed=seed)
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
