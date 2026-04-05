@@ -9,8 +9,9 @@ git pull
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv venv
-    echo "Installing pygame..."
-    venv/bin/pip install pygame
 fi
+
+echo "Installing dependencies..."
+venv/bin/pip install -q pygame-ce pytmx
 
 exec venv/bin/python game.py "$@"
