@@ -2686,17 +2686,23 @@ def draw_intro_screen():
     screen.blit(title_shadow, (tx + 2, 42))
     screen.blit(title, (tx, 40))
 
+    # Commander label
+    cmd_label = hud_font_small.render("Gen. Kovalenko", True, (160, 140, 100))
+    if commander:
+        screen.blit(cmd_label, (portrait_x + 64 - cmd_label.get_width() // 2, portrait_y + 136))
+
     # Story text
     story = (
-        "Airplain that was carrying a nuclear device has crashed in the combat zone. "
-        "Soldier, we have a critical situation. Russian zomboids are invading. "
-        "Command has authorized the use of a nuclear device, but it was "
-        "disassembled and scattered across the combat zone. "
-        "Your objective is to find all 10 parts of the nuclear bomb. "
-        "As our scientists locate each part, we will send coordinates to you. "
-        "Gather supplies and weapons as enemies close in. "
-        "Recruit local population to fight the zomboid menace. "
-        "Stay strong and godspeed."
+        "Colonel Vinnyk, the situation is critical. "
+        "SBU operation to deliver a nuclear device to moscow has been compromised. "
+        "russian air defense shot down our transport plane over the combat zone. "
+        "The bomb broke apart on impact - 10 components are now scattered across "
+        "hostile territory swarming with russian zomboids. "
+        "Our scientists are working to triangulate the location of each component. "
+        "As they identify positions, coordinates will be relayed to you directly. "
+        "Arm yourself, gather supplies, and recruit any surviving locals. "
+        "The mission to destroy moscow must not fail. "
+        "Slava Ukraini, Colonel. Do not let us down."
     )
 
     text_x = 220
@@ -2714,10 +2720,10 @@ def draw_intro_screen():
     screen.blit(obj_title, (text_x, obj_y))
     obj_y += 35
     objectives = [
-        "Locate and collect 10 nuclear bomb parts",
-        "Eliminate hostile zomboids",
-        "Recruit allies to strengthen your squad",
-        "Survive at all costs",
+        "Recover all 10 nuclear bomb components",
+        "Eliminate russian zomboids",
+        "Recruit local survivors to your squad",
+        "Complete the mission at all costs",
     ]
     for obj in objectives:
         dot = hud_font_small.render(f"  > {obj}", True, (180, 170, 150))
@@ -2751,14 +2757,20 @@ def draw_victory_screen(score, bomb_parts, killer_count):
     screen.blit(title_shadow, (tx + 2, 42))
     screen.blit(title, (tx, 40))
 
+    # Commander label
+    cmd_label = hud_font_small.render("Gen. Kovalenko", True, (100, 160, 100))
+    if commander:
+        screen.blit(cmd_label, (portrait_x + 64 - cmd_label.get_width() // 2, portrait_y + 136))
+
     # Victory text
     victory = (
-        f"Outstanding work, soldier! All {bomb_parts} parts of the nuclear "
-        "device have been recovered and assembled. "
-        f"During your mission you eliminated {killer_count} Russian zomboids. "
-        "The bomb is being deployed to Moscow as we speak. "
-        "Your bravery will not be forgotten. "
-        "The world owes you a debt of gratitude."
+        f"Colonel Vinnyk, outstanding work. All {bomb_parts} components of the "
+        "nuclear device have been recovered and reassembled. "
+        f"During the operation you eliminated {killer_count} russian zomboids. "
+        "The bomb is being loaded onto a drone and deployed to moscow as we speak. "
+        "The kremlin will be nothing but a glowing crater by morning. "
+        "Ukraine will remember your sacrifice, Colonel. "
+        "Slava Ukraini. Heroiam Slava."
     )
 
     text_x = 220
