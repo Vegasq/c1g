@@ -817,12 +817,37 @@ class Obstacle:
 
 
 class EscapeRoom:
+    _crate_images = None
+
+    @classmethod
+    def _load_crate_images(cls):
+        if cls._crate_images is None:
+            crate_dir = os.path.join(os.path.dirname(__file__), "assets", "crates")
+            cls._crate_images = []
+            for fname in sorted(os.listdir(crate_dir)):
+                if fname.lower().endswith(".png"):
+                    img = pygame.image.load(os.path.join(crate_dir, fname)).convert_alpha()
+                    cls._crate_images.append(img)
+
+    def _pick_random_image(self):
+        EscapeRoom._load_crate_images()
+        if EscapeRoom._crate_images:
+            padding = 8
+            raw = random.choice(EscapeRoom._crate_images)
+            target_w = self.w - padding * 2
+            target_h = self.h - padding * 2
+            self.image = pygame.transform.smoothscale(raw, (target_w, target_h))
+        else:
+            self.image = None
+
     def __init__(self, x, y, w=120, h=120):
         self.x = x
         self.y = y
         self.w = w
         self.h = h
         self.pulse_timer = 0
+        self.image = None
+        self._pick_random_image()
 
     def draw(self, camera):
         sx, sy = camera.apply(self.x, self.y)
@@ -837,12 +862,9 @@ class EscapeRoom:
         pygame.draw.rect(screen, ESCAPE_ROOM_COLOR, (sx, sy, self.w, self.h))
         border_col = tuple(int(c * pulse) for c in ESCAPE_ROOM_BORDER)
         pygame.draw.rect(screen, border_col, (sx, sy, self.w, self.h), 3)
-        # Cross symbol in center
-        cx_s = sx + self.w // 2
-        cy_s = sy + self.h // 2
-        cross_size = min(self.w, self.h) // 4
-        pygame.draw.line(screen, border_col, (cx_s - cross_size, cy_s), (cx_s + cross_size, cy_s), 3)
-        pygame.draw.line(screen, border_col, (cx_s, cy_s - cross_size), (cx_s, cy_s + cross_size), 3)
+        # Draw crate image on top with 8px padding
+        if self.image:
+            screen.blit(self.image, (sx + 8, sy + 8))
 
     def collides_circle(self, cx, cy, radius):
         closest_x = max(self.x, min(cx, self.x + self.w))
@@ -909,6 +931,7 @@ class EscapeRoom:
             if not overlap:
                 self.x = x
                 self.y = y
+                self._pick_random_image()
                 return
         # Fallback: relaxed placement (skip obstacle check, keep spawn-safe)
         for _attempt in range(50):
@@ -919,9 +942,11 @@ class EscapeRoom:
             if math.hypot(cx - spawn_center_x, cy - spawn_center_y) >= spawn_safe_radius:
                 self.x = x
                 self.y = y
+                self._pick_random_image()
                 return
         self.x = random.randint(50, MAP_WIDTH - self.w - 50)
         self.y = random.randint(50, MAP_HEIGHT - self.h - 50)
+        self._pick_random_image()
 
 
 def generate_obstacles(count=30):
