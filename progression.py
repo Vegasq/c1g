@@ -109,7 +109,7 @@ def compute_ally_spawn_chance(level):
 
 def compute_heal_amount(level):
     """Compute health pickup restore amount at given upgrade level."""
-    return 1 + int(level * 0.6)
+    return 1 + level
 
 
 def compute_weapon_stats(level):
