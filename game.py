@@ -1348,6 +1348,29 @@ def get_enemy_type_for_wave(wave):
     return "basic"
 
 
+class DeathEffect:
+    """Visual-only death animation that plays once and disappears."""
+
+    def __init__(self, x, y, facing_angle, sprite):
+        self.x = x
+        self.y = y
+        self.facing_angle = facing_angle
+        self.sprite = sprite
+        self.finished = False
+        self.sprite.reset()
+
+    def update(self):
+        self.sprite.update()
+        if self.sprite.frame_index >= len(self.sprite.frames) - 1:
+            self.finished = True
+
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        frame = self.sprite.get_rotated_frame(self.facing_angle)
+        fw, fh = frame.get_size()
+        screen.blit(frame, (sx - fw // 2, sy - fh // 2))
+
+
 class Enemy:
     _next_id = 0
 
@@ -1427,9 +1450,11 @@ class Enemy:
         if _assets is not None:
             self.sprite_walk = _assets.get_animation(f"enemy_{enemy_type}_walk")
             self.sprite_attack = _assets.get_animation(f"enemy_{enemy_type}_attack")
+            self.sprite_death = _assets.get_animation(f"enemy_{enemy_type}_death")
         else:
             self.sprite_walk = None
             self.sprite_attack = None
+            self.sprite_death = None
 
     def update(self, target, enemy_bullets=None):
         dx, dy = target.x - self.x, target.y - self.y
@@ -1924,7 +1949,8 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
                     escape_rooms=None, escape_flash_timer=0,
-                    enemy_bullets=None, explosion_effects=None):
+                    enemy_bullets=None, explosion_effects=None,
+                    death_effects=None):
     """Draw the full game scene (background, entities, HUD)."""
     screen.fill(BG)
     draw_grid(camera)
@@ -1945,6 +1971,10 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
     for e in enemies:
         if _is_visible(camera, e.x, e.y):
             e.draw(camera)
+    if death_effects:
+        for de in death_effects:
+            if _is_visible(camera, de.x, de.y):
+                de.draw(camera)
     if health_pickups:
         for hp_pickup in health_pickups:
             if _is_visible(camera, hp_pickup.x, hp_pickup.y):
@@ -2592,6 +2622,7 @@ def run():
     health_pickups = []
     heal_effects = []
     explosion_effects = []
+    death_effects = []
     escape_flash_timer = 0
     score = 0
     spawn_timer = 0
@@ -2620,7 +2651,7 @@ def run():
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies
-        nonlocal bullets, enemy_bullets, health_pickups, heal_effects, explosion_effects, score
+        nonlocal bullets, enemy_bullets, health_pickups, heal_effects, explosion_effects, death_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
@@ -2639,6 +2670,7 @@ def run():
         health_pickups = []
         heal_effects = []
         explosion_effects = []
+        death_effects = []
         escape_flash_timer = 0
         score = 0
         spawn_timer = 0
@@ -2985,7 +3017,8 @@ def run():
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
                             escape_flash_timer, enemy_bullets=enemy_bullets,
-                            explosion_effects=explosion_effects)
+                            explosion_effects=explosion_effects,
+                            death_effects=death_effects)
             if death_review_data:
                 draw_death_review(death_review_data)
             clock.tick(FPS)
@@ -2996,7 +3029,8 @@ def run():
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
                             escape_flash_timer, enemy_bullets=enemy_bullets,
-                            explosion_effects=explosion_effects)
+                            explosion_effects=explosion_effects,
+                            death_effects=death_effects)
             draw_game_over(score, level, killer_info=killer_info)
             clock.tick(FPS)
             continue
@@ -3006,7 +3040,8 @@ def run():
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
                             escape_flash_timer, enemy_bullets=enemy_bullets,
-                            explosion_effects=explosion_effects)
+                            explosion_effects=explosion_effects,
+                            death_effects=death_effects)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -3251,6 +3286,8 @@ def run():
                         killed += 1
                         xp_earned += e.xp_value
                         dead_enemies.append((e.x, e.y, e.enemy_type))
+                        if e.sprite_death:
+                            death_effects.append(DeathEffect(e.x, e.y, e.facing_angle, e.sprite_death))
                         run_stats["weapon_kills"][wt] = run_stats["weapon_kills"].get(wt, 0) + 1
                         run_stats["wave_kills"] += 1
                         if e.enemy_type == "splitter":
@@ -3282,6 +3319,8 @@ def run():
                             killed += 1
                             xp_earned += e.xp_value
                             dead_enemies.append((e.x, e.y, e.enemy_type))
+                            if e.sprite_death:
+                                death_effects.append(DeathEffect(e.x, e.y, e.facing_angle, e.sprite_death))
                             run_stats["weapon_kills"]["explosive"] = run_stats["weapon_kills"].get("explosive", 0) + 1
                             run_stats["wave_kills"] += 1
                             if e.enemy_type == "splitter":
@@ -3400,6 +3439,10 @@ def run():
         heal_effects = [(x, y, t - 1) for x, y, t in heal_effects if t > 0]
         # Update explosion effects (countdown timer)
         explosion_effects = [(x, y, t - 1, r) for x, y, t, r in explosion_effects if t > 0]
+        # Update death animations
+        for de in death_effects:
+            de.update()
+        death_effects = [de for de in death_effects if not de.finished]
 
         if player.hp <= 0:
             player.invulnerable_timer = 0

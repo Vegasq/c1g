@@ -72,6 +72,16 @@ ASSET_CONFIG = {
     "enemy_elite_walk": os.path.join(_MONSTER_BASE, "4LVL", "Boss1", "Walk"),
     "enemy_elite_attack": os.path.join(_MONSTER_BASE, "4LVL", "Boss1", "Attack_1"),
 
+    # Enemy death animations
+    "enemy_basic_death": os.path.join(_ZOMBIE_BASE, "1LVL", "Zombie3_male", "Death"),
+    "enemy_runner_death": os.path.join(_ZOMBIE_BASE, "1LVL", "Zombie1_female", "Death"),
+    "enemy_mini_death": os.path.join(_ZOMBIE_BASE, "1LVL", "Zombie2_female", "Death"),
+    "enemy_shielded_death": os.path.join(_ZOMBIE_BASE, "2LVL", "Army_zombie", "Death"),
+    "enemy_splitter_death": os.path.join(_ZOMBIE_BASE, "2LVL", "Cop_Zombie", "Death"),
+    "enemy_brute_death": os.path.join(_MONSTER_BASE, "3LVL", "Zombie_big_hands", "Death"),
+    "enemy_shooter_death": os.path.join(_MONSTER_BASE, "3LVL", "Zpmbie_big_head", "Death"),
+    "enemy_elite_death": os.path.join(_MONSTER_BASE, "4LVL", "Boss1", "Death"),
+
     # Tiles
     "tile_grass": os.path.join(_TILE_BASE, "Tiles&Details", "PNG", "Grass_tiles"),
     "tile_ground": os.path.join(_TILE_BASE, "Tiles&Details", "PNG", "Ground_tiles"),
@@ -361,6 +371,9 @@ class AssetManager:
             attack_key = f"enemy_{etype}_attack"
             if attack_key in ASSET_CONFIG:
                 self.load_animation(attack_key, ASSET_CONFIG[attack_key], size, frame_speed=4)
+            death_key = f"enemy_{etype}_death"
+            if death_key in ASSET_CONFIG:
+                self.load_animation(death_key, ASSET_CONFIG[death_key], size, frame_speed=5)
 
         # Tiles — 128x128 matching game grid
         tile_size = (128, 128)
