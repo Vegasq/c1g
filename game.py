@@ -367,7 +367,11 @@ def init_pygame():
     # Step 3: Load saved settings or use detected defaults
     load_settings()
     # Step 4: Create window with correct flags
-    WIDTH, HEIGHT = SUPPORTED_RESOLUTIONS[options_resolution_index]
+    # Fullscreen always uses native desktop resolution; saved resolution only applies to windowed
+    if options_fullscreen and _native_resolution:
+        WIDTH, HEIGHT = _native_resolution
+    else:
+        WIDTH, HEIGHT = SUPPORTED_RESOLUTIONS[options_resolution_index]
     flags = pygame.FULLSCREEN | pygame.SCALED if options_fullscreen else pygame.SCALED
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
@@ -445,6 +449,9 @@ options_resolution_index = 1  # default 1024x768
 options_fullscreen = True
 
 
+_native_resolution = None  # Cached native desktop resolution
+
+
 def detect_native_resolution():
     """Detect native display resolution and add it to SUPPORTED_RESOLUTIONS.
 
@@ -454,7 +461,7 @@ def detect_native_resolution():
     Returns the (width, height) tuple of the native resolution.
     Updates options_resolution_index to point to the native resolution.
     """
-    global options_resolution_index
+    global options_resolution_index, _native_resolution
     try:
         desktop_sizes = pygame.display.get_desktop_sizes()
     except (pygame.error, AttributeError):
@@ -469,6 +476,7 @@ def detect_native_resolution():
     native_res = desktop_sizes[0]  # primary display
     if native_res[0] <= 0 or native_res[1] <= 0:
         return None
+    _native_resolution = native_res
     if native_res not in SUPPORTED_RESOLUTIONS:
         SUPPORTED_RESOLUTIONS.append(native_res)
         SUPPORTED_RESOLUTIONS.sort(key=lambda r: r[0] * r[1])
@@ -1116,6 +1124,7 @@ class Unit:
         self.lifetime = -1 if is_player else self.ALLY_LIFETIME
         self.invulnerable_timer = 0
         self.player_speed = self.PLAYER_SPEED  # instance attr, overridable by profile
+        self.shoot_target = None  # current enemy being shot at (for facing)
         self.facing_angle = 0.0  # degrees, 0 = up
         self.anim_state = "idle"
         self._prev_x = float(x)
@@ -1207,15 +1216,20 @@ class Unit:
                                   lifetime=bullet_range, weapon_type=weapon_type))
 
     def _update_anim_state(self):
-        """Update animation state and facing angle based on movement."""
+        """Update animation state and facing angle based on movement or shoot target."""
         dx = self.x - self._prev_x
         dy = self.y - self._prev_y
         if abs(dx) > 0.1 or abs(dy) > 0.1:
             self.anim_state = "walk"
-            # Convert movement direction to degrees (0 = up)
-            self.facing_angle = math.degrees(math.atan2(dy, dx)) + 270
+            if self.shoot_target is None:
+                self.facing_angle = math.degrees(math.atan2(dy, dx)) + 270
         else:
             self.anim_state = "idle"
+        # Face shoot target when one exists (gun points at enemy)
+        if self.shoot_target is not None:
+            tdx = self.shoot_target.x - self.x
+            tdy = self.shoot_target.y - self.y
+            self.facing_angle = math.degrees(math.atan2(tdy, tdx)) + 270
         self._prev_x = self.x
         self._prev_y = self.y
 
@@ -1910,7 +1924,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     score, wave, level, weapon_inventory, xp, xp_thresholds,
                     health_pickups=None, heal_effects=None,
                     escape_rooms=None, escape_flash_timer=0,
-                    enemy_bullets=None):
+                    enemy_bullets=None, explosion_effects=None):
     """Draw the full game scene (background, entities, HUD)."""
     screen.fill(BG)
     draw_grid(camera)
@@ -1946,6 +1960,23 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                 alpha = int(120 * alpha_frac)
                 pygame.draw.circle(heal_surf, (180, 40, 40, alpha), (r, r), r)
                 screen.blit(heal_surf, (sx - r, sy - r))
+    # Explosion area-of-effect indicators
+    if explosion_effects:
+        for ex, ey, et, e_radius in explosion_effects:
+            if _is_visible(camera, ex, ey, margin=e_radius + 20):
+                sx, sy = camera.apply(ex, ey)
+                frac = et / 20  # 20 frames total
+                # Ring expanding outward as time passes
+                ring_r = int(e_radius * (0.3 + 0.7 * (1.0 - frac)))
+                alpha = max(10, int(200 * frac))
+                dim = (e_radius + 10) * 2
+                expl_surf = pygame.Surface((dim, dim), pygame.SRCALPHA)
+                center = dim // 2
+                # Filled circle (warm orange, semi-transparent)
+                pygame.draw.circle(expl_surf, (255, 140, 30, alpha // 2), (center, center), ring_r)
+                # Outer ring (bright)
+                pygame.draw.circle(expl_surf, (255, 200, 50, alpha), (center, center), ring_r, 3)
+                screen.blit(expl_surf, (sx - center, sy - center))
     for a in allies:
         if _is_visible(camera, a.x, a.y):
             a.draw(camera)
@@ -2220,8 +2251,12 @@ def get_hovered_upgrade_index(mouse_x, mouse_y, num_options):
 def apply_resolution():
     """Apply the current resolution and fullscreen settings."""
     global screen, WIDTH, HEIGHT, options_fullscreen, _menu_background, _fade_overlay, _dim_overlay
-    res = SUPPORTED_RESOLUTIONS[options_resolution_index]
-    WIDTH, HEIGHT = res
+    # Fullscreen always uses native desktop resolution
+    if options_fullscreen and _native_resolution:
+        WIDTH, HEIGHT = _native_resolution
+    else:
+        res = SUPPORTED_RESOLUTIONS[options_resolution_index]
+        WIDTH, HEIGHT = res
     flags = pygame.FULLSCREEN | pygame.SCALED if options_fullscreen else pygame.SCALED
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
@@ -2260,10 +2295,13 @@ def draw_options_menu():
     screen.blit(title_shadow, (tx + 2, ty + 2))
     screen.blit(title, (tx, ty))
 
+    if options_fullscreen:
+        res_label = f"{_native_resolution[0]}x{_native_resolution[1]} (native)" if _native_resolution else "Native"
+    else:
+        res_label = (f"{SUPPORTED_RESOLUTIONS[options_resolution_index][0]}x"
+                     f"{SUPPORTED_RESOLUTIONS[options_resolution_index][1]}")
     items = [
-        ("Resolution",
-         f"{SUPPORTED_RESOLUTIONS[options_resolution_index][0]}x"
-         f"{SUPPORTED_RESOLUTIONS[options_resolution_index][1]}"),
+        ("Resolution", res_label),
         ("Fullscreen", "On" if options_fullscreen else "Off"),
         ("Reset Profile", ""),
         ("Back", ""),
@@ -2553,6 +2591,7 @@ def run():
     enemy_bullets = []
     health_pickups = []
     heal_effects = []
+    explosion_effects = []
     escape_flash_timer = 0
     score = 0
     spawn_timer = 0
@@ -2581,7 +2620,7 @@ def run():
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies
-        nonlocal bullets, enemy_bullets, health_pickups, heal_effects, score
+        nonlocal bullets, enemy_bullets, health_pickups, heal_effects, explosion_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
@@ -2599,6 +2638,7 @@ def run():
         enemy_bullets = []
         health_pickups = []
         heal_effects = []
+        explosion_effects = []
         escape_flash_timer = 0
         score = 0
         spawn_timer = 0
@@ -2706,7 +2746,7 @@ def run():
                         options_selected_index = (options_selected_index + 1) % 4
                     elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                         direction = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
-                        if options_selected_index == 0:
+                        if options_selected_index == 0 and not options_fullscreen:
                             options_resolution_index = (
                                 options_resolution_index + direction
                             ) % len(SUPPORTED_RESOLUTIONS)
@@ -2788,7 +2828,7 @@ def run():
                         elif menu_selected_index == 2:  # QUIT
                             running = False
                     elif state == STATE_OPTIONS:
-                        if options_selected_index == 0:  # Resolution - cycle
+                        if options_selected_index == 0 and not options_fullscreen:
                             options_resolution_index = (
                                 options_resolution_index + 1
                             ) % len(SUPPORTED_RESOLUTIONS)
@@ -2837,7 +2877,7 @@ def run():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if state == STATE_OPTIONS:
                     idx = get_hovered_options_index(event.pos[0], event.pos[1])
-                    if idx == 0:  # Resolution - cycle forward
+                    if idx == 0 and not options_fullscreen:  # Resolution - cycle (windowed only)
                         options_resolution_index = (
                             options_resolution_index + 1
                         ) % len(SUPPORTED_RESOLUTIONS)
@@ -2915,7 +2955,7 @@ def run():
                         options_selected_index = (options_selected_index + (1 if nav_y > 0 else -1)) % 3
                     elif nav_x:
                         direction = 1 if nav_x > 0 else -1
-                        if current_options_idx == 0:
+                        if current_options_idx == 0 and not options_fullscreen:
                             options_resolution_index = (
                                 (options_resolution_index + direction)
                                 % len(SUPPORTED_RESOLUTIONS))
@@ -2944,7 +2984,8 @@ def run():
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
-                            escape_flash_timer, enemy_bullets=enemy_bullets)
+                            escape_flash_timer, enemy_bullets=enemy_bullets,
+                            explosion_effects=explosion_effects)
             if death_review_data:
                 draw_death_review(death_review_data)
             clock.tick(FPS)
@@ -2954,7 +2995,8 @@ def run():
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
-                            escape_flash_timer, enemy_bullets=enemy_bullets)
+                            escape_flash_timer, enemy_bullets=enemy_bullets,
+                            explosion_effects=explosion_effects)
             draw_game_over(score, level, killer_info=killer_info)
             clock.tick(FPS)
             continue
@@ -2963,7 +3005,8 @@ def run():
             draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                             score, wave, level, weapon_inventory, xp, xp_thresholds,
                             health_pickups, heal_effects, escape_rooms,
-                            escape_flash_timer, enemy_bullets=enemy_bullets)
+                            escape_flash_timer, enemy_bullets=enemy_bullets,
+                            explosion_effects=explosion_effects)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -3136,7 +3179,10 @@ def run():
             target = find_closest_enemy(u, enemies)
             if target:
                 ws = weapon_inventory if u.is_player else None
+                u.shoot_target = target
                 u.shoot_at(target, bullets, weapon_stats=ws)
+            else:
+                u.shoot_target = None
 
         # Update bullets
         for b in bullets:
@@ -3217,6 +3263,8 @@ def run():
         # Explosive area damage (skip enemies already hit directly by the bullet)
         EXPLOSIVE_RADIUS = BALANCE.get("weapons", {}).get("explosive", {}).get("radius", 60)
         for ex, ey, edmg, direct_hit_uid in explosive_hits:
+            # Spawn visual explosion effect (x, y, timer, radius)
+            explosion_effects.append((ex, ey, 20, EXPLOSIVE_RADIUS))
             surviving_after_explosion = []
             for e in enemies:
                 if e.uid != direct_hit_uid and math.hypot(e.x - ex, e.y - ey) < EXPLOSIVE_RADIUS:
@@ -3350,6 +3398,8 @@ def run():
 
         # Update heal effects (countdown timer)
         heal_effects = [(x, y, t - 1) for x, y, t in heal_effects if t > 0]
+        # Update explosion effects (countdown timer)
+        explosion_effects = [(x, y, t - 1, r) for x, y, t, r in explosion_effects if t > 0]
 
         if player.hp <= 0:
             player.invulnerable_timer = 0
@@ -3397,7 +3447,8 @@ def run():
                         score, wave, level, weapon_inventory, xp, xp_thresholds,
                         health_pickups, heal_effects,
                         escape_rooms, escape_flash_timer,
-                        enemy_bullets=enemy_bullets)
+                        enemy_bullets=enemy_bullets,
+                        explosion_effects=explosion_effects)
 
         pygame.display.flip()
         clock.tick(FPS)
