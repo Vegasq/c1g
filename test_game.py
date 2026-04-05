@@ -1845,8 +1845,12 @@ class TestDetectNativeResolution(unittest.TestCase):
         # Reset to known base state
         game.SUPPORTED_RESOLUTIONS[:] = [
             (800, 600), (1024, 768), (1280, 720), (1920, 1080)]
+        # Disable macOS Retina detection so pygame mocks control the result
+        self._retina_patcher = patch('game._detect_macos_retina_resolution', return_value=None)
+        self._retina_patcher.start()
 
     def tearDown(self):
+        self._retina_patcher.stop()
         game.SUPPORTED_RESOLUTIONS[:] = self._saved_resolutions
         game.options_resolution_index = self._orig_res_index
         game.options_fullscreen = self._orig_fullscreen

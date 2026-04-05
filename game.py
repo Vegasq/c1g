@@ -372,7 +372,7 @@ def init_pygame():
         WIDTH, HEIGHT = _native_resolution
     else:
         WIDTH, HEIGHT = SUPPORTED_RESOLUTIONS[options_resolution_index]
-    flags = pygame.FULLSCREEN | pygame.SCALED if options_fullscreen else pygame.SCALED
+    flags = pygame.FULLSCREEN if options_fullscreen else pygame.SCALED
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
     except pygame.error:
@@ -459,12 +459,35 @@ options_fullscreen = True
 _native_resolution = None  # Cached native desktop resolution
 
 
+def _detect_macos_retina_resolution():
+    """Query macOS for the true physical pixel resolution of the primary display."""
+    import platform
+    if platform.system() != "Darwin":
+        return None
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["system_profiler", "SPDisplaysDataType"],
+            capture_output=True, text=True, timeout=5)
+        for line in result.stdout.splitlines():
+            if "Resolution" in line and "Retina" in line:
+                parts = line.split()
+                # Format: "Resolution: 2880 x 1864 Retina"
+                w_idx = parts.index("Resolution:") + 1
+                w = int(parts[w_idx])
+                h = int(parts[w_idx + 2])  # skip "x"
+                return (w, h)
+    except Exception:
+        pass
+    return None
+
+
 def detect_native_resolution():
     """Detect native display resolution and add it to SUPPORTED_RESOLUTIONS.
 
     Must be called after pygame.init() but before pygame.display.set_mode().
-    Uses get_desktop_sizes() (recommended over display.Info()) for correct
-    resolution on macOS Retina/HiDPI displays.
+    On macOS Retina displays, queries the true physical pixel resolution
+    since pygame reports the scaled logical resolution.
     Returns the (width, height) tuple of the native resolution.
     Updates options_resolution_index to point to the native resolution.
     """
@@ -472,7 +495,6 @@ def detect_native_resolution():
     try:
         desktop_sizes = pygame.display.get_desktop_sizes()
     except (pygame.error, AttributeError):
-        # Fallback for older pygame without get_desktop_sizes
         try:
             info = pygame.display.Info()
             desktop_sizes = [(info.current_w, info.current_h)]
@@ -480,15 +502,21 @@ def detect_native_resolution():
             return None
     if not desktop_sizes:
         return None
-    native_res = desktop_sizes[0]  # primary display
+    native_res = desktop_sizes[0]
     if native_res[0] <= 0 or native_res[1] <= 0:
         return None
-    _native_resolution = native_res
-    if native_res not in SUPPORTED_RESOLUTIONS:
-        SUPPORTED_RESOLUTIONS.append(native_res)
+    # On macOS Retina displays, pygame reports logical (point) resolution.
+    # Try to get the true physical pixel resolution instead.
+    retina_res = _detect_macos_retina_resolution()
+    if retina_res and retina_res[0] > native_res[0]:
+        _native_resolution = retina_res
+    else:
+        _native_resolution = native_res
+    if _native_resolution not in SUPPORTED_RESOLUTIONS:
+        SUPPORTED_RESOLUTIONS.append(_native_resolution)
         SUPPORTED_RESOLUTIONS.sort(key=lambda r: r[0] * r[1])
-    options_resolution_index = SUPPORTED_RESOLUTIONS.index(native_res)
-    return native_res
+    options_resolution_index = SUPPORTED_RESOLUTIONS.index(_native_resolution)
+    return _native_resolution
 
 
 # Menu configuration
@@ -2443,7 +2471,7 @@ def apply_resolution():
     else:
         res = SUPPORTED_RESOLUTIONS[options_resolution_index]
         WIDTH, HEIGHT = res
-    flags = pygame.FULLSCREEN | pygame.SCALED if options_fullscreen else pygame.SCALED
+    flags = pygame.FULLSCREEN if options_fullscreen else pygame.SCALED
     try:
         screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
     except pygame.error:
