@@ -27,6 +27,11 @@ spread_angle = 30       # half-spread angle in degrees (pellets span ±this from
 [weapons.explosive]
 radius = 60             # explosion area-of-effect radius in pixels
 
+[weapons.mine]
+trigger_radius = 14     # how close an enemy must be to trigger the mine
+explosion_radius = 70   # explosion area-of-effect radius in pixels
+lifetime = 900          # mine lifespan in frames (~15 seconds at 60fps)
+
 [bullets.enemy]
 speed = 4               # enemy bullet travel speed
 radius = 5              # enemy bullet collision radius

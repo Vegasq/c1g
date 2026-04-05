@@ -1224,6 +1224,34 @@ class EnemyBullet:
         pygame.draw.circle(screen, self.COLOR, (sx, sy), self.RADIUS)
 
 
+class Mine:
+    """Stationary mine dropped by the player. Explodes on enemy contact."""
+    _mine_cfg = BALANCE.get("weapons", {}).get("mine", {})
+    RADIUS = _mine_cfg.get("trigger_radius", 14)
+    EXPLOSION_RADIUS = _mine_cfg.get("explosion_radius", 70)
+    LIFETIME = _mine_cfg.get("lifetime", 900)  # 15 seconds at 60fps
+    COLOR = (180, 160, 40)
+
+    def __init__(self, x, y, damage=2):
+        self.x = x
+        self.y = y
+        self.damage = damage
+        self.lifetime = self.LIFETIME
+
+    def update(self):
+        self.lifetime -= 1
+
+    def draw(self, camera):
+        sx, sy = camera.apply(self.x, self.y)
+        # Outer ring
+        pygame.draw.circle(screen, (100, 90, 30), (sx, sy), self.RADIUS)
+        # Inner warning dot
+        pygame.draw.circle(screen, self.COLOR, (sx, sy), self.RADIUS - 4)
+        # Blinking center
+        if (self.lifetime // 20) % 2 == 0:
+            pygame.draw.circle(screen, (220, 50, 30), (sx, sy), 3)
+
+
 class Unit:
     _pcfg = BALANCE.get("player", {})
     RADIUS = _pcfg.get("radius", 14)
@@ -1292,6 +1320,8 @@ class Unit:
             # Multi-weapon inventory: fire each weapon on its own cooldown
             dx, dy = target.x - self.x, target.y - self.y
             for ws in weapon_stats:
+                if ws.get("weapon_type") == "mine":
+                    continue  # mines deploy independently, not via shooting
                 if ws.get("cooldown", 0) > 0:
                     ws["cooldown"] -= 1
                     continue
@@ -1758,7 +1788,7 @@ STAT_UPGRADES = _build_stat_upgrades()
 
 _balance_initialized = True
 
-WEAPON_TYPES = ["shotgun", "piercing", "explosive"]
+WEAPON_TYPES = ["shotgun", "piercing", "explosive", "mine"]
 
 
 def get_scaled_amount(stat, base_amount, level):
@@ -1955,6 +1985,7 @@ _WEAPON_TYPE_COLORS = {
     "shotgun": (220, 140, 40),
     "piercing": (140, 200, 220),
     "explosive": (220, 80, 40),
+    "mine": (180, 160, 40),
 }
 
 
@@ -2097,7 +2128,7 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
                     health_pickups=None, heal_effects=None,
                     escape_rooms=None, escape_flash_timer=0,
                     enemy_bullets=None, explosion_effects=None,
-                    death_effects=None, bomb_parts=0):
+                    death_effects=None, bomb_parts=0, mines=None):
     """Draw the full game scene (background, entities, HUD)."""
     global screen, WIDTH, HEIGHT
     zoom = getattr(camera, 'zoom', 1.0)
@@ -2117,6 +2148,10 @@ def draw_game_scene(camera, obstacles, bullets, enemies, allies, player,
         for er in escape_rooms:
             if _is_rect_visible(camera, er.x, er.y, er.w, er.h):
                 er.draw(camera)
+    if mines:
+        for m in mines:
+            if _is_visible(camera, m.x, m.y):
+                m.draw(camera)
     for b in bullets:
         if _is_visible(camera, b.x, b.y):
             b.draw(camera)
@@ -3084,6 +3119,7 @@ def run():
     enemies = []
     bullets = []
     enemy_bullets = []
+    mines = []
     health_pickups = []
     heal_effects = []
     explosion_effects = []
@@ -3117,7 +3153,7 @@ def run():
 
     def reset_game():
         nonlocal camera, player, obstacles, escape_rooms, allies, enemies
-        nonlocal bullets, enemy_bullets, health_pickups, heal_effects, explosion_effects, death_effects, score
+        nonlocal bullets, enemy_bullets, mines, health_pickups, heal_effects, explosion_effects, death_effects, score
         nonlocal spawn_timer, spawn_interval, wave, wave_timer
         nonlocal xp, level, weapon_inventory, upgrade_options, escape_flash_timer
         nonlocal run_stats, run_start_time, total_xp_earned
@@ -3134,6 +3170,7 @@ def run():
         enemies = []
         bullets = []
         enemy_bullets = []
+        mines = []
         health_pickups = []
         heal_effects = []
         explosion_effects = []
@@ -3568,7 +3605,8 @@ def run():
                             escape_flash_timer, enemy_bullets=enemy_bullets,
                             explosion_effects=explosion_effects,
                             death_effects=death_effects,
-                            bomb_parts=bomb_parts_collected)
+                            bomb_parts=bomb_parts_collected,
+                        mines=mines)
             if death_review_data:
                 draw_death_review(death_review_data)
             clock.tick(FPS)
@@ -3581,7 +3619,8 @@ def run():
                             escape_flash_timer, enemy_bullets=enemy_bullets,
                             explosion_effects=explosion_effects,
                             death_effects=death_effects,
-                            bomb_parts=bomb_parts_collected)
+                            bomb_parts=bomb_parts_collected,
+                        mines=mines)
             draw_game_over(score, level, killer_info=killer_info)
             clock.tick(FPS)
             continue
@@ -3593,7 +3632,8 @@ def run():
                             escape_flash_timer, enemy_bullets=enemy_bullets,
                             explosion_effects=explosion_effects,
                             death_effects=death_effects,
-                            bomb_parts=bomb_parts_collected)
+                            bomb_parts=bomb_parts_collected,
+                        mines=mines)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -3711,7 +3751,8 @@ def run():
                 enemy_bullets=enemy_bullets,
                 explosion_effects=explosion_effects,
                 death_effects=death_effects,
-                bomb_parts=bomb_parts_collected)
+                bomb_parts=bomb_parts_collected,
+                mines=mines)
             draw_dim_overlay()
             draw_upgrade_panel(level, upgrade_options)
             pygame.display.flip()
@@ -3779,6 +3820,15 @@ def run():
                 u.shoot_at(target, bullets, weapon_stats=ws)
             else:
                 u.shoot_target = None
+
+        # Deploy mines — mine weapon uses its own cooldown but drops at player position
+        for ws in weapon_inventory:
+            if ws.get("weapon_type") == "mine":
+                if ws.get("cooldown", 0) > 0:
+                    ws["cooldown"] -= 1
+                else:
+                    mines.append(Mine(player.x, player.y, damage=ws["damage"]))
+                    ws["cooldown"] = ws["fire_rate"]
 
         # Update bullets
         for b in bullets:
@@ -3889,6 +3939,43 @@ def run():
                             continue
                 surviving_after_explosion.append(e)
             enemies = surviving_after_explosion
+        # Mine collision — enemy touches mine → AOE explosion
+        triggered_mines = []
+        for m in mines:
+            m.update()
+            for e in enemies:
+                if math.hypot(e.x - m.x, e.y - m.y) < Mine.RADIUS + e.radius:
+                    triggered_mines.append(m)
+                    break
+        for m in triggered_mines:
+            explosion_effects.append((m.x, m.y, 20, Mine.EXPLOSION_RADIUS))
+            surviving_after_mine = []
+            for e in enemies:
+                if math.hypot(e.x - m.x, e.y - m.y) < Mine.EXPLOSION_RADIUS:
+                    if e.shield:
+                        e.shield = False
+                    else:
+                        actual_mdmg = min(m.damage, max(e.hp, 0))
+                        e.hp -= m.damage
+                        run_stats["damage_dealt"] += actual_mdmg
+                        run_stats["wave_damage_dealt"] += actual_mdmg
+                        run_stats["weapon_damage"]["mine"] = (
+                            run_stats["weapon_damage"].get("mine", 0) + actual_mdmg)
+                        if e.hp <= 0:
+                            killed += 1
+                            xp_earned += e.xp_value
+                            dead_enemies.append((e.x, e.y, e.enemy_type))
+                            if e.sprite_death:
+                                death_effects.append(DeathEffect(e.x, e.y, e.facing_angle, e.sprite_death))
+                            run_stats["weapon_kills"]["mine"] = run_stats["weapon_kills"].get("mine", 0) + 1
+                            run_stats["wave_kills"] += 1
+                            if e.enemy_type == "splitter":
+                                split_spawns.append((e.x, e.y))
+                            continue
+                surviving_after_mine.append(e)
+            enemies = surviving_after_mine
+        mines = [m for m in mines if m.lifetime > 0 and m not in triggered_mines]
+
         # Spawn mini enemies from dead splitters
         splitter_cfg = BALANCE.get("splitter", {})
         mini_count = int(splitter_cfg.get("mini_count", 2))
@@ -4054,7 +4141,8 @@ def run():
                         enemy_bullets=enemy_bullets,
                         explosion_effects=explosion_effects,
                         death_effects=death_effects,
-                        bomb_parts=bomb_parts_collected)
+                        bomb_parts=bomb_parts_collected,
+                        mines=mines)
 
         pygame.display.flip()
         clock.tick(FPS)

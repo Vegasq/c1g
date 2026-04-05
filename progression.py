@@ -23,7 +23,7 @@ _UPGRADE_KEYS = [
     "ally_spawn", "heal_amount",
 ]
 
-LOCKABLE_WEAPONS = {"weapon_shotgun", "weapon_piercing", "weapon_explosive"}
+LOCKABLE_WEAPONS = {"weapon_shotgun", "weapon_piercing", "weapon_explosive", "weapon_mine"}
 
 # Weapon type string for each weapon category
 _WEAPON_TYPE_MAP = {
@@ -31,6 +31,7 @@ _WEAPON_TYPE_MAP = {
     "weapon_shotgun": "shotgun",
     "weapon_piercing": "piercing",
     "weapon_explosive": "explosive",
+    "weapon_mine": "mine",
 }
 
 
@@ -112,6 +113,27 @@ def compute_heal_amount(level):
     return 1 + level
 
 
+def compute_mine_stats(level):
+    """Compute mine weapon stats at given upgrade level.
+
+    Returns None if level <= 0 (weapon locked).
+    Level 1 = base stats. Level 2+ = faster deploy and more damage.
+    """
+    if level <= 0:
+        return None
+    base = {
+        "damage": 2,
+        "fire_rate": 180,  # 3 seconds between deploys at 60fps
+        "bullet_speed": 0,
+        "range": 0,
+    }
+    if level == 1:
+        return base
+    base["damage"] += int(level * 0.5)
+    base["fire_rate"] = max(60, base["fire_rate"] - int(15 * level))
+    return base
+
+
 def compute_weapon_stats(level):
     """Compute weapon stats dict at given upgrade level.
 
@@ -178,6 +200,13 @@ UPGRADE_CATEGORIES = {
         "lockable": True,
         "format_value": lambda lvl: _format_weapon(lvl),
     },
+    "weapon_mine": {
+        "name": "Land Mine",
+        "description": "Drop mines that explode\non enemy contact",
+        "compute": compute_mine_stats,
+        "lockable": True,
+        "format_value": lambda lvl: _format_mine(lvl),
+    },
     "ally_spawn": {
         "name": "Ally Spawn Rate",
         "description": "Increase chance of \nally spawning on kill",
@@ -201,6 +230,14 @@ def _format_weapon(level):
     if stats is None:
         return "Locked"
     return f"Damage:{stats['damage']} \nRate:{stats['fire_rate']} \nSpeed:{stats['bullet_speed']}"
+
+
+def _format_mine(level):
+    """Format mine stats for display."""
+    stats = compute_mine_stats(level)
+    if stats is None:
+        return "Locked"
+    return f"Damage:{stats['damage']} \nDeploy:{stats['fire_rate']}f"
 
 
 # ---------------------------------------------------------------------------
@@ -260,7 +297,8 @@ def apply_upgrade(option, run_upgrade_levels, weapon_inventory, player, game_var
 
     elif key.startswith("weapon_"):
         weapon_type = _WEAPON_TYPE_MAP[key]
-        new_stats = compute_weapon_stats(new_level)
+        compute_fn = compute_mine_stats if key == "weapon_mine" else compute_weapon_stats
+        new_stats = compute_fn(new_level)
         if new_stats is None:
             return  # shouldn't happen since new_level >= 1
 
@@ -276,8 +314,8 @@ def apply_upgrade(option, run_upgrade_levels, weapon_inventory, player, game_var
                 if ws.get("weapon_type") == weapon_type:
                     ws["damage"] = new_stats["damage"]
                     ws["fire_rate"] = new_stats["fire_rate"]
-                    ws["bullet_speed"] = new_stats["bullet_speed"]
-                    ws["range"] = new_stats["range"]
+                    ws["bullet_speed"] = new_stats.get("bullet_speed", ws.get("bullet_speed", 0))
+                    ws["range"] = new_stats.get("range", ws.get("range", 0))
                     break
 
     elif key == "ally_spawn":
